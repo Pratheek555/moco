@@ -1,0 +1,30 @@
+appId: app.moco.desktop
+productName: Moco
+directories:
+  output: release
+  buildResources: resources
+files:
+  - out/**
+  - package.json
+extraResources:
+  - from: resources/icon.png
+    to: icon.png
+  - from: ../../packages/renderer/build
+    to: remotion-bundle
+  - from: ../../packages/renderer/node_modules/.remotion/chrome-headless-shell
+    to: render-browser
+asarUnpack:
+  - "**/node_modules/@remotion/compositor-*/**"
+  - "**/node_modules/@remotion/renderer/**"
+win:
+  target: nsis
+  icon: resources/icon.ico
+nsis:
+  oneClick: false
+  allowToChangeInstallationDirectory: true
+mac:
+  target: dmg
+  category: public.app-category.video
+linux:
+  target: AppImage
+  category: Video

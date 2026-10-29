@@ -1,7 +1,12 @@
 node_modules/
 dist/
 out/
+build/
+release/
+.remotion/
 *.mp4
+*.tsbuildinfo
 .env
+artifacts/
 projects/*
 !projects/README.md

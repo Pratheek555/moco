@@ -1,5 +1,29 @@
 {
   "name": "moco",
   "private": true,
-  "workspaces": ["apps/*", "packages/*"]
+  "type": "module",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run bundle -w @moco/renderer && npm run dev -w @moco/desktop",
+    "start": "npm run start -w @moco/desktop",
+    "build": "npm run bundle -w @moco/renderer && npm run build -w @moco/desktop",
+    "dist": "npm run prepare-browser -w @moco/renderer && npm run bundle -w @moco/renderer && npm run dist -w @moco/desktop",
+    "studio": "npm run studio -w @moco/renderer",
+    "render:demo": "npm run render:demo -w @moco/renderer",
+    "typecheck": "tsc -p packages/spec && tsc -p packages/kit && tsc -p packages/renderer && tsc -p packages/ai && tsc -p packages/audio && tsc -p packages/engine && tsc -p apps/desktop",
+    "test": "node --test packages/*/test/*.test.ts",
+    "test:desktop": "node apps/desktop/scripts/smoke-test.mjs"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.64.1",
+    "@types/node": "^24.0.0",
+    "prettier": "^3.9.10",
+    "typescript": "5.9.3"
+  },
+  "engines": {
+    "node": ">=22.18"
+  }
 }
