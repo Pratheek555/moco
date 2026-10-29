@@ -1,0 +1,5 @@
+{
+  "name": "moco",
+  "private": true,
+  "workspaces": ["apps/*", "packages/*"]
+}
