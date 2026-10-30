@@ -1,0 +1,259 @@
+{
+  "kitVersion": "0.2.0",
+  "characters": [
+    {
+      "id": "krishna",
+      "packs": [
+        "mahabharat"
+      ],
+      "variants": [
+        "default",
+        "charioteer"
+      ],
+      "actions": [
+        {
+          "name": "blink",
+          "minFrames": 4
+        },
+        {
+          "name": "raise_hand",
+          "minFrames": 12,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "bless",
+          "minFrames": 16,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "point",
+          "minFrames": 10,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "turn_head",
+          "minFrames": 8
+        },
+        {
+          "name": "smile",
+          "minFrames": 8
+        },
+        {
+          "name": "speak",
+          "minFrames": 6
+        },
+        {
+          "name": "play_flute",
+          "minFrames": 30
+        }
+      ],
+      "expressions": [
+        "neutral",
+        "serious",
+        "smile"
+      ],
+      "visemes": [
+        "A",
+        "B",
+        "C",
+        "D",
+        "E",
+        "F",
+        "X"
+      ],
+      "layers": [
+        "arm_lower_L",
+        "arm_lower_R",
+        "arm_upper_L",
+        "arm_upper_R",
+        "brow_L",
+        "brow_R",
+        "eye_L",
+        "eye_R",
+        "eyelid_L",
+        "eyelid_R",
+        "eyeline_L",
+        "eyeline_R",
+        "face_marks",
+        "garment_lower",
+        "garment_upper",
+        "hair_back",
+        "hand_L_fist",
+        "hand_L_open",
+        "hand_L_point",
+        "hand_R_fist",
+        "hand_R_open",
+        "hand_R_point",
+        "head",
+        "headwear",
+        "headwear_flex",
+        "iris_L",
+        "iris_R",
+        "jewellery_neck",
+        "legs",
+        "mouth_neutral",
+        "mouth_serious",
+        "mouth_smile",
+        "nose",
+        "prop_flute",
+        "prop_waist",
+        "torso",
+        "viseme_A",
+        "viseme_B",
+        "viseme_C",
+        "viseme_D",
+        "viseme_E",
+        "viseme_F",
+        "viseme_X"
+      ],
+      "angles": [
+        "front"
+      ],
+      "idle": {
+        "breathPeriodFrames": 96,
+        "breathAmount": 0.012,
+        "blinkMinSeconds": 2,
+        "blinkMaxSeconds": 5,
+        "blinkFrames": 4,
+        "swayDegrees": 1.2,
+        "swayPeriodFrames": 160,
+        "secondaryDelayFrames": 4
+      },
+      "anchors": {
+        "defaultScale": 0.6
+      }
+    },
+    {
+      "id": "arjuna",
+      "packs": [
+        "mahabharat"
+      ],
+      "variants": [
+        "default",
+        "archer"
+      ],
+      "actions": [
+        {
+          "name": "blink",
+          "minFrames": 4
+        },
+        {
+          "name": "draw_bow",
+          "minFrames": 18
+        },
+        {
+          "name": "lower_head",
+          "minFrames": 10
+        },
+        {
+          "name": "turn_head",
+          "minFrames": 8
+        }
+      ],
+      "expressions": [
+        "neutral",
+        "sad",
+        "determined"
+      ],
+      "visemes": [],
+      "layers": [],
+      "angles": [
+        "front"
+      ],
+      "idle": {
+        "breathPeriodFrames": 96,
+        "breathAmount": 0.012,
+        "blinkMinSeconds": 2,
+        "blinkMaxSeconds": 5,
+        "blinkFrames": 4,
+        "swayDegrees": 1.2,
+        "swayPeriodFrames": 160,
+        "secondaryDelayFrames": 4
+      },
+      "anchors": {
+        "defaultScale": 0.6
+      }
+    }
+  ],
+  "props": [
+    {
+      "id": "chariot",
+      "attachPoints": [
+        "seat"
+      ]
+    }
+  ],
+  "backgrounds": [
+    {
+      "id": "kurukshetra",
+      "layers": [
+        {
+          "id": "sky",
+          "depth": 0
+        },
+        {
+          "id": "hills",
+          "depth": 0.25
+        },
+        {
+          "id": "armies",
+          "depth": 0.5
+        },
+        {
+          "id": "ground",
+          "depth": 1
+        }
+      ],
+      "timeOfDay": [
+        "dawn",
+        "noon",
+        "dusk",
+        "night"
+      ]
+    }
+  ],
+  "fx": [
+    {
+      "id": "dust",
+      "maxDurationFrames": 90
+    }
+  ],
+  "atmosphere": [
+    {
+      "id": "dust",
+      "placement": "back"
+    },
+    {
+      "id": "mist",
+      "placement": "back"
+    },
+    {
+      "id": "light_rays",
+      "placement": "front"
+    },
+    {
+      "id": "diya_glow",
+      "placement": "front"
+    }
+  ],
+  "grades": [
+    "none",
+    "warm_epic",
+    "cool_mystic"
+  ]
+}

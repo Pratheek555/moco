@@ -1,40 +1,33 @@
-import { createProvider } from "@moco/ai";
-import { detectClis } from "@moco/ai";
-import { listVoices, synthesize } from "@moco/audio";
-import { createEngine, createStore, pad, semanticIssues } from "@moco/engine";
-import {
-  EpisodeSchema,
-  SeriesSchema,
-  type Episode,
-  type Series,
-} from "@moco/spec";
+import { claudeCli } from "@moco/ai";
+import { systemAudio, systemVoices } from "@moco/audio";
+import type { Engine, EngineEvent, SeriesStatus } from "@moco/engine";
+import { createEngineClient, EngineClientError } from "@moco/engine/client";
+import { catalog } from "@moco/kit";
+import type { SeriesBible, SeriesPlan } from "@moco/spec";
 import {
   BrowserWindow,
+  MessageChannelMain,
   app,
   dialog,
   ipcMain,
   nativeTheme,
   shell,
+  utilityProcess,
+  type UtilityProcess,
 } from "electron";
 import { existsSync } from "node:fs";
-import { mkdir, readdir, writeFile } from "node:fs/promises";
+import { mkdir, readdir, rm, stat } from "node:fs/promises";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import type {
   DeepPartial,
-  EpisodeBundle,
-  Job,
-  RenderEngineStatus,
+  EpisodeMedia,
   Settings,
+  SeriesSummary,
 } from "../shared/api.ts";
-import {
-  handleAssetProtocol,
-  registerAssetScheme,
-  startFileServer,
-} from "./assets.ts";
-import { createJobManager } from "./jobs.ts";
-import { createPipelines } from "./pipeline.ts";
-import { createRenderService } from "./render.ts";
+import { assetUrl } from "../shared/api.ts";
+import { handleAssetProtocol, registerAssetScheme } from "./assets.ts";
+import type { EngineHostConfig } from "./engine-host.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -47,7 +40,6 @@ if (!app.requestSingleInstanceLock()) app.quit();
 
 let win: BrowserWindow | null = null;
 let settings: Settings;
-let fileServerUrl = "";
 
 const send = (channel: string, payload: unknown) =>
   win?.webContents.send(`moco:${channel}`, payload);
@@ -118,6 +110,151 @@ function createWindow() {
   win.on("closed", () => (win = null));
 }
 
+// ---------- the engine host ----------
+
+// The engine runs in its own utility process (main/engine-host.ts) and is reached over a MessagePort.
+// It is started again when settings it was built with change (projects folder, voice, render tabs).
+let host: { process: UtilityProcess; engine: Engine } | null = null;
+// Series with a job running, from the engine's job events; editing settings or deleting waits for these.
+const running = new Set<string>();
+
+function startEngineHost(): Engine {
+  const entry = path.join(app.getAppPath(), "src", "main", "engine-host.ts");
+  const child = utilityProcess.fork(entry, [], {
+    serviceName: "moco-engine",
+    stdio: "pipe",
+  });
+  child.stdout?.on("data", (chunk) => process.stdout.write(`[engine] ${chunk}`));
+  child.stderr?.on("data", (chunk) => process.stderr.write(`[engine] ${chunk}`));
+
+  const { port1, port2 } = new MessageChannelMain();
+  const config: EngineHostConfig = {
+    projectsDir: settings.projectsDir,
+    voice: { ...settings.voice },
+    concurrency: settings.render.concurrency || null,
+  };
+  child.postMessage(config, [port1]);
+  port2.start();
+
+  const engine = createEngineClient(port2);
+  engine.on("*", (event) => onEngineEvent(event));
+  // shortcut: calls in flight when the host dies never settle; add a reject-all to the client if crashes show up.
+  child.on("exit", (code) => {
+    if (host?.process !== child) return; // stopped on purpose
+    host = null;
+    running.clear();
+    send("engine", {
+      type: "host.exited",
+      seriesId: "",
+      at: new Date().toISOString(),
+      data: { code },
+    });
+  });
+  host = { process: child, engine };
+  return engine;
+}
+
+const engine = () => host?.engine ?? startEngineHost();
+
+function stopEngineHost() {
+  const old = host;
+  host = null;
+  old?.process.kill();
+}
+
+function onEngineEvent(event: EngineEvent) {
+  if (event.type === "job.started") running.add(event.seriesId);
+  if (event.type === "job.finished") running.delete(event.seriesId);
+  send("engine", event);
+  if (event.type.startsWith("stage.") || event.type.startsWith("job."))
+    send("library", { seriesId: event.seriesId });
+}
+
+// An artifact's { meta, data }, or null when the stage that makes it hasn't run yet.
+async function artifact<T>(
+  seriesId: string,
+  file: string,
+): Promise<{ meta: { revision: number; contentHash: string }; data: T } | null> {
+  try {
+    return (await engine().readArtifact({ seriesId, file })) as {
+      meta: { revision: number; contentHash: string };
+      data: T;
+    };
+  } catch (err) {
+    if (err instanceof EngineClientError && err.code === "not_found") return null;
+    throw err;
+  }
+}
+
+async function summarize(id: string): Promise<SeriesSummary> {
+  const status: SeriesStatus = await engine().status(id);
+  const plan = await artifact<SeriesPlan>(id, "artifacts/series_plan.json");
+  const bible = await artifact<SeriesBible>(id, "artifacts/bible.json");
+  const finals = status.stages.filter(
+    (stage) => stage.key.endsWith("/final") && stage.status === "done",
+  ).length;
+  return {
+    id,
+    title: plan?.data.title ?? status.series.idea,
+    premise: plan?.data.premise ?? "",
+    language: status.series.language,
+    episodes: status.series.episodes,
+    createdAt: status.series.createdAt,
+    cast: (bible?.data.cast ?? []).map((member) => member.kitCharacterId),
+    finals,
+    next: status.next,
+    running: status.activeJob !== undefined,
+  };
+}
+
+// Series and episode ids come from the UI: only plain slugs, so a path can never leave the projects folder.
+function safeId(id: string, what: string): string {
+  if (!/^[a-z0-9][a-z0-9-]{0,80}$/.test(id)) throw new Error(`invalid ${what}`);
+  return id;
+}
+
+// A file's moco-asset:// URL with its change time, so a re-render isn't served from cache.
+async function versionedUrl(absolute: string): Promise<string> {
+  const info = await stat(absolute);
+  const relative = path.relative(settings.projectsDir, absolute);
+  return `${assetUrl(relative)}?v=${Math.round(info.mtimeMs)}`;
+}
+
+async function episodeMedia(
+  seriesId: string,
+  episodeId: string,
+): Promise<EpisodeMedia> {
+  const dir = path.join(
+    settings.projectsDir,
+    safeId(seriesId, "series id"),
+    "episodes",
+    safeId(episodeId, "episode id"),
+  );
+  const preview = path.join(dir, "renders", "preview.mp4");
+  const final = path.join(dir, "renders", "final.mp4");
+  const shotsDir = path.join(dir, "shots");
+  const shotIds = existsSync(shotsDir) ? await readdir(shotsDir) : [];
+
+  const stills: Record<string, string[]> = {};
+  for (const shotId of shotIds) {
+    stills[shotId] = await stillUrls(path.join(shotsDir, shotId, "stills"));
+  }
+  return {
+    preview: existsSync(preview) ? await versionedUrl(preview) : undefined,
+    final: existsSync(final) ? await versionedUrl(final) : undefined,
+    finalPath: existsSync(final) ? final : undefined,
+    stills,
+  };
+}
+
+async function stillUrls(stillsDir: string): Promise<string[]> {
+  if (!existsSync(stillsDir)) return [];
+  const names = (await readdir(stillsDir)).filter((name) => name.endsWith(".png")).sort();
+  return Promise.all(names.map((name) => versionedUrl(path.join(stillsDir, name))));
+}
+
+// ---------- app ----------
+
 app.on("second-instance", () => {
   if (win) {
     if (win.isMinimized()) win.restore();
@@ -132,49 +269,10 @@ app
     await mkdir(settings.projectsDir, { recursive: true });
     await mkdir(previewsDir(), { recursive: true });
 
-    // The engine is stateless apart from its config, so rebuild it when settings change.
-    const makeEngine = () =>
-      createEngine({
-        store: createStore(settings.projectsDir),
-        ai: () =>
-          createProvider({
-            provider: settings.ai.provider,
-            model: settings.ai.model,
-            anthropicKey: settings.ai.anthropicKey,
-            openaiKey: settings.ai.openaiKey,
-            effort: settings.ai.effort,
-          }),
-        brand: () => ({ ...settings.brand }),
-        maxRepairs: settings.ai.maxRepairs,
-      });
-    let engine = makeEngine();
-
-    const roots = () => ({
+    handleAssetProtocol(() => ({
       projects: settings.projectsDir,
-      sfx: path.join(settings.projectsDir, ".cache", "sfx"),
       previews: previewsDir(),
-    });
-    handleAssetProtocol(roots);
-    const server = await startFileServer(roots);
-    fileServerUrl = server.url;
-
-    const jobs = createJobManager((list: Job[]) => send("jobs", list));
-    const renderer = createRenderService(
-      path.join(here, "render-worker.js"),
-      (s: RenderEngineStatus) => send("engine", s),
-    );
-    const pipelines = createPipelines({
-      engine: () => engine,
-      jobs,
-      render: renderer,
-      settings: () => settings,
-      fileServer: () => fileServerUrl,
-      changed: (seriesId, number) => send("library", { seriesId, number }),
-    });
-
-    // First launch: seed the demo series so there's something to play.
-    if (!(await readdir(settings.projectsDir)).some((d) => !d.startsWith(".")))
-      await engine.createDemo().catch(() => undefined);
+    }));
 
     const handle = <A extends unknown[], R>(
       name: string,
@@ -204,174 +302,90 @@ app
 
     handle("settings.get", () => settings);
     handle("settings.set", async (patch: DeepPartial<Settings>) => {
-      if (
-        patch.projectsDir &&
-        patch.projectsDir !== settings.projectsDir &&
-        jobs.list().some((j) => j.status === "running" || j.status === "queued")
-      )
-        throw new Error(
-          "Wait for current jobs to finish before switching project folders",
-        );
-      const before = settings.projectsDir;
+      // The engine is built with these, so changing them restarts it, which would cut a running job short.
+      const engineInputs = (s: Settings) => JSON.stringify([s.projectsDir, s.voice, s.render]);
+      const touchesEngine = patch.projectsDir !== undefined || patch.voice !== undefined || patch.render !== undefined;
+      if (touchesEngine && running.size > 0)
+        throw new Error("Wait for the running jobs to finish before changing these settings");
+      const before = engineInputs(settings);
       settings = await saveSettings(patch);
-      if (settings.projectsDir !== before)
+      if (engineInputs(settings) !== before) {
         await mkdir(settings.projectsDir, { recursive: true });
-      engine = makeEngine();
-      if (settings.projectsDir !== before) send("library", {});
+        stopEngineHost(); // the next call starts a fresh one
+        send("library", {});
+      }
       applyChrome();
       send("settings", settings);
       return settings;
     });
 
-    handle("ai.detect", () => detectClis());
-    handle("ai.test", async () => {
-      const started = Date.now();
-      try {
-        const ai = createProvider({
-          provider: settings.ai.provider,
-          model: settings.ai.model,
-          anthropicKey: settings.ai.anthropicKey,
-          openaiKey: settings.ai.openaiKey,
-          effort: "low",
-        });
-        const res = await ai.complete({
-          system: "You are a connectivity check. Reply with exactly: OK",
-          prompt: "Reply with OK.",
-          timeoutMs: 180_000,
-        });
-        return {
-          ok: /ok/i.test(res.text),
-          reply: res.text.trim().slice(0, 200),
-          ms: Date.now() - started,
-          model: res.model,
-        };
-      } catch (err) {
-        return {
-          ok: false,
-          error: err instanceof Error ? err.message : String(err),
-          ms: Date.now() - started,
-        };
-      }
-    });
+    handle("ai.status", () => claudeCli().available());
 
-    handle("voice.list", (provider: Settings["voice"]["provider"]) =>
-      listVoices(
-        provider,
-        provider === "elevenlabs" ? settings.voice.elevenlabsKey : undefined,
-      ).catch(() => []),
-    );
+    handle("voice.list", () => systemVoices().catch(() => []));
     handle("voice.preview", async (text: string) => {
       try {
-        const v = settings.voice;
-        const r = await synthesize(v.provider, {
-          text,
-          voice: v.voice || undefined,
-          rate: v.rate,
-          apiKey:
-            v.provider === "elevenlabs"
-              ? v.elevenlabsKey
-              : settings.ai.openaiKey,
-        });
-        const name = `preview-${Date.now()}${r.ext}`;
-        await writeFile(path.join(previewsDir(), name), r.audio);
-        return {
-          url: `moco-asset://previews/${name}`,
-          provider: r.provider,
-          fallbackReason: r.fallbackReason,
-        };
+        const dir = path.join(previewsDir(), String(Date.now()));
+        const spoken = await systemAudio(settings.voice).tts(
+          [{ id: "preview", text: text.slice(0, 400) }],
+          { voiceId: settings.voice.voice, backend: "system" },
+          settings.defaults.language,
+          dir,
+        );
+        return { url: `moco-asset://previews/${path.basename(dir)}/${path.basename(spoken.file)}` };
       } catch (err) {
         return { error: err instanceof Error ? err.message : String(err) };
       }
     });
 
-    handle("series.list", () => engine.store.listSeries());
-    handle("series.get", async (id: string) => {
-      const series = await engine.store.getSeries(id);
-      return { series, summary: await engine.store.summarize(series) };
-    });
-    handle("series.save", async (series: Series) => {
-      if (jobs.isBusy(series.id))
-        throw new Error(
-          "Wait for jobs on this series to finish before editing it",
-        );
-      const parsed = SeriesSchema.parse(series);
-      await engine.store.saveSeries(parsed);
-      send("library", { seriesId: parsed.id });
-      return parsed;
-    });
-    handle("series.remove", async (id: string) => {
-      if (jobs.isBusy(id))
-        throw new Error("Wait for running jobs on this series to finish");
-      await engine.store.deleteSeries(id);
-      send("library", {});
-    });
-    handle("series.demo", async () => {
-      const s = await engine.createDemo();
-      send("library", { seriesId: s.id });
-      return s;
-    });
+    handle("kit.catalog", () => catalog);
 
+    handle("series.list", async () => {
+      const infos = await engine().listSeries();
+      const summaries = await Promise.all(infos.map((info) => summarize(info.id)));
+      return summaries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
+    });
     handle(
-      "episode.get",
-      async (
-        seriesId: string,
-        number: number,
-      ): Promise<EpisodeBundle | null> => {
-        const episode = await engine.store.getEpisode(seriesId, number);
-        if (!episode) return null;
-        const renders = (await engine.store.renders(seriesId, number)).map(
-          (r) => ({
-            ...r,
-            url: `moco-asset://projects/${encodeURIComponent(seriesId)}/episodes/${pad(number)}/renders/${encodeURIComponent(r.file)}`,
-          }),
-        );
-        return {
-          episode,
-          renders,
-          assetBase: `moco-asset://projects/${encodeURIComponent(seriesId)}/episodes/${pad(number)}/`,
-        };
+      "series.create",
+      async (input: { idea: string; language: string; episodes: number }) => {
+        const id = await engine().createSeries(input);
+        await engine().runStage({ seriesId: id });
+        send("library", { seriesId: id });
+        return id;
       },
     );
-    handle("episode.save", async (seriesId: string, episode: Episode) => {
-      if (jobs.isBusy(seriesId, episode.number))
-        throw new Error(
-          "Wait for this episode’s job to finish before editing it",
-        );
-      const parsed = EpisodeSchema.safeParse(episode);
-      if (!parsed.success)
-        throw new Error(
-          parsed.error.issues
-            .slice(0, 5)
-            .map((i) => `${i.path.join(".")}: ${i.message}`)
-            .join("\n"),
-        );
-      await engine.store.saveEpisode(seriesId, parsed.data);
-      send("library", { seriesId, number: parsed.data.number });
-      const issues = parsed.data.shots.flatMap((s, i) =>
-        semanticIssues(s, `shots[${i}]`),
-      );
-      return { episode: parsed.data, issues };
-    });
-
-    handle("jobs.start", (spec) =>
-      pipelines.start(spec as Parameters<typeof pipelines.start>[0]),
+    handle("series.status", (id: string) => engine().status(id));
+    handle("series.artifact", (seriesId: string, file: string) =>
+      artifact(seriesId, file),
     );
-    handle("jobs.cancel", (id: string) => jobs.cancel(id));
-    handle("jobs.list", () => jobs.list());
-    handle("jobs.clear", () => jobs.clear());
-
-    handle("render.status", () => renderer.status());
-    handle("render.prepare", () => renderer.prepare());
-
-    handle("assets.sfx", async () => {
-      const files = await engine.ensureSfx();
-      return Object.fromEntries(
-        Object.entries(files).map(([id, f]) => [
-          id,
-          `moco-asset://sfx/${encodeURIComponent(path.basename(f))}`,
-        ]),
-      );
+    handle("series.remove", async (id: string) => {
+      if (running.has(id)) throw new Error("Wait for this series’ job to finish");
+      await rm(path.join(settings.projectsDir, safeId(id, "series id")), {
+        recursive: true,
+        force: true,
+      });
+      stopEngineHost(); // the engine keeps open series in memory; the next call starts a fresh one
+      send("library", {});
     });
+
+    handle("stages.run", (seriesId: string, key?: string) =>
+      engine().runStage({ seriesId, key }),
+    );
+    handle("stages.approve", (seriesId: string, key: string, hash: string) =>
+      engine().approve({ seriesId, key }, hash),
+    );
+    handle("stages.reject", (seriesId: string, key: string, feedback: string) =>
+      engine().reject({ seriesId, key }, feedback),
+    );
+    handle("stages.cancel", (jobId: string) => engine().cancel(jobId));
+
+    handle("episode.media", (seriesId: string, episodeId: string) =>
+      episodeMedia(seriesId, episodeId),
+    );
+    handle(
+      "episode.regenerateShot",
+      (seriesId: string, episodeId: string, shotId: string, feedback?: string) =>
+        engine().regenerateShot({ seriesId, episodeId, shotId }, feedback),
+    );
 
     nativeTheme.on("updated", () => {
       applyChrome();
@@ -383,14 +397,7 @@ app
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
-    app.on("before-quit", () => {
-      renderer.dispose();
-      server.close();
-    });
-    if (!existsSync(path.join(settings.projectsDir, ".cache")))
-      await mkdir(path.join(settings.projectsDir, ".cache"), {
-        recursive: true,
-      });
+    app.on("before-quit", () => stopEngineHost());
   })
   .catch((err) => {
     dialog.showErrorBox(

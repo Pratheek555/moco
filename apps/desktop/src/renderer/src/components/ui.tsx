@@ -15,9 +15,9 @@ import {
   Film,
   Play,
 } from "lucide-react";
-import { Character, CHARACTER_DEFS, restRig } from "@moco/kit";
-import { api, type JobSpec, type SeriesSummary } from "../lib/api.ts";
-import { useApp } from "../lib/store.ts";
+import { registry, rigStateAt, type CharacterDef } from "@moco/kit/components";
+import type { SeriesSummary } from "../lib/api.ts";
+import { stageLabel, useApp } from "../lib/store.ts";
 import { cx, timeAgo } from "../lib/format.ts";
 
 export function Button({
@@ -174,6 +174,11 @@ export function Modal({
     </div>
   );
 }
+// The kit's own characters, drawn at rest (frame 0, no idle motion) like a cast photo.
+const CHARACTERS: Record<string, CharacterDef> = Object.fromEntries(
+  registry.characters.map((def) => [def.id, def]),
+);
+
 export function CastArt({
   characters = ["krishna", "arjuna"],
   className = "",
@@ -181,7 +186,7 @@ export function CastArt({
   characters?: string[];
   className?: string;
 }) {
-  const uid = useId().replaceAll(":", "");
+  const shown = characters.filter((id) => CHARACTERS[id]).slice(0, 3);
   return (
     <svg className={className} viewBox="0 0 600 440" aria-hidden="true">
       <ellipse
@@ -192,40 +197,42 @@ export function CastArt({
         fill="#2e2446"
         opacity=".09"
       />
-      {characters.slice(0, 3).map((id, i, all) => {
-        const def = CHARACTER_DEFS[id];
-        return (
-          def && (
-            <g
-              key={`${id}${i}`}
-              transform={`translate(${300 + (i - (all.length - 1) / 2) * 175} 410) scale(.34)`}
-            >
-              <Character
-                def={def}
-                rig={restRig(id === "krishna" ? "bless" : "stand", "smile", 1)}
-                pose={id === "krishna" ? "bless" : "stand"}
-                uid={`${uid}${i}`}
-              />
-            </g>
-          )
-        );
-      })}
+      {shown.map((id, i) => (
+        <g
+          key={`${id}${i}`}
+          transform={`translate(${300 + (i - (shown.length - 1) / 2) * 175 - 100} 10) scale(.5)`}
+        >
+          <CastMember def={CHARACTERS[id]!} />
+        </g>
+      ))}
     </svg>
   );
 }
+
+// One character in its 400×800 kit box, feet at the bottom centre.
+function CastMember({ def }: { def: CharacterDef }) {
+  const rig = rigStateAt({ actions: [], expression: [{ name: "smile", atFrame: 0 }] }, 0, { seed: def.id });
+  return <def.Component rig={rig} variant={def.variants[0] ?? "default"} />;
+}
+
 export function SeriesCard({ series }: { series: SeriesSummary }) {
   const go = useApp((s) => s.go);
-  const done = series.episodes.filter((e) => e.status === "rendered").length;
+  const next =
+    series.next.kind === "finished"
+      ? "Finished"
+      : series.running
+        ? "Working…"
+        : series.next.kind === "waiting"
+          ? `${stageLabel(series.next.key)}: review`
+          : `Next: ${stageLabel(series.next.key)}`;
   return (
     <button
       className="series-card"
       onClick={() => go({ name: "series", id: series.id })}
     >
-      <div className={`series-art art-${series.style}`}>
-        <span className="art-label">
-          {series.style} · {series.language.toUpperCase()}
-        </span>
-        <CastArt characters={series.cast.map((c) => c.character).slice(0, 3)} />
+      <div className="series-art art-epic">
+        <span className="art-label">{series.language.toUpperCase()}</span>
+        <CastArt characters={series.cast.length ? series.cast : undefined} />
         <span className="art-play">
           <Play size={16} fill="currentColor" />
         </span>
@@ -235,29 +242,17 @@ export function SeriesCard({ series }: { series: SeriesSummary }) {
           {series.title}
           <ArrowUpRight size={16} />
         </h3>
-        <p>{series.logline}</p>
+        <p>{series.premise || next}</p>
         <footer>
           <span>
-            {series.episodes.length} episodes{done > 0 && ` · ${done} exported`}
+            {series.episodes} {series.episodes === 1 ? "episode" : "episodes"}
+            {series.finals > 0 && ` · ${series.finals} exported`} · {next}
           </span>
-          <span>{timeAgo(series.updatedAt)}</span>
+          <span>{timeAgo(series.createdAt)}</span>
         </footer>
       </div>
     </button>
   );
-}
-export async function startJob(spec: JobSpec) {
-  try {
-    const job = await api.jobs.start(spec);
-    useApp.getState().toast("Added to your queue", "success", {
-      label: "View queue",
-      run: () => useApp.getState().go({ name: "renders" }),
-    });
-    return job;
-  } catch (e) {
-    report(e);
-    return null;
-  }
 }
 export function report(e: unknown) {
   useApp.getState().toast(e instanceof Error ? e.message : String(e), "error");

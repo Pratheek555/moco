@@ -3,17 +3,21 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
+  "main": "./src/index.ts",
   "exports": {
     ".": "./src/index.ts",
-    "./catalog": "./src/catalog.ts"
+    "./components": "./src/components.ts",
+    "./assets": "./src/assets.ts"
   },
   "dependencies": {
-    "@moco/spec": "*"
-  },
-  "peerDependencies": {
-    "react": ">=18"
+    "@moco/spec": "workspace:*",
+    "react": "19.3.1"
   },
   "devDependencies": {
-    "@types/react": "^19.2.0"
+    "@types/react": "^19.3.0"
+  },
+  "scripts": {
+    "catalog": "tsx src/write-catalog.ts",
+    "bake": "tsx src/bake/bake.ts"
   }
 }

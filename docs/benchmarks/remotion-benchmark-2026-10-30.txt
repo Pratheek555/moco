@@ -1,0 +1,10 @@
+Benchmark #1: composition=Scene concurrency=2 codec=h264 (default)
+    Time (mean ± σ):         7.32139s ± 0.05037s
+Benchmark #2: composition=Scene concurrency=4 codec=h264 (default)
+    Time (mean ± σ):         4.87998s ± 0.14647s
+Benchmark #3: composition=Scene concurrency=6 codec=h264 (default)
+    Time (mean ± σ):         3.97422s ± 0.00704s
+Benchmark #4: composition=Scene concurrency=8 codec=h264 (default)
+    Time (mean ± σ):         3.88771s ± 0.01157s
+Benchmark #5: composition=Scene concurrency=12 codec=h264 (default)
+    Time (mean ± σ):         4.19764s ± 0.04042s

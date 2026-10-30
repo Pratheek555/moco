@@ -2535,3 +2535,43 @@ summary svg {
     transition-duration: 0.01ms !important;
   }
 }
+
+/* Series review card: what a gate made, with Approve / Ask for changes. */
+.review-card {
+  margin: 20px 0;
+  background: var(--card);
+}
+.review-card textarea {
+  width: 100%;
+  margin-top: 12px;
+}
+.review-list {
+  margin: 14px 0 6px;
+  padding-left: 20px;
+  display: grid;
+  gap: 8px;
+  line-height: 1.5;
+}
+.review-list strong {
+  margin-right: 6px;
+}
+.review-stills {
+  display: flex;
+  gap: 10px;
+  margin: 14px 0;
+  overflow-x: auto;
+}
+.review-stills img {
+  height: 300px;
+  aspect-ratio: 9 / 16;
+  border-radius: 10px;
+  border: 1px solid var(--line);
+}
+.review-video {
+  display: block;
+  height: 520px;
+  aspect-ratio: 9 / 16;
+  margin: 14px 0;
+  border-radius: 12px;
+  background: #000;
+}

@@ -1,55 +1,74 @@
-import { estimateWords } from '@moco/spec';
-import { ELEVENLABS_DEFAULT_VOICES, elevenlabsSynthesize, elevenlabsVoices } from './tts/elevenlabs.ts';
-import { OPENAI_VOICES, openaiSynthesize } from './tts/openai.ts';
-import { systemSynthesize, systemVoices } from './tts/system.ts';
-import type { TtsProvider, TtsRequest, TtsResult, VoiceInfo } from './tts/types.ts';
-import { audioDuration } from './wav.ts';
+// @moco/audio — voiceover, timings, music.
+// `systemAudio` speaks with the OS voices (macOS say, Windows SAPI, espeak-ng); the neural TTS choice is still open
+// (docs/reference.md R5). `placeholderAudio` is the silent stand-in for tests and machines with no voice:
+// it writes a silent WAV as long as the narration would take and spaces the words evenly,
+// so the whole pipeline (shot timing, captions, renders) runs end to end.
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+import type { TimedWord } from "@moco/spec";
+import { amplitudeVisemes, parseWav } from "./lipsync.ts";
 
-export { renderMusic, composeMusic } from './music.ts';
-export { renderSfx } from './sfx.ts';
-export { audioDuration, encodeWav, mp3Duration, wavDuration } from './wav.ts';
-export { ELEVENLABS_DEFAULT_VOICES, OPENAI_VOICES };
-export type { TtsProvider, TtsRequest, TtsResult, VoiceInfo };
+export { AMPLITUDE_VISEMES, amplitudeVisemes, parseWav, WavError } from "./lipsync.ts";
+export { joinLines, systemAudio, systemVoices, type SystemAudioOptions, type VoiceInfo } from "./system.ts";
 
-export const TTS_PROVIDERS: { id: TtsProvider; name: string; description: string; needsKey: boolean }[] = [
-  { id: 'system', name: 'System voices', description: 'Free and offline. Uses the voices installed on this computer (install Hindi/Indian English speech packs for local accents).', needsKey: false },
-  { id: 'elevenlabs', name: 'ElevenLabs', description: 'Studio-quality multilingual voices (Hindi included) with exact word timings. Bring your own API key.', needsKey: true },
-  { id: 'openai', name: 'OpenAI voices', description: 'Natural multilingual voices. Uses your OpenAI API key.', needsKey: true },
-  { id: 'none', name: 'No voiceover', description: 'Captions and music only.', needsKey: false },
-];
-
-export async function listVoices(provider: TtsProvider, apiKey?: string): Promise<VoiceInfo[]> {
-  if (provider === 'system') return systemVoices();
-  if (provider === 'openai') return OPENAI_VOICES;
-  if (provider === 'elevenlabs') return elevenlabsVoices(apiKey);
-  return [];
+export interface Line {
+  id: string;
+  text: string;
 }
 
-export interface SpeechResult extends TtsResult {
-  duration: number;
-  provider: TtsProvider;
-  /** Set when the requested provider failed and we fell back to system voices. */
-  fallbackReason?: string;
+export interface PlaceholderOptions {
+  wordsPerMinute?: number; // speaking rate to fake; default 150 (English)
 }
 
-/**
- * Synthesise speech, measure its duration and fill in word timings. If a cloud
- * provider fails (no key, offline, quota), fall back to the OS voice so a render
- * never blocks on the network.
- */
-export async function synthesize(provider: TtsProvider, req: TtsRequest): Promise<SpeechResult> {
-  if (provider === 'none') throw new Error('Voiceover is turned off');
-  const attempt = async (p: TtsProvider): Promise<SpeechResult> => {
-    const r = p === 'elevenlabs' ? await elevenlabsSynthesize(req) : p === 'openai' ? await openaiSynthesize(req) : await systemSynthesize({ ...req, voice: p === provider ? req.voice : undefined });
-    const duration = audioDuration(r.audio, r.ext) || (r.words.at(-1)?.end ?? 0) + 0.3;
-    const words = r.words.length ? r.words : estimateWords(req.text, 0.05, Math.max(0.3, duration - 0.1));
-    return { ...r, words, duration, provider: p };
+const SAMPLE_RATE = 16_000;
+const TAIL_SECONDS = 0.4; // silence after the last word
+
+// Same shape as the engine's AudioPort.
+export function placeholderAudio(options: PlaceholderOptions = {}) {
+  const secondsPerWord = 60 / (options.wordsPerMinute ?? 150);
+
+  const time = (lines: Line[]): TimedWord[] => {
+    const tokens = lines.flatMap((line) => line.text.split(/\s+/).filter(Boolean).map((text) => ({ text, lineId: line.id })));
+    return tokens.map((token, index) => ({ ...token, start: index * secondsPerWord, end: (index + 0.85) * secondsPerWord }));
   };
-  try {
-    return await attempt(provider);
-  } catch (err) {
-    if (provider === 'system' || req.signal?.aborted) throw err;
-    const reason = err instanceof Error ? err.message : String(err);
-    return { ...(await attempt('system')), fallbackReason: reason };
-  }
+
+  return {
+    // shortcut: silent audio with even timings; replace with real TTS once the R5 spike picks an engine.
+    async tts(lines: Line[], _voice: { voiceId: string; backend: string }, _language: string, outDir: string) {
+      const words = time(lines);
+      const durationSeconds = (words.at(-1)?.end ?? 0) + TAIL_SECONDS;
+      await mkdir(outDir, { recursive: true });
+      const file = join(outDir, "vo.wav");
+      await writeFile(file, silentWav(durationSeconds));
+      return { file, durationSeconds, words };
+    },
+    async align(_file: string, lines: Line[]) {
+      return time(lines);
+    },
+    // Lip sync v0 works on any 16-bit WAV; on the silent placeholder it gives a resting mouth.
+    async visemes(file: string, words: TimedWord[]) {
+      return amplitudeVisemes(parseWav(await readFile(file)), words);
+    },
+  };
+}
+
+// 16-bit mono PCM WAV of silence.
+export function silentWav(seconds: number): Buffer {
+  const samples = Math.round(seconds * SAMPLE_RATE);
+  const dataBytes = samples * 2;
+  const wav = Buffer.alloc(44 + dataBytes); // zero-filled = silence
+  wav.write("RIFF", 0);
+  wav.writeUInt32LE(36 + dataBytes, 4);
+  wav.write("WAVE", 8);
+  wav.write("fmt ", 12);
+  wav.writeUInt32LE(16, 16); // fmt chunk size
+  wav.writeUInt16LE(1, 20); // PCM
+  wav.writeUInt16LE(1, 22); // mono
+  wav.writeUInt32LE(SAMPLE_RATE, 24);
+  wav.writeUInt32LE(SAMPLE_RATE * 2, 28); // byte rate
+  wav.writeUInt16LE(2, 32); // block align
+  wav.writeUInt16LE(16, 34); // bits per sample
+  wav.write("data", 36);
+  wav.writeUInt32LE(dataBytes, 40);
+  return wav;
 }

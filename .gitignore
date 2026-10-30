@@ -4,9 +4,11 @@ out/
 build/
 release/
 .remotion/
+artifacts/
 *.mp4
 *.tsbuildinfo
 .env
-artifacts/
 projects/*
 !projects/README.md
+# copied from node_modules by `pnpm --filter @moco/renderer spike:rive`
+packages/renderer/spikes/rive/public/rive.wasm

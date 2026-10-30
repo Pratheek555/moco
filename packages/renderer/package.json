@@ -3,30 +3,30 @@
   "version": "0.1.0",
   "private": true,
   "type": "module",
-  "exports": {
-    ".": "./src/compositions.ts",
-    "./entry": "./src/index.ts"
-  },
-  "scripts": {
-    "bundle": "node scripts/bundle.ts",
-    "studio": "remotion studio src/index.ts",
-    "render:demo": "node scripts/render-demo.ts",
-    "prepare-browser": "node scripts/prepare-browser.ts"
-  },
   "dependencies": {
-    "@fontsource/cinzel": "^5.2.0",
-    "@fontsource/poppins": "^5.3.0",
-    "@fontsource/yatra-one": "^5.2.0",
-    "@moco/kit": "*",
-    "@moco/spec": "*",
-    "react": "^19.3.1",
-    "react-dom": "^19.3.1",
+    "@moco/kit": "workspace:*",
+    "@moco/spec": "workspace:*",
+    "@remotion/bundler": "4.0.539",
+    "@remotion/renderer": "4.0.539",
+    "react": "19.3.1",
+    "react-dom": "19.3.1",
     "remotion": "4.0.539"
   },
   "devDependencies": {
-    "@remotion/bundler": "4.0.539",
+    "@moco/audio": "workspace:*",
     "@remotion/cli": "4.0.539",
-    "@remotion/renderer": "4.0.539",
-    "@types/react": "^19.2.0"
+    "@remotion/rive": "4.0.539",
+    "@rive-app/canvas-advanced": "2.31.5",
+    "@types/react": "^19.3.0",
+    "@types/react-dom": "^19.3.0"
+  },
+  "main": "./src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "scripts": {
+    "studio": "remotion studio src/remotion/index.ts --public-dir ../kit/assets",
+    "bench:render": "tsx bench/render.ts",
+    "spike:rive": "node -e \"require('fs').copyFileSync(require.resolve('@rive-app/canvas-advanced/rive.wasm'), 'spikes/rive/public/rive.wasm')\""
   }
 }

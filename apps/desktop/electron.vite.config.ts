@@ -10,9 +10,8 @@ export default defineConfig({
   main: {
     build: {
       externalizeDeps: { exclude: workspace },
-      rolldownOptions: {
-        input: { index: 'src/main/index.ts', 'render-worker': 'src/main/render-worker.ts' },
-      },
+      // engine-host.ts is not bundled: Electron runs it from source (see the note at its top).
+      rolldownOptions: { input: { index: 'src/main/index.ts' } },
     },
   },
   preload: {

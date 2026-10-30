@@ -22,22 +22,9 @@ export const seconds = (s?: number) =>
       ? `${Math.round(s)}s`
       : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
-export const bytes = (n: number) =>
-  n > 1e6 ? `${(n / 1e6).toFixed(1)} MB` : `${Math.round(n / 1e3)} KB`;
-
-export const STATUS_LABEL: Record<string, string> = {
-  planned: "Planned",
-  writing: "Writing",
-  scripted: "Scripted",
-  voiced: "Voiced",
-  rendered: "Rendered",
-  error: "Needs attention",
-};
-
 export const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
   { value: "hi", label: "हिन्दी Hindi" },
-  { value: "hinglish", label: "Hinglish" },
   { value: "ta", label: "தமிழ் Tamil" },
   { value: "te", label: "తెలుగు Telugu" },
   { value: "mr", label: "मराठी Marathi" },
@@ -45,15 +32,6 @@ export const LANGUAGE_OPTIONS = [
   { value: "gu", label: "ગુજરાતી Gujarati" },
   { value: "kn", label: "ಕನ್ನಡ Kannada" },
   { value: "ml", label: "മലയാളം Malayalam" },
-];
-
-export const STYLE_OPTIONS = [
-  { value: "epic", label: "Epic" },
-  { value: "devotional", label: "Devotional" },
-  { value: "storybook", label: "Storybook" },
-  { value: "cinematic", label: "Cinematic" },
-  { value: "kids", label: "Kids" },
-  { value: "mysterious", label: "Mysterious" },
 ];
 
 export const IDEAS = [

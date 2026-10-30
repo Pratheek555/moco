@@ -1,0 +1,128 @@
+{
+  "shotId": "s01",
+  "durationFrames": 300,
+  "background": {
+    "id": "kurukshetra",
+    "parallax": true
+  },
+  "timeOfDay": "dawn",
+  "atmosphere": [
+    {
+      "id": "dust",
+      "intensity": 0.8
+    },
+    {
+      "id": "light_rays",
+      "intensity": 0.9
+    }
+  ],
+  "actors": [
+    {
+      "castId": "krishna",
+      "kitCharacterId": "krishna",
+      "position": {
+        "x": 0.5,
+        "y": 0.62,
+        "scale": 0.6
+      },
+      "facing": "right",
+      "actions": [
+        {
+          "name": "raise_hand",
+          "startFrame": 60,
+          "endFrame": 110,
+          "params": {
+            "side": "right"
+          }
+        },
+        {
+          "name": "bless",
+          "startFrame": 110,
+          "endFrame": 170,
+          "params": {
+            "side": "right"
+          }
+        },
+        {
+          "name": "speak",
+          "startFrame": 186,
+          "endFrame": 246
+        }
+      ],
+      "expression": [
+        {
+          "name": "serious",
+          "atFrame": 0
+        },
+        {
+          "name": "smile",
+          "atFrame": 150
+        }
+      ]
+    }
+  ],
+  "props": [
+    {
+      "id": "chariot",
+      "position": {
+        "x": 0.5,
+        "y": 0.72,
+        "scale": 0.9
+      }
+    }
+  ],
+  "camera": [
+    {
+      "move": "pan_left",
+      "startFrame": 0,
+      "endFrame": 120,
+      "amount": 0.3
+    },
+    {
+      "move": "push_in",
+      "startFrame": 175,
+      "endFrame": 300,
+      "amount": 0.25
+    }
+  ],
+  "captions": [
+    {
+      "text": "On the field",
+      "startFrame": 0,
+      "endFrame": 35,
+      "emphasis": false
+    },
+    {
+      "text": "of Kurukshetra,",
+      "startFrame": 35,
+      "endFrame": 75,
+      "emphasis": false
+    },
+    {
+      "text": "at dawn,",
+      "startFrame": 75,
+      "endFrame": 110,
+      "emphasis": false
+    },
+    {
+      "text": "Krishna blessed Arjuna:",
+      "startFrame": 110,
+      "endFrame": 180,
+      "emphasis": false
+    },
+    {
+      "text": "Do your duty,",
+      "startFrame": 186,
+      "endFrame": 215,
+      "emphasis": true
+    },
+    {
+      "text": "without fear.",
+      "startFrame": 215,
+      "endFrame": 260,
+      "emphasis": true
+    }
+  ],
+  "fx": [],
+  "fallback": false
+}
