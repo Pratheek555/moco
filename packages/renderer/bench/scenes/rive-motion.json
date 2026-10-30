@@ -1,0 +1,11 @@
+{
+  "src": "centaur.riv",
+  "artboard": "Character",
+  "stateMachine": "Motion",
+  "inputs": [
+    { "frame": 30, "name": "Move", "value": 1 },
+    { "frame": 120, "name": "Move", "value": 0 },
+    { "frame": 150, "name": "Fire", "value": true },
+    { "frame": 220, "name": "Fire", "value": true }
+  ]
+}

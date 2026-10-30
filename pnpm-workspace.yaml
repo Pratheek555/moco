@@ -1,0 +1,12 @@
+packages:
+  - "apps/*"
+  - "packages/*"
+
+# Install scripts that must run: esbuild (vitest, electron-vite) fetches its binary; electron downloads its app.
+allowBuilds:
+  esbuild: true
+  electron: true
+  electron-winstaller: false # Windows installer helper; not needed to run or build on macOS
+
+minimumReleaseAgeExclude:
+  - lucide-react@1.64.0

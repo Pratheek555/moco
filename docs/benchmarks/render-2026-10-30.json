@@ -1,0 +1,1785 @@
+{
+  "date": "2026-10-30",
+  "machine": {
+    "cpu": "Apple M2 Max",
+    "cores": 12,
+    "ramGb": 32,
+    "os": "darwin 27.2.0 (macOS 27.2)",
+    "gpu": "Chipset Model: Apple M2 Max",
+    "remotion": "4.0.539"
+  },
+  "results": [
+    {
+      "variant": "rive-frame-idle",
+      "off": [],
+      "quality": "preview",
+      "runsMs": [
+        3026,
+        2915,
+        2972
+      ],
+      "medianMs": 2972,
+      "frames": 300,
+      "secondsPerFrame": 0.0099,
+      "reel45sSeconds": 13.4,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 333.4804589999994
+        },
+        {
+          "frame": 6,
+          "time": 332.4442080000008
+        },
+        {
+          "frame": 5,
+          "time": 317.54645900000014
+        },
+        {
+          "frame": 4,
+          "time": 311.0667910000002
+        },
+        {
+          "frame": 3,
+          "time": 305.8061659999994
+        },
+        {
+          "frame": 2,
+          "time": 304.70937500000036
+        },
+        {
+          "frame": 1,
+          "time": 303.4908749999995
+        },
+        {
+          "frame": 0,
+          "time": 298.4381249999997
+        },
+        {
+          "frame": 8,
+          "time": 74.5345840000009
+        },
+        {
+          "frame": 9,
+          "time": 70.8287079999991
+        }
+      ]
+    },
+    {
+      "variant": "rive-frame-idle",
+      "off": [],
+      "quality": "final",
+      "runsMs": [
+        2985,
+        2894,
+        3185
+      ],
+      "medianMs": 2985,
+      "frames": 300,
+      "secondsPerFrame": 0.0099,
+      "reel45sSeconds": 13.4,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 352.71508299999914
+        },
+        {
+          "frame": 6,
+          "time": 347.3621669999993
+        },
+        {
+          "frame": 5,
+          "time": 344.2908749999988
+        },
+        {
+          "frame": 4,
+          "time": 340.71074999999837
+        },
+        {
+          "frame": 3,
+          "time": 337.2412499999991
+        },
+        {
+          "frame": 2,
+          "time": 334.9604590000017
+        },
+        {
+          "frame": 1,
+          "time": 332.364458
+        },
+        {
+          "frame": 0,
+          "time": 329.51958399999785
+        },
+        {
+          "frame": 9,
+          "time": 65.04087500000242
+        },
+        {
+          "frame": 8,
+          "time": 43.70295900000201
+        }
+      ]
+    },
+    {
+      "variant": "rive-frame-motion",
+      "off": [],
+      "quality": "preview",
+      "runsMs": [
+        2967,
+        2923,
+        2926
+      ],
+      "medianMs": 2926,
+      "frames": 300,
+      "secondsPerFrame": 0.0098,
+      "reel45sSeconds": 13.2,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 319.6836660000008
+        },
+        {
+          "frame": 6,
+          "time": 311.82933299999877
+        },
+        {
+          "frame": 5,
+          "time": 311.0876250000001
+        },
+        {
+          "frame": 4,
+          "time": 271.1087500000003
+        },
+        {
+          "frame": 3,
+          "time": 252.68312499999956
+        },
+        {
+          "frame": 2,
+          "time": 251.4667500000005
+        },
+        {
+          "frame": 1,
+          "time": 247.83245799999986
+        },
+        {
+          "frame": 0,
+          "time": 232.29662500000086
+        },
+        {
+          "frame": 8,
+          "time": 89.38395800000035
+        },
+        {
+          "frame": 9,
+          "time": 74.29545900000085
+        }
+      ]
+    },
+    {
+      "variant": "rive-frame-motion",
+      "off": [],
+      "quality": "final",
+      "runsMs": [
+        2950,
+        2899,
+        3100
+      ],
+      "medianMs": 2950,
+      "frames": 300,
+      "secondsPerFrame": 0.0098,
+      "reel45sSeconds": 13.3,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 318.33250000000044
+        },
+        {
+          "frame": 6,
+          "time": 300.1113750000004
+        },
+        {
+          "frame": 5,
+          "time": 298.29741600000125
+        },
+        {
+          "frame": 4,
+          "time": 291.3675839999996
+        },
+        {
+          "frame": 3,
+          "time": 285.1661669999994
+        },
+        {
+          "frame": 2,
+          "time": 279.9732499999991
+        },
+        {
+          "frame": 1,
+          "time": 260.2541250000031
+        },
+        {
+          "frame": 0,
+          "time": 250.5241249999999
+        },
+        {
+          "frame": 8,
+          "time": 69.90829200000007
+        },
+        {
+          "frame": 9,
+          "time": 61.11604200000147
+        }
+      ]
+    },
+    {
+      "variant": "rive-stock-idle",
+      "off": [],
+      "quality": "preview",
+      "runsMs": [
+        4320,
+        3845,
+        3381
+      ],
+      "medianMs": 3845,
+      "frames": 300,
+      "secondsPerFrame": 0.0128,
+      "reel45sSeconds": 17.3,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 751.6090000000004
+        },
+        {
+          "frame": 6,
+          "time": 750.7694589999992
+        },
+        {
+          "frame": 5,
+          "time": 750.5756250000013
+        },
+        {
+          "frame": 4,
+          "time": 750.2050839999993
+        },
+        {
+          "frame": 3,
+          "time": 734.3695420000004
+        },
+        {
+          "frame": 2,
+          "time": 733.7446249999994
+        },
+        {
+          "frame": 1,
+          "time": 733.1269590000011
+        },
+        {
+          "frame": 0,
+          "time": 731.6912500000017
+        },
+        {
+          "frame": 9,
+          "time": 56.565042000000176
+        },
+        {
+          "frame": 8,
+          "time": 46.541417000000365
+        }
+      ]
+    },
+    {
+      "variant": "rive-stock-idle",
+      "off": [],
+      "quality": "final",
+      "runsMs": [
+        3521,
+        3445,
+        3636
+      ],
+      "medianMs": 3521,
+      "frames": 300,
+      "secondsPerFrame": 0.0117,
+      "reel45sSeconds": 15.8,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 980.7475840000006
+        },
+        {
+          "frame": 6,
+          "time": 976.7686670000003
+        },
+        {
+          "frame": 5,
+          "time": 974.6235830000005
+        },
+        {
+          "frame": 4,
+          "time": 972.6426250000004
+        },
+        {
+          "frame": 3,
+          "time": 948.3432920000014
+        },
+        {
+          "frame": 2,
+          "time": 946.6523749999978
+        },
+        {
+          "frame": 1,
+          "time": 943.5529580000002
+        },
+        {
+          "frame": 0,
+          "time": 940.648792
+        },
+        {
+          "frame": 8,
+          "time": 48.14916599999924
+        },
+        {
+          "frame": 9,
+          "time": 47.331458000000566
+        }
+      ]
+    },
+    {
+      "variant": "svg-rig-only",
+      "off": [],
+      "quality": "preview",
+      "runsMs": [
+        2503,
+        2465,
+        2486
+      ],
+      "medianMs": 2486,
+      "frames": 300,
+      "secondsPerFrame": 0.0083,
+      "reel45sSeconds": 11.2,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 67.66325000000052
+        },
+        {
+          "frame": 35,
+          "time": 66.40829099999974
+        },
+        {
+          "frame": 37,
+          "time": 65.69862499999999
+        },
+        {
+          "frame": 36,
+          "time": 65.4194580000003
+        },
+        {
+          "frame": 38,
+          "time": 65.36695799999961
+        },
+        {
+          "frame": 6,
+          "time": 57.71058300000004
+        },
+        {
+          "frame": 5,
+          "time": 56.960000000000036
+        },
+        {
+          "frame": 55,
+          "time": 56.56762500000059
+        },
+        {
+          "frame": 39,
+          "time": 55.71404199999961
+        },
+        {
+          "frame": 4,
+          "time": 55.43629200000032
+        }
+      ]
+    },
+    {
+      "variant": "svg-rig-only",
+      "off": [],
+      "quality": "final",
+      "runsMs": [
+        2881,
+        2883,
+        2886
+      ],
+      "medianMs": 2883,
+      "frames": 300,
+      "secondsPerFrame": 0.0096,
+      "reel45sSeconds": 13,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 94.0242500000004
+        },
+        {
+          "frame": 6,
+          "time": 92.19083399999909
+        },
+        {
+          "frame": 5,
+          "time": 90.29854199999863
+        },
+        {
+          "frame": 4,
+          "time": 83.08483299999898
+        },
+        {
+          "frame": 3,
+          "time": 80.91591700000026
+        },
+        {
+          "frame": 2,
+          "time": 80.79362500000025
+        },
+        {
+          "frame": 1,
+          "time": 77.33124999999927
+        },
+        {
+          "frame": 290,
+          "time": 76.57916699999987
+        },
+        {
+          "frame": 12,
+          "time": 74.71262500000012
+        },
+        {
+          "frame": 168,
+          "time": 74.66612499999974
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "off": [],
+      "quality": "preview",
+      "runsMs": [
+        2961,
+        2945,
+        2922
+      ],
+      "medianMs": 2945,
+      "frames": 300,
+      "secondsPerFrame": 0.0098,
+      "reel45sSeconds": 13.3,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 157.4007499999998
+        },
+        {
+          "frame": 6,
+          "time": 137.9754579999999
+        },
+        {
+          "frame": 5,
+          "time": 136.63395800000035
+        },
+        {
+          "frame": 4,
+          "time": 131.50333299999966
+        },
+        {
+          "frame": 3,
+          "time": 104.49933400000009
+        },
+        {
+          "frame": 2,
+          "time": 104.01354099999935
+        },
+        {
+          "frame": 1,
+          "time": 103.62383299999965
+        },
+        {
+          "frame": 0,
+          "time": 100.3824169999998
+        },
+        {
+          "frame": 8,
+          "time": 57.83766700000069
+        },
+        {
+          "frame": 9,
+          "time": 55.23933300000044
+        }
+      ]
+    },
+    {
+      "variant": "baseline",
+      "off": [],
+      "quality": "final",
+      "runsMs": [
+        5709,
+        5733,
+        5964
+      ],
+      "medianMs": 5733,
+      "frames": 300,
+      "secondsPerFrame": 0.0191,
+      "reel45sSeconds": 25.8,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 265.51845799999865
+        },
+        {
+          "frame": 6,
+          "time": 259.4982090000012
+        },
+        {
+          "frame": 5,
+          "time": 256.38766699999906
+        },
+        {
+          "frame": 4,
+          "time": 245.62774999999965
+        },
+        {
+          "frame": 3,
+          "time": 244.11462499999834
+        },
+        {
+          "frame": 226,
+          "time": 239.80045800000153
+        },
+        {
+          "frame": 2,
+          "time": 239.3893330000028
+        },
+        {
+          "frame": 264,
+          "time": 237.29912500000137
+        },
+        {
+          "frame": 1,
+          "time": 236.5277500000011
+        },
+        {
+          "frame": 227,
+          "time": 224.75537500000064
+        }
+      ]
+    },
+    {
+      "variant": "baseline-phase0-look",
+      "off": [
+        "grain",
+        "vignette",
+        "idle"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        2755,
+        2752,
+        2751
+      ],
+      "medianMs": 2752,
+      "frames": 300,
+      "secondsPerFrame": 0.0092,
+      "reel45sSeconds": 12.4,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 122.25695799999994
+        },
+        {
+          "frame": 6,
+          "time": 106.95758299999943
+        },
+        {
+          "frame": 5,
+          "time": 101.88029199999983
+        },
+        {
+          "frame": 4,
+          "time": 100.16804199999933
+        },
+        {
+          "frame": 3,
+          "time": 95.24279099999967
+        },
+        {
+          "frame": 2,
+          "time": 89.53974999999991
+        },
+        {
+          "frame": 1,
+          "time": 87.7510000000002
+        },
+        {
+          "frame": 0,
+          "time": 85.97308299999986
+        },
+        {
+          "frame": 9,
+          "time": 66.87808300000052
+        },
+        {
+          "frame": 8,
+          "time": 48.832915999999386
+        }
+      ]
+    },
+    {
+      "variant": "baseline-phase0-look",
+      "off": [
+        "grain",
+        "vignette",
+        "idle"
+      ],
+      "quality": "final",
+      "runsMs": [
+        4754,
+        4804,
+        4615
+      ],
+      "medianMs": 4754,
+      "frames": 300,
+      "secondsPerFrame": 0.0158,
+      "reel45sSeconds": 21.4,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 242.48062500000015
+        },
+        {
+          "frame": 6,
+          "time": 229.13470900000175
+        },
+        {
+          "frame": 5,
+          "time": 223.57945899999686
+        },
+        {
+          "frame": 4,
+          "time": 217.68133300000045
+        },
+        {
+          "frame": 3,
+          "time": 213.4590410000019
+        },
+        {
+          "frame": 2,
+          "time": 206.1416250000002
+        },
+        {
+          "frame": 1,
+          "time": 200.75970900000175
+        },
+        {
+          "frame": 0,
+          "time": 197.679874999998
+        },
+        {
+          "frame": 9,
+          "time": 101.89300000000003
+        },
+        {
+          "frame": 8,
+          "time": 66.6518750000032
+        }
+      ]
+    },
+    {
+      "variant": "premium",
+      "off": [],
+      "quality": "preview",
+      "runsMs": [
+        3812,
+        3813,
+        3955
+      ],
+      "medianMs": 3813,
+      "frames": 300,
+      "secondsPerFrame": 0.0127,
+      "reel45sSeconds": 17.2,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 214.26649999999972
+        },
+        {
+          "frame": 6,
+          "time": 213.0487919999996
+        },
+        {
+          "frame": 5,
+          "time": 212.50787499999933
+        },
+        {
+          "frame": 4,
+          "time": 170.71749999999884
+        },
+        {
+          "frame": 3,
+          "time": 154.31820799999878
+        },
+        {
+          "frame": 2,
+          "time": 153.36633299999994
+        },
+        {
+          "frame": 1,
+          "time": 152.74195900000086
+        },
+        {
+          "frame": 0,
+          "time": 150.95800000000054
+        },
+        {
+          "frame": 8,
+          "time": 65.90250000000015
+        },
+        {
+          "frame": 9,
+          "time": 64.22704199999862
+        }
+      ]
+    },
+    {
+      "variant": "premium",
+      "off": [],
+      "quality": "final",
+      "runsMs": [
+        7444,
+        7255,
+        7177
+      ],
+      "medianMs": 7255,
+      "frames": 300,
+      "secondsPerFrame": 0.0242,
+      "reel45sSeconds": 32.6,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 472.4255830000002
+        },
+        {
+          "frame": 6,
+          "time": 468.9702920000018
+        },
+        {
+          "frame": 5,
+          "time": 442.7703330000004
+        },
+        {
+          "frame": 4,
+          "time": 439.35708299999897
+        },
+        {
+          "frame": 3,
+          "time": 435.69533299999966
+        },
+        {
+          "frame": 2,
+          "time": 433.5897079999995
+        },
+        {
+          "frame": 1,
+          "time": 431.9693750000006
+        },
+        {
+          "frame": 0,
+          "time": 312.3087090000008
+        },
+        {
+          "frame": 8,
+          "time": 165.96587499999805
+        },
+        {
+          "frame": 9,
+          "time": 125.00141599999915
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-atmosphere",
+      "off": [
+        "atmosphere"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3433,
+        3324,
+        3381
+      ],
+      "medianMs": 3381,
+      "frames": 300,
+      "secondsPerFrame": 0.0113,
+      "reel45sSeconds": 15.2,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 195.7516659999983
+        },
+        {
+          "frame": 6,
+          "time": 195.55691600000137
+        },
+        {
+          "frame": 5,
+          "time": 195.15099999999984
+        },
+        {
+          "frame": 4,
+          "time": 194.62170900000092
+        },
+        {
+          "frame": 3,
+          "time": 141.06654100000014
+        },
+        {
+          "frame": 2,
+          "time": 139.96750000000065
+        },
+        {
+          "frame": 1,
+          "time": 137.886708
+        },
+        {
+          "frame": 0,
+          "time": 135.932417
+        },
+        {
+          "frame": 9,
+          "time": 68.56020800000078
+        },
+        {
+          "frame": 8,
+          "time": 62.081624999998894
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-atmosphere",
+      "off": [
+        "atmosphere"
+      ],
+      "quality": "final",
+      "runsMs": [
+        6452,
+        6510,
+        6601
+      ],
+      "medianMs": 6510,
+      "frames": 300,
+      "secondsPerFrame": 0.0217,
+      "reel45sSeconds": 29.3,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 414.049500000001
+        },
+        {
+          "frame": 6,
+          "time": 412.58587500000067
+        },
+        {
+          "frame": 5,
+          "time": 410.00704100000075
+        },
+        {
+          "frame": 4,
+          "time": 358.5817500000012
+        },
+        {
+          "frame": 3,
+          "time": 344.0265839999993
+        },
+        {
+          "frame": 2,
+          "time": 340.7024999999994
+        },
+        {
+          "frame": 1,
+          "time": 337.19979199999943
+        },
+        {
+          "frame": 0,
+          "time": 334.3929160000007
+        },
+        {
+          "frame": 8,
+          "time": 84.46916599999895
+        },
+        {
+          "frame": 9,
+          "time": 82.44583300000158
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-grain",
+      "off": [
+        "grain"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3459,
+        3566,
+        3460
+      ],
+      "medianMs": 3460,
+      "frames": 300,
+      "secondsPerFrame": 0.0115,
+      "reel45sSeconds": 15.6,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 163.56679199999962
+        },
+        {
+          "frame": 6,
+          "time": 161.82579100000112
+        },
+        {
+          "frame": 4,
+          "time": 152.57424999999967
+        },
+        {
+          "frame": 3,
+          "time": 151.81137499999932
+        },
+        {
+          "frame": 2,
+          "time": 150.9657499999994
+        },
+        {
+          "frame": 5,
+          "time": 141.4664159999993
+        },
+        {
+          "frame": 1,
+          "time": 129.34008399999948
+        },
+        {
+          "frame": 0,
+          "time": 122.76258299999972
+        },
+        {
+          "frame": 9,
+          "time": 67.64079200000015
+        },
+        {
+          "frame": 8,
+          "time": 54.710791999999856
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-grain",
+      "off": [
+        "grain"
+      ],
+      "quality": "final",
+      "runsMs": [
+        5539,
+        5541,
+        5634
+      ],
+      "medianMs": 5541,
+      "frames": 300,
+      "secondsPerFrame": 0.0185,
+      "reel45sSeconds": 24.9,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 305.37012499999764
+        },
+        {
+          "frame": 6,
+          "time": 294.8105830000022
+        },
+        {
+          "frame": 5,
+          "time": 286.8194579999981
+        },
+        {
+          "frame": 4,
+          "time": 278.48799999999756
+        },
+        {
+          "frame": 3,
+          "time": 275.62729200000103
+        },
+        {
+          "frame": 2,
+          "time": 273.3695000000007
+        },
+        {
+          "frame": 1,
+          "time": 270.29145900000003
+        },
+        {
+          "frame": 0,
+          "time": 267.6904579999973
+        },
+        {
+          "frame": 8,
+          "time": 122.10399999999936
+        },
+        {
+          "frame": 9,
+          "time": 120.56645800000115
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-vignette",
+      "off": [
+        "vignette"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3546,
+        3497,
+        3551
+      ],
+      "medianMs": 3546,
+      "frames": 300,
+      "secondsPerFrame": 0.0118,
+      "reel45sSeconds": 16,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 219.84241600000132
+        },
+        {
+          "frame": 6,
+          "time": 208.2107500000002
+        },
+        {
+          "frame": 5,
+          "time": 207.74241699999948
+        },
+        {
+          "frame": 4,
+          "time": 198.949208
+        },
+        {
+          "frame": 3,
+          "time": 198.01887499999975
+        },
+        {
+          "frame": 2,
+          "time": 197.29420800000116
+        },
+        {
+          "frame": 1,
+          "time": 196.71904200000063
+        },
+        {
+          "frame": 0,
+          "time": 195.11379099999976
+        },
+        {
+          "frame": 8,
+          "time": 65.82541700000002
+        },
+        {
+          "frame": 9,
+          "time": 64.49308299999939
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-vignette",
+      "off": [
+        "vignette"
+      ],
+      "quality": "final",
+      "runsMs": [
+        6581,
+        6524,
+        6801
+      ],
+      "medianMs": 6581,
+      "frames": 300,
+      "secondsPerFrame": 0.0219,
+      "reel45sSeconds": 29.6,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 374.2567909999998
+        },
+        {
+          "frame": 6,
+          "time": 371.135542
+        },
+        {
+          "frame": 5,
+          "time": 338.7489170000008
+        },
+        {
+          "frame": 4,
+          "time": 337.075499999999
+        },
+        {
+          "frame": 3,
+          "time": 330.552125000002
+        },
+        {
+          "frame": 2,
+          "time": 327.26483299999745
+        },
+        {
+          "frame": 1,
+          "time": 284.33704200000284
+        },
+        {
+          "frame": 131,
+          "time": 270.09729100000186
+        },
+        {
+          "frame": 187,
+          "time": 246.39595800000097
+        },
+        {
+          "frame": 188,
+          "time": 239.1546249999992
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-grade",
+      "off": [
+        "grade"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3411,
+        3347,
+        3383
+      ],
+      "medianMs": 3383,
+      "frames": 300,
+      "secondsPerFrame": 0.0113,
+      "reel45sSeconds": 15.2,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 178.39508299999943
+        },
+        {
+          "frame": 6,
+          "time": 176.27629199999865
+        },
+        {
+          "frame": 5,
+          "time": 175.3852079999997
+        },
+        {
+          "frame": 4,
+          "time": 169.71816600000056
+        },
+        {
+          "frame": 3,
+          "time": 168.3977500000001
+        },
+        {
+          "frame": 2,
+          "time": 168.05287500000122
+        },
+        {
+          "frame": 1,
+          "time": 167.44200000000092
+        },
+        {
+          "frame": 0,
+          "time": 165.83708300000035
+        },
+        {
+          "frame": 8,
+          "time": 66.3039579999986
+        },
+        {
+          "frame": 9,
+          "time": 64.82108400000106
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-grade",
+      "off": [
+        "grade"
+      ],
+      "quality": "final",
+      "runsMs": [
+        6836,
+        6759,
+        6367
+      ],
+      "medianMs": 6759,
+      "frames": 300,
+      "secondsPerFrame": 0.0225,
+      "reel45sSeconds": 30.4,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 396.9423339999994
+        },
+        {
+          "frame": 6,
+          "time": 361.1090839999997
+        },
+        {
+          "frame": 5,
+          "time": 359.1571670000012
+        },
+        {
+          "frame": 4,
+          "time": 299.0955000000031
+        },
+        {
+          "frame": 3,
+          "time": 283.97195799999827
+        },
+        {
+          "frame": 2,
+          "time": 280.60783399999855
+        },
+        {
+          "frame": 1,
+          "time": 255.9682909999974
+        },
+        {
+          "frame": 0,
+          "time": 251.138082999998
+        },
+        {
+          "frame": 8,
+          "time": 147.9667499999996
+        },
+        {
+          "frame": 9,
+          "time": 143.9629160000004
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-parallax",
+      "off": [
+        "parallax"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3709,
+        3632,
+        3738
+      ],
+      "medianMs": 3709,
+      "frames": 300,
+      "secondsPerFrame": 0.0124,
+      "reel45sSeconds": 16.7,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 235.36133299999892
+        },
+        {
+          "frame": 6,
+          "time": 235.01012499999888
+        },
+        {
+          "frame": 5,
+          "time": 200.43233300000065
+        },
+        {
+          "frame": 4,
+          "time": 166.52074999999968
+        },
+        {
+          "frame": 3,
+          "time": 165.49524999999994
+        },
+        {
+          "frame": 2,
+          "time": 161.50308399999994
+        },
+        {
+          "frame": 1,
+          "time": 158.60662500000035
+        },
+        {
+          "frame": 0,
+          "time": 156.77579199999855
+        },
+        {
+          "frame": 8,
+          "time": 79.24283300000025
+        },
+        {
+          "frame": 9,
+          "time": 77.668083999999
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-parallax",
+      "off": [
+        "parallax"
+      ],
+      "quality": "final",
+      "runsMs": [
+        6857,
+        7470,
+        7300
+      ],
+      "medianMs": 7300,
+      "frames": 300,
+      "secondsPerFrame": 0.0243,
+      "reel45sSeconds": 32.9,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 441.42133399999875
+        },
+        {
+          "frame": 6,
+          "time": 436.78841699999975
+        },
+        {
+          "frame": 5,
+          "time": 434.7999999999993
+        },
+        {
+          "frame": 4,
+          "time": 419.47154200000296
+        },
+        {
+          "frame": 3,
+          "time": 417.9335829999982
+        },
+        {
+          "frame": 0,
+          "time": 312.48612499999945
+        },
+        {
+          "frame": 2,
+          "time": 303.8792500000018
+        },
+        {
+          "frame": 1,
+          "time": 295.7026670000014
+        },
+        {
+          "frame": 9,
+          "time": 177.71866699999737
+        },
+        {
+          "frame": 8,
+          "time": 152.79312500000015
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-idle",
+      "off": [
+        "idle"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3790,
+        3598,
+        3577
+      ],
+      "medianMs": 3598,
+      "frames": 300,
+      "secondsPerFrame": 0.012,
+      "reel45sSeconds": 16.2,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 204.31895799999984
+        },
+        {
+          "frame": 6,
+          "time": 187.62187500000073
+        },
+        {
+          "frame": 5,
+          "time": 186.51749999999993
+        },
+        {
+          "frame": 4,
+          "time": 185.75979200000074
+        },
+        {
+          "frame": 3,
+          "time": 172.23820800000067
+        },
+        {
+          "frame": 2,
+          "time": 163.88166600000113
+        },
+        {
+          "frame": 1,
+          "time": 157.26345799999945
+        },
+        {
+          "frame": 0,
+          "time": 154.3856250000008
+        },
+        {
+          "frame": 9,
+          "time": 83.05883300000096
+        },
+        {
+          "frame": 8,
+          "time": 62.5710420000014
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-idle",
+      "off": [
+        "idle"
+      ],
+      "quality": "final",
+      "runsMs": [
+        7237,
+        7397,
+        7174
+      ],
+      "medianMs": 7237,
+      "frames": 300,
+      "secondsPerFrame": 0.0241,
+      "reel45sSeconds": 32.6,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 6,
+          "time": 492.6998749999984
+        },
+        {
+          "frame": 7,
+          "time": 492.69320799999696
+        },
+        {
+          "frame": 5,
+          "time": 486.9168329999993
+        },
+        {
+          "frame": 4,
+          "time": 419.67866700000013
+        },
+        {
+          "frame": 3,
+          "time": 415.7973749999983
+        },
+        {
+          "frame": 2,
+          "time": 410.5488340000011
+        },
+        {
+          "frame": 1,
+          "time": 407.7548749999987
+        },
+        {
+          "frame": 0,
+          "time": 373.9524590000001
+        },
+        {
+          "frame": 8,
+          "time": 147.93504200000098
+        },
+        {
+          "frame": 9,
+          "time": 118.01037500000166
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-lipsync",
+      "off": [
+        "lipsync"
+      ],
+      "quality": "preview",
+      "runsMs": [
+        3730,
+        3688,
+        3705
+      ],
+      "medianMs": 3705,
+      "frames": 300,
+      "secondsPerFrame": 0.0124,
+      "reel45sSeconds": 16.7,
+      "resolution": "540x960",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 212.31274999999914
+        },
+        {
+          "frame": 0,
+          "time": 188.19866700000057
+        },
+        {
+          "frame": 6,
+          "time": 186.9546250000003
+        },
+        {
+          "frame": 5,
+          "time": 182.90908299999865
+        },
+        {
+          "frame": 4,
+          "time": 179.295709
+        },
+        {
+          "frame": 3,
+          "time": 173.14008300000023
+        },
+        {
+          "frame": 2,
+          "time": 171.74812500000007
+        },
+        {
+          "frame": 1,
+          "time": 170.71799999999894
+        },
+        {
+          "frame": 8,
+          "time": 82.87225000000035
+        },
+        {
+          "frame": 9,
+          "time": 81.50045800000044
+        }
+      ]
+    },
+    {
+      "variant": "premium-no-lipsync",
+      "off": [
+        "lipsync"
+      ],
+      "quality": "final",
+      "runsMs": [
+        6964,
+        7103,
+        7113
+      ],
+      "medianMs": 7103,
+      "frames": 300,
+      "secondsPerFrame": 0.0237,
+      "reel45sSeconds": 32,
+      "resolution": "1080x1920",
+      "fps": 30,
+      "codec": "h264",
+      "imageFormat": "jpeg",
+      "concurrency": 8,
+      "gl": null,
+      "slowestFrames": [
+        {
+          "frame": 7,
+          "time": 520.8453340000015
+        },
+        {
+          "frame": 6,
+          "time": 501.609292000001
+        },
+        {
+          "frame": 5,
+          "time": 499.38270900000134
+        },
+        {
+          "frame": 4,
+          "time": 495.2146250000005
+        },
+        {
+          "frame": 3,
+          "time": 493.51037500000166
+        },
+        {
+          "frame": 2,
+          "time": 491.8025000000016
+        },
+        {
+          "frame": 1,
+          "time": 325.5659999999989
+        },
+        {
+          "frame": 0,
+          "time": 321.2848750000012
+        },
+        {
+          "frame": 8,
+          "time": 213.3479580000021
+        },
+        {
+          "frame": 9,
+          "time": 210.2168750000019
+        }
+      ]
+    }
+  ]
+}

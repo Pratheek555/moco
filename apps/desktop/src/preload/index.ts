@@ -19,33 +19,29 @@ const api: MocoApi = {
     get: call("settings.get"),
     set: call("settings.set"),
   } as MocoApi["settings"],
-  ai: { detect: call("ai.detect"), test: call("ai.test") } as MocoApi["ai"],
+  ai: { status: call("ai.status") } as MocoApi["ai"],
   voice: {
     list: call("voice.list"),
     preview: call("voice.preview"),
   } as MocoApi["voice"],
+  kit: { catalog: call("kit.catalog") } as MocoApi["kit"],
   series: {
     list: call("series.list"),
-    get: call("series.get"),
-    save: call("series.save"),
+    create: call("series.create"),
+    status: call("series.status"),
+    artifact: call("series.artifact"),
     remove: call("series.remove"),
-    demo: call("series.demo"),
   } as MocoApi["series"],
+  stages: {
+    run: call("stages.run"),
+    approve: call("stages.approve"),
+    reject: call("stages.reject"),
+    cancel: call("stages.cancel"),
+  } as MocoApi["stages"],
   episode: {
-    get: call("episode.get"),
-    save: call("episode.save"),
+    media: call("episode.media"),
+    regenerateShot: call("episode.regenerateShot"),
   } as MocoApi["episode"],
-  jobs: {
-    start: call("jobs.start"),
-    cancel: call("jobs.cancel"),
-    list: call("jobs.list"),
-    clear: call("jobs.clear"),
-  } as MocoApi["jobs"],
-  render: {
-    status: call("render.status"),
-    prepare: call("render.prepare"),
-  } as MocoApi["render"],
-  assets: { sfx: call("assets.sfx") } as MocoApi["assets"],
   on(channel, cb) {
     const listener = (_e: Electron.IpcRendererEvent, payload: unknown) =>
       cb(payload);

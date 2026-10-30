@@ -1,0 +1,97 @@
+{
+  "front": {
+    "layers": {
+      "hair_back": "<g>\n    <path d=\"M140 150 Q130 260 150 300 L250 300 Q270 260 260 150 Z\" fill=\"#1a1430\"/>\n  </g>",
+      "legs": "<g>\n    <rect x=\"160\" y=\"720\" width=\"30\" height=\"60\" rx=\"12\" fill=\"#3f72c6\"/>\n    <rect x=\"210\" y=\"720\" width=\"30\" height=\"60\" rx=\"12\" fill=\"#3f72c6\"/>\n    <ellipse cx=\"172\" cy=\"790\" rx=\"26\" ry=\"11\" fill=\"#3f72c6\"/>\n    <ellipse cx=\"228\" cy=\"790\" rx=\"26\" ry=\"11\" fill=\"#3f72c6\"/>\n    <rect x=\"158\" y=\"756\" width=\"34\" height=\"7\" rx=\"3\" fill=\"#e8b923\"/>\n    <rect x=\"208\" y=\"756\" width=\"34\" height=\"7\" rx=\"3\" fill=\"#e8b923\"/>\n  </g>",
+      "garment_lower": "<g>\n    <path d=\"M140 462 L260 462 L290 735 Q200 750 110 735 Z\" fill=\"#f6c026\"/>\n    <path d=\"M200 470 L196 740 M170 480 L150 735 M230 480 L250 735\" stroke=\"#d4a017\" stroke-width=\"3\" fill=\"none\"/>\n    <path d=\"M112 722 Q200 740 288 722 L290 735 Q200 752 110 735 Z\" fill=\"#b03a2e\"/>\n    <rect x=\"136\" y=\"452\" width=\"128\" height=\"18\" rx=\"6\" fill=\"#e8b923\"/>\n  </g>",
+      "arm_upper_L": "<g>\n    <rect x=\"250\" y=\"269\" width=\"30\" height=\"128\" rx=\"15\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <rect x=\"249\" y=\"313\" width=\"32\" height=\"9\" rx=\"4\" fill=\"#e8b923\"/>\n  </g>",
+      "arm_lower_L": "<g>\n    <rect x=\"252\" y=\"387\" width=\"26\" height=\"118\" rx=\"13\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <rect x=\"251\" y=\"483\" width=\"28\" height=\"8\" rx=\"4\" fill=\"#e8b923\"/>\n  </g>",
+      "hand_L_open": "<g>\n    <ellipse cx=\"265\" cy=\"513\" rx=\"16\" ry=\"19\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <ellipse cx=\"251\" cy=\"505\" rx=\"5\" ry=\"10\" transform=\"rotate(25 251 505)\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n  </g>",
+      "hand_L_fist": "<g>\n    <circle cx=\"265\" cy=\"511\" r=\"15\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <path d=\"M256 516 Q265 521 274 516\" stroke=\"#2b5299\" stroke-width=\"2\" fill=\"none\"/>\n  </g>",
+      "hand_L_point": "<g>\n    <rect x=\"260\" y=\"512\" width=\"10\" height=\"34\" rx=\"5\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <circle cx=\"265\" cy=\"509\" r=\"14\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n  </g>",
+      "torso": "<g>\n    <rect x=\"185\" y=\"232\" width=\"30\" height=\"40\" fill=\"#3f72c6\"/>\n    <path d=\"M130 282 Q200 258 270 282 L258 470 Q200 482 142 470 Z\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <path d=\"M170 330 Q200 345 230 330\" stroke=\"#2b5299\" stroke-width=\"2\" fill=\"none\" stroke-opacity=\"0.6\"/>\n  </g>",
+      "jewellery_neck": "<g>\n    <path d=\"M160 282 Q200 318 240 282\" stroke=\"#e8b923\" stroke-width=\"7\" fill=\"none\"/>\n    <path d=\"M150 290 Q200 470 250 290\" stroke=\"#e74c3c\" stroke-width=\"9\" stroke-dasharray=\"2 12\" stroke-linecap=\"round\" fill=\"none\"/>\n    <path d=\"M150 290 Q200 470 250 290\" stroke=\"#f5f5dc\" stroke-width=\"6\" stroke-dasharray=\"2 12\" stroke-dashoffset=\"7\" stroke-linecap=\"round\" fill=\"none\"/>\n  </g>",
+      "garment_upper": "<g>\n    <path d=\"M245 278 L270 290 L160 470 L140 455 Z\" fill=\"#f39c12\" opacity=\"0.92\"/>\n  </g>",
+      "garment_upper--charioteer": "<g>\n    <path d=\"M245 278 L270 290 L160 470 L140 455 Z\" fill=\"#c0392b\" opacity=\"0.92\"/>\n  </g>",
+      "prop_waist": "<g>\n    <rect x=\"150\" y=\"440\" width=\"110\" height=\"9\" rx=\"4\" fill=\"#8e5b2f\" transform=\"rotate(-12 205 445)\"/>\n  </g>",
+      "prop_waist--charioteer": "",
+      "head": "<g>\n    <path d=\"M138 175 Q128 95 200 92 Q272 95 262 175 Q250 120 200 118 Q150 120 138 175 Z\" fill=\"#1a1430\"/>\n    <ellipse cx=\"142\" cy=\"182\" rx=\"11\" ry=\"17\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <ellipse cx=\"258\" cy=\"182\" rx=\"11\" ry=\"17\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <circle cx=\"142\" cy=\"204\" r=\"8\" fill=\"#e8b923\"/>\n    <circle cx=\"258\" cy=\"204\" r=\"8\" fill=\"#e8b923\"/>\n    <ellipse cx=\"200\" cy=\"175\" rx=\"58\" ry=\"66\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2.5\"/>\n  </g>",
+      "eye_R": "<g><path d=\"M164 172 Q178 159 192 172 Q178 182 164 172 Z\" fill=\"#fdfaf3\" stroke=\"#16213e\" stroke-width=\"2.5\"/></g>",
+      "iris_R": "<g><circle cx=\"178\" cy=\"172\" r=\"6.5\" fill=\"#2b1b0e\"/><circle cx=\"180\" cy=\"170\" r=\"2\" fill=\"#ffffff\"/></g>",
+      "eyeline_R": "<g><path d=\"M163 171 Q178 157 193 171\" stroke=\"#16213e\" stroke-width=\"3.5\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "eyelid_R": "<g><path d=\"M165 172 Q178 179 191 172\" stroke=\"#16213e\" stroke-width=\"3.5\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "eye_L": "<g><path d=\"M208 172 Q222 159 236 172 Q222 182 208 172 Z\" fill=\"#fdfaf3\" stroke=\"#16213e\" stroke-width=\"2.5\"/></g>",
+      "iris_L": "<g><circle cx=\"222\" cy=\"172\" r=\"6.5\" fill=\"#2b1b0e\"/><circle cx=\"224\" cy=\"170\" r=\"2\" fill=\"#ffffff\"/></g>",
+      "eyeline_L": "<g><path d=\"M207 171 Q222 157 237 171\" stroke=\"#16213e\" stroke-width=\"3.5\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "eyelid_L": "<g><path d=\"M209 172 Q222 179 235 172\" stroke=\"#16213e\" stroke-width=\"3.5\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "brow_R": "<g><path d=\"M163 152 Q178 145 192 151\" stroke=\"#16213e\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "brow_L": "<g><path d=\"M208 151 Q222 145 237 152\" stroke=\"#16213e\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "nose": "<g><path d=\"M200 178 Q196 194 201 198\" stroke=\"#16213e\" stroke-opacity=\"0.45\" stroke-width=\"2.5\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "face_marks": "<g>\n    <path d=\"M193 128 Q200 146 207 128\" stroke=\"#fdfaf3\" stroke-width=\"3\" fill=\"none\"/>\n    <path d=\"M200 131 L200 143\" stroke=\"#c0392b\" stroke-width=\"2.5\"/>\n  </g>",
+      "mouth_neutral": "<g><path d=\"M186 214 Q200 221 214 214\" stroke=\"#7a2232\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "mouth_smile": "<g><path d=\"M181 209 Q200 230 219 209\" stroke=\"#7a2232\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "mouth_serious": "<g><path d=\"M188 216 L212 216\" stroke=\"#7a2232\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "viseme_X": "<g><path d=\"M188 215 Q200 219 212 215\" stroke=\"#7a2232\" stroke-width=\"4\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "viseme_A": "<g><path d=\"M186 215 L214 215\" stroke=\"#7a2232\" stroke-width=\"5\" fill=\"none\" stroke-linecap=\"round\"/></g>",
+      "viseme_B": "<g><ellipse cx=\"200\" cy=\"216\" rx=\"12\" ry=\"4\" fill=\"#4a0f1a\" stroke=\"#7a2232\" stroke-width=\"3\"/><path d=\"M190 214 L210 214\" stroke=\"#fdfaf3\" stroke-width=\"2\"/></g>",
+      "viseme_C": "<g><ellipse cx=\"200\" cy=\"217\" rx=\"13\" ry=\"7\" fill=\"#4a0f1a\" stroke=\"#7a2232\" stroke-width=\"3\"/><path d=\"M190 213 L210 213\" stroke=\"#fdfaf3\" stroke-width=\"2\"/></g>",
+      "viseme_D": "<g><ellipse cx=\"200\" cy=\"218\" rx=\"15\" ry=\"11\" fill=\"#4a0f1a\" stroke=\"#7a2232\" stroke-width=\"3\"/><ellipse cx=\"200\" cy=\"224\" rx=\"8\" ry=\"4\" fill=\"#c0485a\"/></g>",
+      "viseme_E": "<g><ellipse cx=\"200\" cy=\"217\" rx=\"9\" ry=\"9\" fill=\"#4a0f1a\" stroke=\"#7a2232\" stroke-width=\"3\"/></g>",
+      "viseme_F": "<g><ellipse cx=\"200\" cy=\"216\" rx=\"6\" ry=\"6\" fill=\"#4a0f1a\" stroke=\"#7a2232\" stroke-width=\"3.5\"/></g>",
+      "headwear": "<g>\n    <path d=\"M150 122 L160 86 L180 102 L200 74 L220 102 L240 86 L250 122 Q200 108 150 122 Z\" fill=\"#e8b923\" stroke=\"#b8860b\" stroke-width=\"2\"/>\n    <circle cx=\"200\" cy=\"104\" r=\"6\" fill=\"#c0392b\"/>\n    <circle cx=\"172\" cy=\"110\" r=\"4\" fill=\"#1e8449\"/>\n    <circle cx=\"228\" cy=\"110\" r=\"4\" fill=\"#1e8449\"/>\n  </g>",
+      "headwear_flex": "<g>\n    <g transform=\"rotate(14 222 88)\">\n      <path d=\"M222 92 Q226 50 236 18\" stroke=\"#7d6608\" stroke-width=\"3\" fill=\"none\"/>\n      <ellipse cx=\"237\" cy=\"28\" rx=\"15\" ry=\"24\" fill=\"#1e8449\"/>\n      <ellipse cx=\"237\" cy=\"30\" rx=\"9\" ry=\"14\" fill=\"#2e86c1\"/>\n      <ellipse cx=\"237\" cy=\"31\" rx=\"4\" ry=\"6\" fill=\"#1b2631\"/>\n    </g>\n  </g>",
+      "arm_upper_R": "<g>\n    <rect x=\"120\" y=\"269\" width=\"30\" height=\"128\" rx=\"15\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <rect x=\"119\" y=\"313\" width=\"32\" height=\"9\" rx=\"4\" fill=\"#e8b923\"/>\n  </g>",
+      "arm_lower_R": "<g>\n    <rect x=\"122\" y=\"387\" width=\"26\" height=\"118\" rx=\"13\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <rect x=\"121\" y=\"483\" width=\"28\" height=\"8\" rx=\"4\" fill=\"#e8b923\"/>\n  </g>",
+      "hand_R_open": "<g>\n    <ellipse cx=\"135\" cy=\"513\" rx=\"16\" ry=\"19\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <ellipse cx=\"149\" cy=\"505\" rx=\"5\" ry=\"10\" transform=\"rotate(-25 149 505)\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n  </g>",
+      "hand_R_fist": "<g>\n    <circle cx=\"135\" cy=\"511\" r=\"15\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <path d=\"M126 516 Q135 521 144 516\" stroke=\"#2b5299\" stroke-width=\"2\" fill=\"none\"/>\n  </g>",
+      "hand_R_point": "<g>\n    <rect x=\"130\" y=\"512\" width=\"10\" height=\"34\" rx=\"5\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n    <circle cx=\"135\" cy=\"509\" r=\"14\" fill=\"#3f72c6\" stroke=\"#2b5299\" stroke-width=\"2\"/>\n  </g>",
+      "prop_flute": "<g>\n    <rect x=\"150\" y=\"214\" width=\"150\" height=\"9\" rx=\"4\" fill=\"#8e5b2f\"/>\n  </g>"
+    },
+    "pivots": {
+      "neck": {
+        "x": 200,
+        "y": 240
+      },
+      "waist": {
+        "x": 200,
+        "y": 460
+      },
+      "shoulder_R": {
+        "x": 135,
+        "y": 275
+      },
+      "elbow_R": {
+        "x": 135,
+        "y": 393
+      },
+      "wrist_R": {
+        "x": 135,
+        "y": 505
+      },
+      "shoulder_L": {
+        "x": 265,
+        "y": 275
+      },
+      "elbow_L": {
+        "x": 265,
+        "y": 393
+      },
+      "wrist_L": {
+        "x": 265,
+        "y": 505
+      },
+      "brow_R": {
+        "x": 192,
+        "y": 151
+      },
+      "brow_L": {
+        "x": 208,
+        "y": 151
+      },
+      "headwear_flex": {
+        "x": 222,
+        "y": 92
+      }
+    }
+  }
+}

@@ -17,9 +17,10 @@ import {
   Moon,
 } from "lucide-react";
 import { api } from "./lib/api.ts";
-import { activeJobs, bootstrap, useApp, type Route } from "./lib/store.ts";
+import { bootstrap, runningSeries, useApp, type Route } from "./lib/store.ts";
 import { Button, Loading, Modal, Toasts, report } from "./components/ui.tsx";
-import { Studio, LibraryPage, SeriesPage } from "./routes/Studio.tsx";
+import { Studio, LibraryPage } from "./routes/Studio.tsx";
+import { SeriesPage } from "./routes/Series.tsx";
 import { EpisodePage } from "./routes/Episode.tsx";
 import { KitPage } from "./routes/Kit.tsx";
 import { QueuePage } from "./routes/Queue.tsx";
@@ -29,7 +30,7 @@ const nav = [
   { name: "studio", label: "Studio", icon: Sparkles },
   { name: "library", label: "My series", icon: Library },
   { name: "kit", label: "Creative kit", icon: Shapes },
-  { name: "renders", label: "Render queue", icon: Clapperboard },
+  { name: "renders", label: "Activity", icon: Clapperboard },
 ] as const;
 let boot: Promise<void> | undefined;
 
@@ -54,13 +55,12 @@ export function App() {
   const route = useApp((s) => s.route),
     go = useApp((s) => s.go),
     settings = useApp((s) => s.settings),
-    jobs = useApp((s) => s.jobs),
     library = useApp((s) => s.library),
     dark = useApp((s) => s.dark);
   const [collapsed, setCollapsed] = useState(false),
     [error, setError] = useState(""),
     [help, setHelp] = useState(false);
-  const busy = activeJobs(jobs);
+  const busy = runningSeries(library);
   useEffect(() => {
     boot ??= bootstrap();
     boot.catch((e) => setError(e.message));
@@ -87,7 +87,7 @@ export function App() {
     route.name === "series"
       ? (library.find((s) => s.id === route.id)?.title ?? "Series")
       : route.name === "episode"
-        ? `Episode ${route.number}`
+        ? `Episode ${Number(route.episodeId.replace(/\D/g, ""))}`
         : (nav.find((n) => n.name === route.name)?.label ?? "Settings");
   return (
     <Boundary>
@@ -144,7 +144,6 @@ export function App() {
                     {n.name === "renders" && busy.length > 0 && (
                       <span className="nav-count">{busy.length}</span>
                     )}
-                    {n.name === "kit" && <span className="new-tag">15</span>}
                   </>
                 )}
               </button>
@@ -275,9 +274,9 @@ export function App() {
                   <SeriesPage key={route.id} id={route.id} />
                 ) : route.name === "episode" ? (
                   <EpisodePage
-                    key={`${route.seriesId}-${route.number}`}
+                    key={`${route.seriesId}-${route.episodeId}`}
                     seriesId={route.seriesId}
-                    number={route.number}
+                    episodeId={route.episodeId}
                   />
                 ) : route.name === "kit" ? (
                   <KitPage />
@@ -300,17 +299,17 @@ export function App() {
               [
                 "01",
                 "Start with a story",
-                "Describe an idea. Moco plans a series with a cast, hooks, and an episode arc.",
+                "Describe an idea. Moco plans a series, a cast and an episode arc, then stops for your review.",
               ],
               [
                 "02",
                 "Make it your own",
-                "Write episodes with your AI connection, then edit narration, scenes, and camera moves.",
+                "Approve each step or ask for changes: the plan, the cast, the script, a sample shot, the preview.",
               ],
               [
                 "03",
                 "Bring it to life",
-                "Generate narration and music, preview the animation, and export a vertical MP4 locally.",
+                "Moco voices it, animates every shot with the kit, and renders a vertical MP4 on this computer.",
               ],
             ].map(([n, t, d]) => (
               <div key={n}>
@@ -323,8 +322,8 @@ export function App() {
             ))}
           </div>
           <p className="hint">
-            Try the included demo without an AI connection. Connect Claude Code,
-            Codex, or an API provider in Settings to generate new stories.
+            Moco writes with the Claude Code on this computer, on your own Claude
+            plan. Check the connection in Settings.
           </p>
           <Button
             variant="primary"

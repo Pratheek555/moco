@@ -1,242 +1,94 @@
+// End-to-end check of the real app: type an idea, approve every review, get a final MP4.
+// Uses the Claude Code on this computer (about 20–40 calls for one episode) and renders with Remotion.
+//   pnpm --filter @moco/desktop build && pnpm test:desktop
+// Screenshots of every review land in artifacts/desktop/. MOCO_SMOKE_IDEA picks the idea.
 import { _electron as electron, expect } from "@playwright/test";
 import { getVideoMetadata } from "@remotion/renderer";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, readFile, writeFile, stat } from "node:fs/promises";
+import { existsSync } from "node:fs";
+import { mkdtemp, mkdir, readdir, writeFile } from "node:fs/promises";
 import os from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 
-const desktop = path.resolve(
-  path.dirname(fileURLToPath(import.meta.url)),
-  "..",
-);
+const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.resolve(desktop, "../..");
 const workspace = await mkdtemp(path.join(os.tmpdir(), "moco-desktop-"));
 const userData = path.join(workspace, "profile");
 const projects = path.join(workspace, "projects");
 const artifacts = path.join(root, "artifacts", "desktop");
+const idea = process.env.MOCO_SMOKE_IDEA ?? "Krishna tells a frightened Arjuna to stand up and do his duty on the battlefield of Kurukshetra";
+const MINUTES = 60_000;
 await mkdir(userData, { recursive: true });
 await mkdir(artifacts, { recursive: true });
-await writeFile(
-  path.join(userData, "settings.json"),
-  JSON.stringify({
-    theme: "light",
-    projectsDir: projects,
-    render: { quality: "draft", concurrency: 2 },
-    ai: { maxRepairs: 0 },
-  }),
-);
+await writeFile(path.join(userData, "settings.json"), JSON.stringify({ theme: "light", projectsDir: projects, onboarded: true }));
+
 const env = { ...process.env, MOCO_USER_DATA: userData };
 delete env.ELECTRON_RUN_AS_NODE;
-const launch = () =>
-  electron.launch({
-    ...(process.env.MOCO_TEST_EXECUTABLE
-      ? { executablePath: process.env.MOCO_TEST_EXECUTABLE, args: [] }
-      : { args: [desktop] }),
-    cwd: desktop,
-    env,
-    timeout: 60000,
-  });
-let app;
+const app = await electron.launch({ args: [desktop], cwd: desktop, env, timeout: 60_000 });
 const errors = [];
+const started = Date.now();
+const elapsed = () => `${Math.round((Date.now() - started) / 1000)}s`;
 try {
-  app = await launch();
-  app.process().stderr.on("data", (d) => {
-    const s = String(d);
-    if (/Error|\[render\]/.test(s)) process.stderr.write(s);
-  });
   app.process().stdout.on("data", (d) => process.stdout.write(String(d)));
+  app.process().stderr.on("data", (d) => process.stderr.write(String(d)));
   const page = await app.firstWindow();
   page.on("pageerror", (e) => errors.push(e.message));
   page.on("console", (m) => {
     if (m.type() === "error") errors.push(m.text());
   });
-  await expect(page.getByRole("heading", { name: /Small idea/ })).toBeVisible({
-    timeout: 30000,
-  });
-  await page.screenshot({
-    animations: "disabled",
-    path: path.join(artifacts, "studio.png"),
-  });
-  console.log("PASS studio and preload bridge");
+
+  await expect(page.getByRole("heading", { name: /Small idea/ })).toBeVisible({ timeout: 30_000 });
+  await page.screenshot({ path: path.join(artifacts, "01-studio.png") });
+  console.log(`PASS studio opens (${elapsed()})`);
+
   const info = await page.evaluate(() => window.moco.app.info());
   assert.equal(path.resolve(info.projectsDir), projects);
-  const library = await page.evaluate(() => window.moco.series.list());
-  assert.equal(library.length, 1, "first launch seeds the demo");
-  const id = library[0].id;
-  await page.getByRole("button", { name: "My series", exact: true }).click();
-  await page.locator(".series-card").first().click();
-  await expect(page.getByText("The episode board")).toBeVisible();
+  const ai = await page.evaluate(() => window.moco.ai.status());
+  assert.ok(ai.ok, `Claude Code is not ready: ${ai.reason}`);
+  console.log(`PASS Claude Code ${ai.version} ready`);
+
+  // The prompt.
+  await page.getByLabel("Your story idea").fill(idea);
+  await page.getByRole("button", { name: /Create series/ }).click();
+  await expect(page.getByText("The episode board")).toBeVisible({ timeout: 30_000 });
+  console.log(`PASS series created from the idea (${elapsed()})`);
+
+  // Approve each review as it comes up, until every episode is rendered.
+  const review = page.getByRole("region", { name: "Review" });
+  const finished = page.getByText("Every episode is rendered");
+  const failed = page.getByText(/ failed: /);
+  for (let gate = 1; gate <= 8; gate += 1) {
+    await expect(review.or(finished).or(failed).first()).toBeVisible({ timeout: 25 * MINUTES });
+    if (await failed.isVisible()) throw new Error(`a stage failed: ${await failed.textContent()}`);
+    if (await finished.isVisible()) break;
+    const title = (await review.locator(".composer-title span").first().textContent())?.replace("Your review: ", "").trim();
+    await page.screenshot({ path: path.join(artifacts, `0${gate + 1}-review-${title?.replace(/\W+/g, "-").toLowerCase()}.png`), fullPage: true });
+    console.log(`PASS review ${gate}: ${title} (${elapsed()})`);
+    await review.getByRole("button", { name: "Approve" }).click();
+    await expect(review).toBeHidden({ timeout: 60_000 });
+  }
+  await expect(finished).toBeVisible({ timeout: 25 * MINUTES });
+  console.log(`PASS every stage approved and rendered (${elapsed()})`);
+
+  // The episode page plays the final render.
   await page.locator(".episode-row").first().click();
-  await expect(page.getByLabel("Scene narration")).toBeVisible();
-  await page.screenshot({
-    animations: "disabled",
-    path: path.join(artifacts, "episode.png"),
-  });
-  await page.getByLabel("Scene narration").fill("Courage begins here.");
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  await expect(
-    page.getByRole("button", { name: "Save", exact: true }),
-  ).toBeDisabled();
-  const saved = await page.evaluate(
-    async (id) => (await window.moco.episode.get(id, 1)).episode,
-    id,
-  );
-  assert.equal(saved.shots[0].narration, "Courage begins here.");
-  console.log("PASS episode editing and disk persistence");
-  await page.getByRole("button", { name: "Creative kit", exact: true }).click();
-  await expect(page.locator(".character-card")).toHaveCount(15);
-  const playIcon = await page
-    .locator(".preview-art-button svg")
-    .first()
-    .boundingBox();
-  assert(
-    playIcon && playIcon.width <= 20 && playIcon.height <= 20,
-    "preview icon must not cover the character art",
-  );
-  await page.screenshot({
-    animations: "disabled",
-    path: path.join(artifacts, "kit.png"),
-  });
-  await page.locator(".character-card").first().click();
-  await expect(page.getByRole("dialog")).toBeVisible();
-  await page.getByRole("button", { name: "Close dialog" }).click();
-  await page.getByRole("button", { name: "Quick search", exact: true }).click();
-  await page.getByLabel("Search workspace").fill("Settings");
-  await page.locator(".palette-results button").click();
-  await expect(
-    page.getByRole("heading", { name: "Studio settings" }),
-  ).toBeVisible();
-  await page.getByRole("button", { name: "Workspace", exact: true }).click();
-  await page
-    .getByRole("combobox", { name: "Appearance", exact: true })
-    .selectOption("dark");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  await expect(page.locator("html")).toHaveClass("dark");
-  await page.screenshot({
-    animations: "disabled",
-    path: path.join(artifacts, "settings-dark.png"),
-  });
-  await page
-    .getByRole("combobox", { name: "Appearance", exact: true })
-    .selectOption("light");
-  await page.getByRole("button", { name: "Save changes", exact: true }).click();
-  console.log("PASS creative kit, command search, and theme settings");
-  // Use a short real composition to exercise voice, music, utility-process
-  // rendering, local asset serving, and export persistence without an AI call.
-  await page.evaluate(
-    async ({ id, saved }) => {
-      const ep = {
-        ...saved,
-        shots: [{ ...saved.shots[0], duration: 2, voice: undefined, sfx: [] }],
-      };
-      await window.moco.episode.save(id, ep);
-    },
-    { id, saved },
-  );
-  const voice = await page.evaluate(
-    (id) => window.moco.jobs.start({ kind: "voice", seriesId: id, number: 1 }),
-    id,
-  );
-  const waitJob = async (job) => {
-    let last = "";
-    await expect
-      .poll(
-        async () => {
-          const current = await page.evaluate(
-            async (id) =>
-              (await window.moco.jobs.list()).find((j) => j.id === id),
-            job.id,
-          );
-          if (current?.stage !== last) {
-            last = current?.stage;
-            console.log("JOB", current?.kind, last);
-          }
-          return current?.status;
-        },
-        { timeout: 240000, intervals: [500, 1000] },
-      )
-      .toMatch(/^(done|error|canceled)$/);
-    const result = await page.evaluate(
-      async (id) => (await window.moco.jobs.list()).find((j) => j.id === id),
-      job.id,
-    );
-    assert.equal(result.status, "done", JSON.stringify(result, null, 2));
-    return result;
-  };
-  await waitJob(voice);
-  const voiced = await page.evaluate(
-    async (id) => await window.moco.episode.get(id, 1),
-    id,
-  );
-  assert(voiced.episode.shots[0].voice?.src);
-  const media = await page.evaluate(async (b) => {
-    const r = await fetch(b.assetBase + b.episode.shots[0].voice.src);
-    return { status: r.status, size: (await r.arrayBuffer()).byteLength };
-  }, voiced);
-  assert.equal(media.status, 200);
-  assert(media.size > 1000);
-  console.log("PASS system narration, music, and local audio protocol");
-  const render = await page.evaluate(
-    (id) => window.moco.jobs.start({ kind: "render", seriesId: id, number: 1 }),
-    id,
-  );
-  const rendered = await waitJob(render);
-  assert((await stat(rendered.output)).size > 1000);
-  const metadata = await getVideoMetadata(rendered.output);
-  assert.equal(metadata.width, 540);
-  assert.equal(metadata.height, 960);
-  assert.equal(metadata.codec, "h264");
-  assert.equal(metadata.audioCodec, "aac");
-  console.log("PASS real MP4 export:", rendered.output);
-  await page.getByRole("button", { name: "Render queue", exact: true }).click();
-  await expect(
-    page.getByText("Completed", { exact: true }).first(),
-  ).toBeVisible();
-  await page.screenshot({
-    animations: "disabled",
-    path: path.join(artifacts, "queue.png"),
-  });
-  assert.deepEqual(
-    errors,
-    [],
-    "renderer has no uncaught exceptions or console errors",
-  );
-  await app.close();
-  app = null;
-  app = await launch();
-  const reopened = await app.firstWindow();
-  await expect(
-    reopened.getByRole("heading", { name: /Small idea/ }),
-  ).toBeVisible({ timeout: 30000 });
-  const persisted = await reopened.evaluate(
-    async (id) => ({
-      settings: await window.moco.settings.get(),
-      bundle: await window.moco.episode.get(id, 1),
-    }),
-    id,
-  );
-  assert.equal(persisted.settings.theme, "light");
-  assert.equal(
-    persisted.bundle.episode.shots[0].narration,
-    "Courage begins here.",
-  );
-  assert.equal(persisted.bundle.renders.length, 1);
-  console.log("PASS restart retains settings, edits, and exports");
-  await writeFile(
-    path.join(artifacts, "result.json"),
-    JSON.stringify(
-      {
-        passed: true,
-        packaged: !!process.env.MOCO_TEST_EXECUTABLE,
-        workspace,
-        output: rendered.output,
-        metadata,
-      },
-      null,
-      2,
-    ),
-  );
+  await expect(page.getByText("FINAL RENDER")).toBeVisible({ timeout: 30_000 });
+  await page.waitForTimeout(1500);
+  await page.screenshot({ path: path.join(artifacts, "09-episode.png") });
+
+  const [seriesId] = (await readdir(projects)).filter((name) => !name.startsWith("."));
+  const final = path.join(projects, seriesId, "episodes", "ep-01", "renders", "final.mp4");
+  assert.ok(existsSync(final), `no final render at ${final}`);
+  const video = await getVideoMetadata(final);
+  assert.equal(video.width, 1080);
+  assert.equal(video.height, 1920);
+  assert.ok(video.durationInSeconds >= 10, `final is only ${video.durationInSeconds}s`);
+  console.log(`PASS final.mp4 ${video.width}×${video.height}, ${video.durationInSeconds.toFixed(1)} s (${elapsed()})`);
+  console.log(`FINAL ${final}`);
+
+  assert.deepEqual(errors, [], "the UI logged errors");
+  console.log("PASS no UI errors");
 } finally {
-  await app?.close();
+  await app.close();
 }

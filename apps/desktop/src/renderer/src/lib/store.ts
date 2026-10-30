@@ -1,8 +1,7 @@
 import { create } from "zustand";
 import {
   api,
-  type Job,
-  type RenderEngineStatus,
+  type EngineEvent,
   type SeriesSummary,
   type Settings,
 } from "./api.ts";
@@ -11,13 +10,12 @@ export type Route =
   | { name: "studio" }
   | { name: "library" }
   | { name: "series"; id: string }
-  | { name: "episode"; seriesId: string; number: number; shot?: string }
+  | { name: "episode"; seriesId: string; episodeId: string }
   | { name: "renders" }
   | { name: "kit"; tab?: KitTab }
   | { name: "settings"; section?: string };
 
-export type KitTab =
-  "characters" | "props" | "backgrounds" | "camera" | "effects" | "sound";
+export type KitTab = "characters" | "backgrounds" | "props" | "looks";
 
 export interface Toast {
   id: number;
@@ -33,13 +31,15 @@ interface AppState {
   back(): void;
   settings: Settings | null;
   updateSettings(patch: Parameters<typeof api.settings.set>[0]): Promise<void>;
-  jobs: Job[];
   library: SeriesSummary[];
   libraryLoaded: boolean;
-  /** Bumped whenever series/episode data changes on disk. */
+  /** Bumped whenever series data changes, so open pages reload. */
   version: number;
   refreshLibrary(): Promise<void>;
-  engine: RenderEngineStatus | null;
+  /** Recent engine events, newest last; the activity page shows them. */
+  events: EngineEvent[];
+  /** Render progress (0..1) per series while a render runs. */
+  progress: Record<string, number>;
   toasts: Toast[];
   toast(message: string, kind?: Toast["kind"], action?: Toast["action"]): void;
   dismiss(id: number): void;
@@ -76,7 +76,6 @@ export const useApp = create<AppState>((set, get) => ({
     const settings = await api.settings.set(patch);
     set({ settings });
   },
-  jobs: [],
   library: [],
   libraryLoaded: false,
   version: 0,
@@ -84,7 +83,8 @@ export const useApp = create<AppState>((set, get) => ({
     const library = await api.series.list();
     set({ library, libraryLoaded: true, version: get().version + 1 });
   },
-  engine: null,
+  events: [],
+  progress: {},
   toasts: [],
   toast(message, kind = "info", action) {
     const id = ++toastId;
@@ -115,36 +115,39 @@ function applyTheme(settings: Settings | null) {
 }
 media.addEventListener("change", () => applyTheme(useApp.getState().settings));
 
+// Turns engine events into toasts and progress for the UI.
+function onEngineEvent(event: EngineEvent) {
+  const state = useApp.getState();
+  const title =
+    state.library.find((s) => s.id === event.seriesId)?.title ?? "Your series";
+  useApp.setState({ events: [...state.events, event].slice(-200) });
+
+  if (event.type === "render.progress") {
+    const progress = Number(event.data.progress ?? 0);
+    useApp.setState({ progress: { ...state.progress, [event.seriesId]: progress } });
+  }
+  if (event.type === "stage.awaiting_approval")
+    state.toast(`${title}: ${stageLabel(String(event.data.key))} is ready for review`, "success");
+  if (event.type === "stage.failed") {
+    const error = event.data.error as { message?: string } | undefined;
+    state.toast(`${title}: ${stageLabel(String(event.data.key))} failed. ${error?.message ?? ""}`.slice(0, 240), "error");
+  }
+  if (event.type === "job.finished") {
+    const rest = { ...useApp.getState().progress };
+    delete rest[event.seriesId];
+    useApp.setState({ progress: rest });
+  }
+  if ((event.type as string) === "host.exited")
+    state.toast("The engine stopped unexpectedly. It restarts on your next action.", "error");
+}
+
 /** Wire main-process events into the store. Call once. */
 export async function bootstrap() {
-  const [settings, jobs, engine] = await Promise.all([
-    api.settings.get(),
-    api.jobs.list(),
-    api.render.status(),
-  ]);
+  const settings = await api.settings.get();
   applyTheme(settings);
-  useApp.setState({ settings, jobs, engine });
+  useApp.setState({ settings });
   await useApp.getState().refreshLibrary();
-  let prevJobs = jobs;
-  api.on("jobs", (payload) => {
-    const next = payload as Job[];
-    for (const j of next) {
-      const before = prevJobs.find((p) => p.id === j.id);
-      if (before && before.status !== j.status) {
-        if (j.status === "done")
-          useApp.getState().toast(`${j.title} — done`, "success");
-        if (j.status === "error")
-          useApp
-            .getState()
-            .toast(
-              `${j.title} failed: ${j.error ?? ""}`.slice(0, 220),
-              "error",
-            );
-      }
-    }
-    prevJobs = next;
-    useApp.setState({ jobs: next });
-  });
+  api.on("engine", (payload) => onEngineEvent(payload as EngineEvent));
   api.on(
     "library",
     () =>
@@ -157,15 +160,27 @@ export async function bootstrap() {
     useApp.setState({ settings: s as Settings });
     applyTheme(s as Settings);
   });
-  api.on("engine", (s) => useApp.setState({ engine: s as RenderEngineStatus }));
 }
 
-export const activeJobs = (jobs: Job[]) =>
-  jobs.filter((j) => j.status === "running" || j.status === "queued");
-export const jobFor = (jobs: Job[], seriesId: string, number?: number) =>
-  jobs.find(
-    (j) =>
-      (j.status === "running" || j.status === "queued") &&
-      j.seriesId === seriesId &&
-      (number === undefined || j.number === undefined || j.number === number),
-  );
+export const runningSeries = (library: SeriesSummary[]) =>
+  library.filter((s) => s.running);
+
+// "ep-01/script" → "Episode 1 script"; "bible" → "Series bible".
+export function stageLabel(key: string): string {
+  const names: Record<string, string> = {
+    series_plan: "Series plan",
+    bible: "Series bible",
+    script: "script",
+    voiceover: "voiceover",
+    shot_list: "shot list",
+    sample: "sample shot",
+    scenes: "scenes",
+    preview: "preview",
+    final: "final render",
+    memory_update: "story memory",
+  };
+  const [first, second] = key.split("/");
+  if (!second) return names[first!] ?? first!;
+  const number = Number(first!.replace(/\D/g, ""));
+  return `Episode ${number} ${names[second] ?? second}`;
+}

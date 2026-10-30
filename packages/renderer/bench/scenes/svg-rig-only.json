@@ -1,0 +1,39 @@
+{
+  "actor": {
+    "actions": [
+      {
+        "name": "blink",
+        "startFrame": 40,
+        "endFrame": 46
+      },
+      {
+        "name": "raise_hand",
+        "startFrame": 120,
+        "endFrame": 165,
+        "params": {
+          "side": "right"
+        }
+      },
+      {
+        "name": "blink",
+        "startFrame": 190,
+        "endFrame": 196
+      },
+      {
+        "name": "smile",
+        "startFrame": 210,
+        "endFrame": 260
+      }
+    ],
+    "expression": [
+      {
+        "name": "serious",
+        "atFrame": 0
+      },
+      {
+        "name": "smile",
+        "atFrame": 210
+      }
+    ]
+  }
+}

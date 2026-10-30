@@ -4,7 +4,7 @@ A one-time-purchase desktop app that turns an idea (e.g. "a Mahabharat series") 
 How it works
 • The user types a story or series idea.
 • Claude/ChatGPT breaks it into episodes and scenes.
-• The AI writes animation code (Remotion/React) using a pre-built character kit.
+• The AI writes scene specs (JSON, validated by @moco/spec) that the renderer turns into animation using a pre-built character kit.
 • The app renders it locally to a 9:16 MP4 with voiceover, captions and music.
 • Rendering errors go back to the AI to fix automatically.
 Business model
@@ -16,7 +16,7 @@ Target customers (MVP)
 The harness (core engine)
 1. Planner: turns the script into a shot list fitted to 30–60s
 2. Character kit / consistency: reusable layered SVG characters, poses and expressions
-3. Code generator: the AI writes scene code to a strict template
+3. Scene generator: the AI writes scene spec JSON to a strict schema
 4. Render + auto-fix loop: errors get fed back to the AI
 5. Audio sync: voiceover, music and SFX timed to shots
 6. Assembler: captions, stitching, vertical export
@@ -30,7 +30,10 @@ Competitors to study
 • InVideo, Predis, HeyGen, VEED: general AI reel makers
 Risks
 • Animation quality could look like cheap clip art. The character kit is critical.
-• Using consumer subscriptions this way may conflict with the AI providers' terms. Supporting API keys is the fallback.
+• Using consumer subscriptions this way may conflict with the AI providers' terms (see docs/reference.md §2). Current decision: Claude Code session only, no API keys.
 • A lifetime model needs a steady stream of new buyers.
 First step
 Hand-build one 10-second Remotion scene (Krishna on a chariot: blink, raise hand, caption). That sets the quality bar and the template. Then test whether Claude can reliably write the next scene in the same format.
+
+Engineering
+• Engine design and build plan: docs/reference.md. Tooling: pnpm workspaces, TypeScript strict, Vitest (`pnpm test`, `pnpm typecheck`). Desktop app: `pnpm dev` (apps/desktop, Electron; the engine runs from source in a utility process, so packages use erasable TypeScript only).

@@ -1,0 +1,34 @@
+{
+  "shotId": "s01",
+  "durationFrames": 300,
+  "background": { "id": "kurukshetra", "parallax": true },
+  "actors": [
+    {
+      "castId": "krishna",
+      "kitCharacterId": "krishna",
+      "position": { "x": 0.5, "y": 0.62, "scale": 0.6 },
+      "facing": "right",
+      "actions": [
+        { "name": "blink", "startFrame": 40, "endFrame": 46 },
+        { "name": "raise_hand", "startFrame": 120, "endFrame": 165, "params": { "side": "right" } },
+        { "name": "blink", "startFrame": 190, "endFrame": 196 },
+        { "name": "smile", "startFrame": 210, "endFrame": 260 }
+      ],
+      "expression": [
+        { "name": "serious", "atFrame": 0 },
+        { "name": "smile", "atFrame": 210 }
+      ]
+    }
+  ],
+  "props": [{ "id": "chariot", "position": { "x": 0.5, "y": 0.72, "scale": 0.9 } }],
+  "camera": [{ "move": "push_in", "startFrame": 0, "endFrame": 300, "amount": 0.15 }],
+  "captions": [
+    { "text": "On the field", "startFrame": 0, "endFrame": 30, "emphasis": false },
+    { "text": "of Kurukshetra,", "startFrame": 30, "endFrame": 75, "emphasis": true },
+    { "text": "Krishna raised", "startFrame": 105, "endFrame": 150, "emphasis": false },
+    { "text": "his hand", "startFrame": 150, "endFrame": 190, "emphasis": false },
+    { "text": "and smiled.", "startFrame": 200, "endFrame": 260, "emphasis": true }
+  ],
+  "fx": [{ "id": "dust", "startFrame": 0, "endFrame": 90 }],
+  "fallback": false
+}

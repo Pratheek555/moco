@@ -1,13 +1,8 @@
 // The contract between the Electron main process and the UI.
-import type { CliStatus, ProviderId } from "@moco/ai";
-import type { TtsProvider, VoiceInfo } from "@moco/audio";
-import type {
-  EpisodeSummary,
-  PlanInput,
-  RenderRecord,
-  SeriesSummary,
-} from "@moco/engine";
-import type { Episode, Series, SfxId } from "@moco/spec";
+// The UI never talks to the engine directly: main forwards these calls to the engine host (main/engine-host.ts).
+import type { VoiceInfo } from "@moco/audio";
+import type { EngineEvent, SeriesStatus } from "@moco/engine";
+import type { Catalog } from "@moco/kit";
 
 export type Theme = "light" | "dark" | "system";
 
@@ -15,95 +10,46 @@ export interface Settings {
   onboarded: boolean;
   theme: Theme;
   projectsDir: string;
-  ai: {
-    provider: ProviderId;
-    model: string;
-    anthropicKey: string;
-    openaiKey: string;
-    effort: "low" | "medium" | "high";
-    maxRepairs: number;
-  };
   voice: {
-    provider: TtsProvider;
-    voice: string;
-    rate: number;
-    elevenlabsKey: string;
+    voice: string; // an installed OS voice; "" = the system default
+    rate: number; // 1 = normal speed
   };
   defaults: {
     episodes: number;
-    seconds: number;
     language: string;
-    style: string;
-  };
-  brand: {
-    handle: string;
-    watermark: boolean;
-    progressBar: boolean;
-    accent: string;
   };
   render: {
-    quality: "draft" | "standard" | "high";
-    concurrency: number;
-    remotionLicenseKey: string;
+    concurrency: number; // browser tabs per render; 0 = the renderer's default (2)
   };
 }
 
-export type JobKind =
-  "plan" | "write" | "write-all" | "revise" | "voice" | "render" | "make";
-export type JobStatus = "queued" | "running" | "done" | "error" | "canceled";
-
-export type JobSpec =
-  | { kind: "plan"; input: PlanInput; thenWrite?: boolean }
-  | { kind: "write"; seriesId: string; number: number }
-  | { kind: "write-all"; seriesId: string }
-  | {
-      kind: "revise";
-      seriesId: string;
-      number: number;
-      shotId: string;
-      instruction: string;
-    }
-  | { kind: "voice"; seriesId: string; number: number }
-  | { kind: "render"; seriesId: string; number: number }
-  | { kind: "make"; seriesId: string; number: number };
-
-export interface JobLog {
-  t: number;
-  level: "info" | "warn" | "error";
-  msg: string;
-}
-
-export interface Job {
+// One card in the library: the series plus what the engine knows about it.
+export interface SeriesSummary {
   id: string;
-  kind: JobKind;
-  title: string;
-  seriesId?: string;
-  number?: number;
-  status: JobStatus;
-  progress: number;
-  stage: string;
-  logs: JobLog[];
-  /** Tail of the AI's streamed text. */
-  stream: string;
-  error?: string;
-  output?: string;
-  createdAt: number;
-  startedAt?: number;
-  finishedAt?: number;
+  title: string; // from the approved plan; the idea until there is one
+  premise: string;
+  language: string;
+  episodes: number;
+  createdAt: string;
+  cast: string[]; // kit character ids from the bible
+  finals: number; // episodes with a final render
+  next: SeriesStatus["next"];
+  running: boolean;
 }
 
-export interface EpisodeBundle {
-  episode: Episode;
-  renders: RenderRecord[];
-  /** URL prefix for this episode's relative asset paths. */
-  assetBase: string;
+// What the episode page shows: rendered videos and each shot's stills, as moco-asset:// URLs.
+export interface EpisodeMedia {
+  preview?: string;
+  final?: string;
+  finalPath?: string; // on disk, for "Show in folder"
+  stills: Record<string, string[]>; // shot id → still URLs
 }
 
-export interface RenderEngineStatus {
-  bundle: boolean;
-  browser: "unknown" | "missing" | "downloading" | "ready";
-  downloadPercent?: number;
-  bundlePath: string;
+export interface AiStatus {
+  ok: boolean;
+  reason?: string;
+  version?: string;
+  authMethod?: string;
 }
 
 export interface MocoApi {
@@ -120,71 +66,40 @@ export interface MocoApi {
     set(patch: DeepPartial<Settings>): Promise<Settings>;
   };
   ai: {
-    detect(): Promise<{ claude: CliStatus; codex: CliStatus }>;
-    test(): Promise<{
-      ok: boolean;
-      reply?: string;
-      error?: string;
-      ms: number;
-      model?: string;
-    }>;
+    status(): Promise<AiStatus>;
   };
   voice: {
-    list(provider: TtsProvider): Promise<VoiceInfo[]>;
-    preview(
-      text: string,
-    ): Promise<{
-      url?: string;
-      error?: string;
-      provider?: string;
-      fallbackReason?: string;
-    }>;
+    list(): Promise<VoiceInfo[]>;
+    preview(text: string): Promise<{ url?: string; error?: string }>;
+  };
+  kit: {
+    catalog(): Promise<Catalog>;
   };
   series: {
     list(): Promise<SeriesSummary[]>;
-    get(id: string): Promise<{ series: Series; summary: SeriesSummary }>;
-    save(series: Series): Promise<Series>;
+    create(input: { idea: string; language: string; episodes: number }): Promise<string>; // creates and starts planning
+    status(id: string): Promise<SeriesStatus>;
+    artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;
     remove(id: string): Promise<void>;
-    demo(): Promise<Series>;
+  };
+  stages: {
+    run(seriesId: string, key?: string): Promise<string>; // job id; runs until the next approval gate
+    approve(seriesId: string, key: string, contentHash: string): Promise<void>;
+    reject(seriesId: string, key: string, feedback: string): Promise<void>;
+    cancel(jobId: string): Promise<void>;
   };
   episode: {
-    get(seriesId: string, number: number): Promise<EpisodeBundle | null>;
-    save(
-      seriesId: string,
-      episode: Episode,
-    ): Promise<{ episode: Episode; issues: string[] }>;
+    media(seriesId: string, episodeId: string): Promise<EpisodeMedia>;
+    regenerateShot(seriesId: string, episodeId: string, shotId: string, feedback?: string): Promise<string>;
   };
-  jobs: {
-    start(spec: JobSpec): Promise<Job>;
-    cancel(id: string): Promise<void>;
-    list(): Promise<Job[]>;
-    clear(): Promise<void>;
-  };
-  render: {
-    status(): Promise<RenderEngineStatus>;
-    prepare(): Promise<RenderEngineStatus>;
-  };
-  assets: {
-    sfx(): Promise<Partial<Record<SfxId, string>>>;
-  };
-  on(
-    channel: "jobs" | "library" | "settings" | "engine",
-    cb: (payload: unknown) => void,
-  ): () => void;
+  on(channel: "engine" | "library" | "settings", cb: (payload: unknown) => void): () => void;
 }
 
 export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
 };
 
-export type {
-  CliStatus,
-  EpisodeSummary,
-  PlanInput,
-  RenderRecord,
-  SeriesSummary,
-  VoiceInfo,
-};
+export type { Catalog, EngineEvent, SeriesStatus, VoiceInfo };
 
 /** moco-asset:// URL for a file under the projects folder. */
 export const assetUrl = (relativeToProjects: string) =>
