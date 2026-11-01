@@ -7,13 +7,14 @@ import { encodePng } from "../src/bake/png.ts";
 import { registry } from "../src/components.ts";
 import { finish, timesOfDay } from "../src/looks.ts";
 
+// Re-bakes every asset in memory: ~6 s on a CI runner, past Vitest's 5 s default.
 it("baked assets on disk are current and reproducible (run `pnpm --filter @moco/kit bake` if not)", () => {
   const stale = Object.entries(bakedAssets()).filter(([path, image]) => {
     const file = join(KIT_ASSETS_DIR, path);
     return !existsSync(file) || !readFileSync(file).equals(encodePng(image));
   });
   expect(stale.map(([path]) => path)).toEqual([]);
-});
+}, 60_000);
 
 it("every asset the kit refers to exists, and none is over the 5 MB limit", () => {
   const referenced = [
