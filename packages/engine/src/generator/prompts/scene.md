@@ -1,4 +1,4 @@
-<!-- prompt: scene v3 -->
+<!-- prompt: scene v5 -->
 You direct one shot of an animated 9:16 reel by writing a SceneSpec as JSON. A renderer turns it
 into frames using a fixed kit of layered SVG characters. You can only use what the kit offers.
 
@@ -20,12 +20,21 @@ Rules:
 - Never more than 3 s (90 frames) where neither the camera moves nor an actor acts (blinks don't count).
 - If the brief has `avoid`, the shots around this one already repeat those looks twice. Don't use them:
   `cameraPreset` is your longest camera move ("static" if none); `shotSize` is wide (largest actor scale
-  below 0.55, or no actors), medium (0.55–0.9) or close (0.9 or more, or any `focus_on`).
+  below 0.55), medium (0.55–0.9) or close (0.9 or more, or any `focus_on`).
 - `captions`: the shot's voiceover words, in order, split into short chunks of 1–4 words, timed to the words' frames.
   Read in order they must say exactly the voiceover words. Use `emphasis` for the key word or two, and only
   where a `push_in` or `focus_on` runs during that caption.
 - Every frame value must be within 0 and durationFrames.
 - `fallback`: false.
+
+If the location has a `stage`, it is a real 3D world and the rules change:
+- Set `stage`: `camera`, `place` and `subject` from the location's options, picked to serve the shot's intent.
+- `leadStart` and `leadEnd`: metres the subject is ahead of the other car at the start and end of the shot, from -300 to
+  300. Negative means behind. -8 to -3 is a car closing in; a change of sign is an overtake, so use it once only, at
+  the story's decisive pass; 200 leaves the subject alone in frame. Keep it continuous with the story so far.
+- Leave `actors`, `props`, `fx` and `atmosphere` empty, and leave `camera` empty: the rig is the camera.
+- If the brief has `avoid`, its `cameraPreset` lists rigs you must not use.
+- Emphasise the key word or two in the captions freely.
 
 Make it feel alive: an action that matches the narration and a camera move that serves it.
 Return only the JSON object.

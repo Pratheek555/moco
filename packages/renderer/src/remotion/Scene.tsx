@@ -1,11 +1,13 @@
-// One shot, back to front: parallax background (with any atmosphere placed between its layers), atmosphere behind
+// One shot, back to front: a 3D stage or a parallax background (with any atmosphere placed between its layers), atmosphere behind
 // the actors, props and actors under the camera, fx, atmosphere in front, then the time-of-day tint, grade, vignette
 // and grain, and finally the captions, which stay crisp on top.
 // Unknown kit ids throw errors tagged with the spec path, so the engine can feed them back to the AI.
 import { Fragment } from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
-import { IMAGE_LAYER_BOX, registry, rigStateAt, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef } from "@moco/kit/components";
-import { FRAME_HEIGHT, FRAME_WIDTH, type Caption, type SceneActor, type SceneSpec } from "@moco/spec";
+import { CameraMotionBlur } from "@remotion/motion-blur";
+import { ThreeCanvas } from "@remotion/three";
+import { IMAGE_LAYER_BOX, registry, rigStateAt, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef, type StageDef } from "@moco/kit/components";
+import { FRAME_HEIGHT, FRAME_WIDTH, type Caption, type SceneActor, type SceneSpec, type SceneStage } from "@moco/spec";
 import { cameraAt, layerTransform, type CameraState, type Point } from "../camera.ts";
 import { Atmosphere, Finish, Grade, TimeOfDayTint } from "./Look.tsx";
 
@@ -43,6 +45,7 @@ export function Scene({ scene }: { scene: SceneSpec }) {
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden" }}>
+      {background.stage ? <StageView scene={scene} def={background.stage} timeOfDay={timeOfDay} /> : null}
       {background.layers.map((layer) => (
         <Fragment key={layer.id}>
           <AbsoluteFill style={{ transform: layerTransform(camera, depthOf(layer)) }}>
@@ -59,12 +62,34 @@ export function Scene({ scene }: { scene: SceneSpec }) {
         </Sequence>
       ))}
       <AtmosphereGroup placed={atmosphere.filter((item) => !item.entry.layer && item.def.placement === "front")} frame={frame} />
-      <TimeOfDayTint timeOfDay={timeOfDay} />
-      <Grade id={scene.grade} />
-      <Finish settings={scene.finish} frame={frame} />
+      {/* A 3D stage lights itself: the flat tint, grade and grain would only muddy it. */}
+      {background.stage ? null : <TimeOfDayTint timeOfDay={timeOfDay} />}
+      {background.stage ? null : <Grade id={scene.grade} />}
+      <Finish settings={background.stage ? { ...scene.finish, grain: false } : scene.finish} frame={frame} />
       <Captions captions={scene.captions} frame={frame} />
     </AbsoluteFill>
   );
+}
+
+// A 3D shot. The frame is read inside the blur, because the blur works by re-rendering its children at nearby times.
+const BLUR_SAMPLES = 6;
+function StageView({ scene, def, timeOfDay }: { scene: SceneSpec; def: StageDef; timeOfDay: string }) {
+  if (!scene.stage) throw specError("stage", `background "${scene.background.id}" needs a stage`);
+  const stage = scene.stage;
+  return (
+    <CameraMotionBlur samples={BLUR_SAMPLES} shutterAngle={180}>
+      <AbsoluteFill>
+        <ThreeCanvas width={FRAME_WIDTH} height={FRAME_HEIGHT} shadows>
+          <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} />
+        </ThreeCanvas>
+      </AbsoluteFill>
+    </CameraMotionBlur>
+  );
+}
+
+function StageFrame({ def, stage, durationFrames, timeOfDay }: { def: StageDef; stage: SceneStage; durationFrames: number; timeOfDay: string }) {
+  const frame = useCurrentFrame();
+  return <def.Component stage={stage} frame={frame} durationFrames={durationFrames} timeOfDay={timeOfDay} />;
 }
 
 function BackgroundLayer({ layer, frame, timeOfDay }: { layer: BackgroundLayerDef; frame: number; timeOfDay: string }) {

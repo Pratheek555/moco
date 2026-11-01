@@ -4,7 +4,7 @@ import { feedbackSection, joinSections, jsonSection, promptRef } from "../genera
 import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
-import { checkIds, planWithAi } from "./common.ts";
+import { checkIds, planWithAi, previousSection } from "./common.ts";
 
 export async function runSeriesPlan(ctx: StageContext, feedback?: string): Promise<string> {
   const { idea, language, episodes } = ctx.series;
@@ -12,7 +12,11 @@ export async function runSeriesPlan(ctx: StageContext, feedback?: string): Promi
     scope: "series",
     promptName: "series",
     schema: SeriesPlan,
-    prompt: joinSections([jsonSection("Request", { idea, language, episodes }), feedbackSection(feedback)]),
+    prompt: joinSections([
+      jsonSection("Request", { idea, language, episodes }),
+      await previousSection(ctx, files.seriesPlan, "SeriesPlan", feedback),
+      feedbackSection(feedback),
+    ]),
     check: (data) => checkPlan(data, language, episodes),
   });
   const saved = await ctx.store.save(files.seriesPlan, "SeriesPlan", plan, { producedBy: "ai", backend: ctx.ai.backendId, inputs: [promptRef("series")] });

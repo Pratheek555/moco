@@ -40,7 +40,7 @@ export async function runShotList(ctx: StageContext, episodeId: string, feedback
       jsonSection("Narration beats", script.lines.map((line) => ({ id: line.id, beat: line.beat }))),
       jsonSection("Words", numberedWords),
       jsonSection("Cast ids", bible.cast.map((member) => member.id)),
-      jsonSection("Locations", ctx.catalog.backgrounds.map((background) => background.id)),
+      jsonSection("Locations", ctx.catalog.backgrounds.map(({ id, hint, stage }) => ({ id, hint, places: stage?.places, cameras: stage?.cameras }))),
       previous ? jsonSection("Previous cut — keep shots whose words didn't change exactly as they were", previous) : "",
       feedbackSection(feedback),
     ]),

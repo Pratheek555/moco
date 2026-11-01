@@ -284,8 +284,11 @@ export function createEngine(options: CreateEngineOptions): Engine {
       if (record.status !== "awaiting_approval") {
         throw new EngineError("not_awaiting_approval", `${ref.key} is ${record.status}, not awaiting approval`);
       }
-      // The feedback is put into the stage's next prompt.
-      series.ledger.setStage(ref.key, { status: "pending", feedback: feedback.trim().slice(0, 2000) });
+      // The feedback is put into the stage's next prompt. A preview has no prompt, so its note goes to the shots.
+      const note = feedback.trim().slice(0, 2000);
+      const { stage, episodeId } = parseStageKey(ref.key);
+      series.ledger.setStage(ref.key, { status: "pending" });
+      series.ledger.setStage(stage === "preview" ? stageKey("scenes", episodeId) : ref.key, { status: "pending", feedback: note });
       await series.ledger.save();
     },
 

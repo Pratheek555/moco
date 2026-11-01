@@ -312,6 +312,37 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
     "shotId": {
       "type": "string",
     },
+    "stage": {
+      "properties": {
+        "camera": {
+          "type": "string",
+        },
+        "leadEnd": {
+          "maximum": 300,
+          "minimum": -300,
+          "type": "number",
+        },
+        "leadStart": {
+          "maximum": 300,
+          "minimum": -300,
+          "type": "number",
+        },
+        "place": {
+          "type": "string",
+        },
+        "subject": {
+          "type": "string",
+        },
+      },
+      "required": [
+        "camera",
+        "place",
+        "subject",
+        "leadStart",
+        "leadEnd",
+      ],
+      "type": "object",
+    },
     "timeOfDay": {
       "type": "string",
     },

@@ -48,7 +48,7 @@ const QUALITY = {
 export function createRemotionRenderPort(options: RemotionRenderOptions = {}): RemotionRenderPort {
   let serveUrl: Promise<string> | undefined;
   let browser: ReturnType<typeof openBrowser> | undefined;
-  const shared = { binariesDirectory: options.binariesDirectory ?? null };
+  const shared = { binariesDirectory: options.binariesDirectory ?? null, chromiumOptions: { gl: "angle" as const } }; // 3D stages need ANGLE
 
   const getServeUrl = () => {
     serveUrl ??= options.serveUrl
@@ -58,7 +58,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
   };
   // One browser for all stills and renders; opening Chrome per call is slow.
   const getBrowser = () => {
-    browser ??= openBrowser("chrome", { browserExecutable: options.browserExecutable ?? null, chromeMode: "headless-shell" });
+    browser ??= openBrowser("chrome", { browserExecutable: options.browserExecutable ?? null, chromeMode: "headless-shell", chromiumOptions: shared.chromiumOptions }); // the GL choice is made when the browser launches
     return browser;
   };
   // After a crash or hang the browser can't be trusted: close it (if it's still there) and open a new one next time.

@@ -6,6 +6,7 @@ packages:
 allowBuilds:
   esbuild: true
   electron: true
+  onnxruntime-node: false # its script only fetches Linux GPU libraries
   electron-winstaller: false # Windows installer helper; not needed to run or build on macOS
 
 minimumReleaseAgeExclude:

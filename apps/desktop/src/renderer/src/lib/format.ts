@@ -48,17 +48,13 @@ export const LANGUAGE_OPTIONS = [
 export const languageName = (code: string) =>
   LANGUAGE_OPTIONS.find((option) => option.value === code)?.label.split(" ").at(-1) ?? code.toUpperCase();
 
+// Ideas the kit can animate today: Krishna and Arjuna at Kurukshetra, and motor racing. Widen this as the kit grows.
 export const IDEAS = [
-  "The Mahabharat in seven reels — from the dice game to Kurukshetra",
-  "Hanuman’s leap across the ocean to find Sita",
-  "Why Lord Ganesha has an elephant head",
-  "Shiva drinks the poison at the churning of the ocean",
-  "Karna — the tragic hero who never got his due",
-  "Chanakya’s five rules for success",
-  "Bal Krishna steals butter in Vrindavan",
-  "Draupadi’s vow in the Kuru court",
-  "Bhishma’s terrible oath and its price",
   "The Bhagavad Gita, one lesson per reel",
-  "Rama breaks Shiva’s bow at Sita’s swayamvar",
-  "Shiva and Parvati — the story of Kailash",
+  "Krishna tells a frightened Arjuna to stand up and fight",
+  "Arjuna lowers his bow on the battlefield of Kurukshetra",
+  "Krishna drives Arjuna’s chariot between the two armies",
+  "Krishna explains duty without attachment to the result",
+  "Krishna shows Arjuna why the soul can never die",
+  "A rookie hunts the champion through one last F1 lap",
 ];

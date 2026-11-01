@@ -116,6 +116,8 @@ export function SeriesPage({ id }: { id: string }) {
   const stage = (key: string) => status.stages.find((s) => s.key === key);
   const current = status.stages.find((s) => s.status === "running");
   const failed = status.stages.find((s) => s.status === "failed");
+  // A job can fail before any stage starts (Claude Code logged out, too old, the app closed mid-run).
+  const lastJob = status.jobs.at(-1);
   const waiting =
     status.next.kind === "waiting" && status.next.status === "awaiting_approval"
       ? stage(status.next.key)
@@ -215,6 +217,19 @@ export function SeriesPage({ id }: { id: string }) {
           <AlertDescription>
             <p className="select-text">{failed.error?.message ?? "Something went wrong."}</p>
             <Button variant="secondary" size="sm" className="mt-1" onClick={() => run(failed.key)}>
+              <RotateCcwIcon data-icon="inline-start" />
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
+      )}
+      {!running && !failed && lastJob?.status === "failed" && (
+        <Alert variant="destructive">
+          <TriangleAlertIcon />
+          <AlertTitle>That didn’t work</AlertTitle>
+          <AlertDescription>
+            <p className="select-text">{lastJob.error?.message ?? "Something went wrong."}</p>
+            <Button variant="secondary" size="sm" className="mt-1" onClick={() => run()}>
               <RotateCcwIcon data-icon="inline-start" />
               Try again
             </Button>
@@ -499,7 +514,7 @@ function Review({
   const requestChanges = () =>
     act("redo", async () => {
       await api.stages.reject(seriesId, stage.key, feedback ?? "");
-      await api.stages.run(seriesId, stage.key);
+      await api.stages.run(seriesId); // not stage.key: a note on the preview restarts from the scenes
       setFeedback(null);
     });
 

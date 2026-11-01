@@ -68,6 +68,7 @@ export const SeriesBible = z.object({
     captionStyle: z.string(),
     mood: z.string(),
     grade: z.string().default("none"), // kit colour grade for the whole series (checked against the catalog)
+    timeOfDay: z.string().optional(), // every shot's time of day, so the sky can't jump between shots
   }),
   narrator: z.object({ voiceId: z.string(), backend: z.string(), language: z.string() }),
 });
@@ -192,10 +193,23 @@ export const Caption = z.object({
 });
 export type Caption = z.infer<typeof Caption>;
 
+// A shot on a 3D stage (a background whose catalog entry has `stage`): real lenses and depth instead of layers.
+export const SceneStage = z.object({
+  camera: z.string(), // one of the stage's camera rigs
+  place: z.string(), // where in the world the shot happens
+  subject: z.string(), // who the camera follows
+  // Metres the subject is ahead of the other one, at the start and end of the shot. Negative is behind, and a
+  // change of sign is an overtake.
+  leadStart: z.number().min(-300).max(300),
+  leadEnd: z.number().min(-300).max(300),
+});
+export type SceneStage = z.infer<typeof SceneStage>;
+
 export const SceneSpec = z.object({
   shotId: z.string(),
   durationFrames: z.number().int().positive(),
   background: z.object({ id: z.string(), parallax: z.boolean().default(true) }),
+  stage: SceneStage.optional(), // required on a 3D stage; actors, props and camera moves don't apply there
   actors: z.array(SceneActor),
   props: z.array(z.object({ id: z.string(), position: Position })).default([]),
   camera: z.array(CameraMove).default([]),

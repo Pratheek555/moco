@@ -144,7 +144,7 @@ function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
   if (out.is_error) throw classifyFailure(out.result ?? out.subtype ?? "unknown error");
 
   if (req.jsonSchema && out.structured_output === undefined) {
-    throw new SchemaRefusal("claude returned no structured_output for the requested schema");
+    throw new SchemaRefusal(out.result?.trim() || "claude returned no structured_output for the requested schema");
   }
 
   return {
