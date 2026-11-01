@@ -1,9 +1,11 @@
-// Remotion compositions: "Episode" for full renders, "Scene" for single-shot stills (L3 checks, thumbnails).
+// Remotion compositions: "Episode" for full renders, "Scene" for single-shot stills (L3 checks, shot previews),
+// "Thumbnail" for an episode's thumbnail.
 import { Composition } from "remotion";
 import { FPS, FRAME_HEIGHT, FRAME_WIDTH, type SceneSpec } from "@moco/spec";
 import { demoScene } from "./demo.ts";
 import { Episode, type EpisodeProps } from "./Episode.tsx";
 import { Scene } from "./Scene.tsx";
+import { Thumbnail } from "./Thumbnail.tsx";
 
 const size = { width: FRAME_WIDTH, height: FRAME_HEIGHT, fps: FPS };
 
@@ -31,6 +33,14 @@ export function Root() {
         {...size}
         durationInFrames={1}
         defaultProps={{ scene: demoScene as SceneSpec }}
+        calculateMetadata={({ props }) => ({ durationInFrames: props.scene.durationFrames })}
+      />
+      <Composition
+        id="Thumbnail"
+        component={Thumbnail}
+        {...size}
+        durationInFrames={1}
+        defaultProps={{ scene: demoScene as SceneSpec, text: "Krishna’s chariot" }}
         calculateMetadata={({ props }) => ({ durationInFrames: props.scene.durationFrames })}
       />
     </>

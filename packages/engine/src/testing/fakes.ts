@@ -37,6 +37,7 @@ export class FakeAi implements AiBackend {
 export class FakeRenderPort implements RenderPort {
   checks = 0;
   renders = 0;
+  thumbnails: { shotId: string; frame: number; text: string }[] = [];
 
   private readonly failFor: (spec: SceneSpec) => RenderError[];
 
@@ -52,6 +53,14 @@ export class FakeRenderPort implements RenderPort {
     const stills = opts.frames.map((frame) => join(opts.outDir, `${frame}.png`));
     await Promise.all(stills.map((still) => writeFile(still, "")));
     return { ok: true as const, stills };
+  }
+
+  async thumbnail(spec: SceneSpec, opts: { frame: number; text: string; out: string }) {
+    this.thumbnails.push({ shotId: spec.shotId, frame: opts.frame, text: opts.text });
+    const errors = this.failFor(spec);
+    if (errors.length > 0) throw new Error(errors[0]!.message);
+    await mkdir(join(opts.out, ".."), { recursive: true });
+    await writeFile(opts.out, "");
   }
 
   async renderEpisode(episode: { scenes: SceneSpec[] }, out: string) {

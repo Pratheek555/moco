@@ -125,6 +125,7 @@ export const files = {
   renderReport: (ep: string) => `episodes/${ep}/artifacts/render_report.json`,
   publishDefaults: "artifacts/publish_defaults.json",
   publish: (ep: string) => `episodes/${ep}/artifacts/publish.json`,
+  thumbnail: (ep: string) => `episodes/${ep}/renders/thumbnail.jpg`,
   shotDir: (ep: string, shot: string) => `episodes/${ep}/shots/${shot}`,
   shotSpec: (ep: string, shot: string) => `episodes/${ep}/shots/${shot}/spec.json`,
   audioDir: (ep: string) => `episodes/${ep}/audio`,

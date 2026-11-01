@@ -70,6 +70,7 @@ export function createEngineClient(port: ClientPort): EngineClient {
     savePublish: call("savePublish"),
     setPublishDefaults: call("setPublishDefaults"),
     rewritePublish: call("rewritePublish"),
+    setThumbnail: call("setThumbnail"),
     on(type, listener): Unsubscribe {
       const entry = { type, listener };
       listeners.add(entry);

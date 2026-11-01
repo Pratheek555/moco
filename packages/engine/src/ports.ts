@@ -12,8 +12,10 @@ export interface RenderError {
 export type RenderCheck = { ok: true; stills: string[] } | { ok: false; errors: RenderError[] };
 
 export interface RenderPort {
-  // Render a few stills to catch runtime errors (L3) and give the UI thumbnails.
+  // Render a few stills to catch runtime errors (L3) and give the UI shot previews.
   check(spec: SceneSpec, opts: { frames: number[]; outDir: string }): Promise<RenderCheck>;
+  // One full-size frame of a shot, without its caption and with `text` as a headline, saved as a JPEG at `out`.
+  thumbnail(spec: SceneSpec, opts: { frame: number; text: string; out: string }): Promise<void>;
   renderEpisode(
     episode: EpisodeSpec,
     out: string,

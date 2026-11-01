@@ -43,6 +43,8 @@ export interface EpisodeMedia {
   preview?: string;
   final?: string;
   finalPath?: string; // on disk, for "Show in folder"
+  thumbnail?: string;
+  thumbnailPath?: string; // on disk, for dragging into YouTube
   stills: Record<string, string[]>; // shot id → still URLs
 }
 
@@ -99,6 +101,7 @@ export interface MocoApi {
   publish: {
     save(seriesId: string, episodeId: string, kit: PublishKit): Promise<void>;
     rewrite(seriesId: string, episodeId: string, note?: string): Promise<string>; // job id
+    setThumbnail(seriesId: string, episodeId: string, choice: { shotId: string; text: string }): Promise<void>;
     setDefaults(seriesId: string, defaults: Partial<PublishDefaults>): Promise<void>;
     openStudio(): Promise<void>;
   };

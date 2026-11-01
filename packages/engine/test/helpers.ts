@@ -110,6 +110,7 @@ export function validAnswer(request: AiRequest, task: string): unknown {
           hashtags: ["#krishna", "#mahabharat", "#shorts"],
           tags: ["krishna", "arjuna", "bhagavad gita", "mahabharat shorts"],
         },
+        thumbnail: { shotId: "s01", text: "Arjuna drops his bow" },
       };
     default:
       throw new Error(`no answer for task ${task}`);

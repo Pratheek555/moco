@@ -48,6 +48,7 @@ const api: MocoApi = {
   publish: {
     save: call("publish.save"),
     rewrite: call("publish.rewrite"),
+    setThumbnail: call("publish.setThumbnail"),
     setDefaults: call("publish.setDefaults"),
     openStudio: call("publish.openStudio"),
   } as MocoApi["publish"],

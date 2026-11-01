@@ -354,6 +354,8 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                   episodeId={episodeId}
                   language={status.series.language}
                   finalPath={media.finalPath}
+                  thumbnail={{ url: media.thumbnail, path: media.thumbnailPath }}
+                  shots={shots}
                   running={running}
                 />
               </div>

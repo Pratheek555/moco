@@ -6,7 +6,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend } from "@moco/ai";
 import { catalog as defaultCatalog, type Catalog } from "@moco/kit";
-import { checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION } from "@moco/spec";
+import { checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, THUMBNAIL_TEXT_MAX } from "@moco/spec";
 import { defaultConfig, type EngineConfig } from "./config.ts";
 import { EngineError } from "./errors.ts";
 import { EventBus, type EngineEvent, type EngineEventType, type Unsubscribe } from "./events/bus.ts";
@@ -15,6 +15,7 @@ import { Semaphore } from "./jobs/semaphore.ts";
 import type { SeriesInfo, StageContext } from "./pipeline/context.ts";
 import { approveGate, markDependantsStale, nextStage, type Next } from "./pipeline/machine.ts";
 import { runStages } from "./pipeline/run.ts";
+import { renderThumbnail } from "./planner/publish.ts";
 import { allStageKeys, files, GATED, parseStageKey, stageKey } from "./pipeline/stages.ts";
 import type { AudioPort, RenderPort } from "./ports.ts";
 import { ArtifactStore } from "./store/artifacts.ts";
@@ -87,6 +88,8 @@ export interface Engine {
   savePublish(ref: EpisodeRef, kit: PublishKit): Promise<void>;
   setPublishDefaults(seriesId: SeriesId, defaults: Partial<PublishDefaults>): Promise<void>;
   rewritePublish(ref: EpisodeRef, feedback?: string): Promise<JobId>;
+  // Re-render the episode's thumbnail from another shot or with another headline (empty text = none).
+  setThumbnail(ref: EpisodeRef, choice: { shotId: string; text: string }): Promise<void>;
 }
 
 export interface CreateEngineOptions {
@@ -393,9 +396,29 @@ export function createEngine(options: CreateEngineOptions): Engine {
       // Studio would refuse these, so they aren't saved.
       const problems = checkYoutube(parsed.data.youtube);
       if (problems.length > 0) throw new EngineError("validation_failed", problems.map((problem) => problem.problem).join(" "));
-      const saved = await series.store.save(files.publish(ref.episodeId), "PublishKit", parsed.data, { producedBy: "human" });
+      // The thumbnail changes only through setThumbnail, which renders it; keep the one on disk.
+      const { thumbnail } = (await series.store.read(files.publish(ref.episodeId), "PublishKit")).data;
+      const kitToSave: PublishKit = { youtube: parsed.data.youtube, ...(thumbnail && { thumbnail }) };
+      const saved = await series.store.save(files.publish(ref.episodeId), "PublishKit", kitToSave, { producedBy: "human" });
       if (!saved.changed) return;
       series.ledger.decide("edit", key, `edited by you (revision ${saved.meta.revision})`);
+      await outputChanged(series, key, saved.meta.contentHash);
+    },
+
+    async setThumbnail(ref, choice) {
+      assertSafeId(ref.episodeId, "episode id");
+      assertSafeId(choice.shotId, "shot id");
+      const series = await load(ref.seriesId);
+      if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
+      const key = stageKey("publish", ref.episodeId);
+      if (!series.store.has(files.publish(ref.episodeId))) throw new EngineError("stage_blocked", `${key} hasn't run yet`);
+      if (!series.store.has(files.shotSpec(ref.episodeId, choice.shotId))) throw new EngineError("not_found", `shot ${choice.shotId} has no scene yet`);
+      if ([...choice.text.trim()].length > THUMBNAIL_TEXT_MAX) throw new EngineError("validation_failed", `the headline must be at most ${THUMBNAIL_TEXT_MAX} characters`);
+      const kit = (await series.store.read(files.publish(ref.episodeId), "PublishKit")).data;
+      const thumbnail = await renderThumbnail(contextFor(series, new AbortController().signal), ref.episodeId, choice);
+      const saved = await series.store.save(files.publish(ref.episodeId), "PublishKit", { ...kit, thumbnail }, { producedBy: "human" });
+      if (!saved.changed) return;
+      series.ledger.decide("edit", key, `thumbnail changed by you (revision ${saved.meta.revision})`);
       await outputChanged(series, key, saved.meta.contentHash);
     },
 
