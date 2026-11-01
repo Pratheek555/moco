@@ -117,6 +117,7 @@ export function dependants(key: string, episodeIds: string[]): string[] {
 export const files = {
   seriesPlan: "artifacts/series_plan.json",
   bible: "artifacts/bible.json",
+  world: "artifacts/world.json",
   memory: "artifacts/memory.json",
   script: (ep: string) => `episodes/${ep}/artifacts/script.json`,
   voiceover: (ep: string) => `episodes/${ep}/artifacts/voiceover.json`,

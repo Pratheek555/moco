@@ -613,7 +613,7 @@ function Review({
               id="review-note"
               autoFocus
               rows={3}
-              placeholder="e.g. “Make Krishna calmer, end on the blessing.”"
+              placeholder="e.g. “Make the hero calmer, end on the reveal.”"
               value={feedback}
               onChange={(e) => setFeedback(e.target.value)}
             />

@@ -6,7 +6,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend } from "@moco/ai";
 import { catalog as defaultCatalog, type Catalog } from "@moco/kit";
-import { checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, THUMBNAIL_TEXT_MAX } from "@moco/spec";
+import { checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, THUMBNAIL_TEXT_MAX, type World } from "@moco/spec";
 import { defaultConfig, type EngineConfig } from "./config.ts";
 import { EngineError } from "./errors.ts";
 import { EventBus, type EngineEvent, type EngineEventType, type Unsubscribe } from "./events/bus.ts";
@@ -16,6 +16,7 @@ import type { SeriesInfo, StageContext } from "./pipeline/context.ts";
 import { approveGate, markDependantsStale, nextStage, type Next } from "./pipeline/machine.ts";
 import { runStages } from "./pipeline/run.ts";
 import { renderThumbnail } from "./planner/publish.ts";
+import { worldCatalog } from "./planner/world.ts";
 import { allStageKeys, files, GATED, parseStageKey, stageKey } from "./pipeline/stages.ts";
 import type { AudioPort, RenderPort } from "./ports.ts";
 import { ArtifactStore } from "./store/artifacts.ts";
@@ -107,6 +108,7 @@ interface OpenSeries {
   dir: string;
   ledger: Ledger;
   store: ArtifactStore;
+  world?: World; // the series' generated world, if the kit couldn't play its story
   activeJob?: { id: JobId; controller: AbortController; done: Promise<void> };
 }
 
@@ -135,7 +137,8 @@ export function createEngine(options: CreateEngineOptions): Engine {
     recoverAfterCrash(ledger);
     await ledger.save();
 
-    const series: OpenSeries = { info, dir, ledger, store };
+    const world = store.has(files.world) ? (await store.read(files.world, "World")).data : undefined;
+    const series: OpenSeries = { info, dir, ledger, store, world };
     open.set(seriesId, series);
     return series;
   }
@@ -154,12 +157,18 @@ export function createEngine(options: CreateEngineOptions): Engine {
   }
 
   function contextFor(series: OpenSeries, signal: AbortSignal): StageContext {
-    return {
+    const ctx: StageContext = {
       seriesId: series.info.id,
       series: series.info,
       dir: series.dir,
       config,
-      catalog,
+      catalog: series.world ? worldCatalog(catalog, series.world) : catalog,
+      world: series.world,
+      useWorld: (world) => {
+        series.world = world;
+        ctx.world = world;
+        ctx.catalog = worldCatalog(catalog, world);
+      },
       store: series.store,
       ledger: series.ledger,
       bus,
@@ -171,6 +180,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       signal,
       episodeIds: () => series.ledger.data.episodeIds,
     };
+    return ctx;
   }
 
   // ---------- jobs ----------

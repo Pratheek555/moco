@@ -38,7 +38,12 @@ export function CastAvatar({ character, className }: { character: string; classN
         className,
       )}
     >
-      <CastArt characters={[character]} />
+      {CHARACTERS[character] ? (
+        <CastArt characters={[character]} />
+      ) : (
+        // A generated character has no kit drawing to crop, so it gets its initial.
+        <span className="flex size-full items-center justify-center text-sm font-medium uppercase">{character.charAt(0)}</span>
+      )}
     </div>
   );
 }

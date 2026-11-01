@@ -29,7 +29,7 @@ const LIGHTS: Record<string, Light> = {
 const lightOf = (timeOfDay: string) => LIGHTS[timeOfDay] ?? LIGHTS.dusk!;
 
 // Image-based light, so the paint picks up reflections.
-function Reflections() {
+export function Reflections() {
   const { gl, scene } = useThree();
   useEffect(() => {
     const generator = new THREE.PMREMGenerator(gl);
@@ -61,7 +61,7 @@ const SKY_FRAGMENT = `
     #include <colorspace_fragment>
   }`;
 
-function Sky({ light }: { light: Light }) {
+export function Sky({ light }: { light: Pick<Light, "sun" | "horizon" | "middle" | "top"> }) {
   const uniforms = useMemo(
     () => ({
       sun: { value: new THREE.Vector3(...light.sun).normalize() },

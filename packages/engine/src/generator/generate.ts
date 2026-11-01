@@ -3,11 +3,12 @@
 // Each spec records a "SceneInput" hash of everything it was generated from; if that hash is unchanged
 // on the next run, the spec is reused without calling the AI (partial regeneration).
 import { join } from "node:path";
-import { AiSceneSpec, SceneSpec, toAiJsonSchema, type InputRef, type SeriesBible, type SeriesMemory, type Shot, type VoiceoverTrack } from "@moco/spec";
+import { AiSceneSpec, SceneSpec, toAiJsonSchema, type InputRef, type SeriesBible, type SeriesMemory, type Shot, type World, type VoiceoverTrack } from "@moco/spec";
 import type { Issue } from "../loop/feedback.ts";
 import { generateValidated } from "../loop/loop.ts";
 import { avoidFor, repeatedLook, shotLook, validateScene, type SceneBrief, type ShotLook } from "../loop/validate.ts";
 import type { StageContext } from "../pipeline/context.ts";
+import { worldForShot } from "../planner/world.ts";
 import { files } from "../pipeline/stages.ts";
 import { hashData } from "../store/hash.ts";
 import { catalogSlice, fallbackScene, goldenScene, relevantFacts, shotBrief, shotVisemes } from "./context.ts";
@@ -21,6 +22,7 @@ export interface SceneInputs {
   voiceover: VoiceoverTrack;
   bible: SeriesBible;
   memory?: SeriesMemory;
+  world?: World; // this series' generated world, if it has one
   feedback?: string; // from reject() on the sample or regenerateShot()
   force?: boolean; // regenerate even if an up-to-date spec exists
   avoid?: ShotLook; // camera presets and shot sizes its neighbours already repeat (no 3 in a row)
@@ -56,7 +58,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     prompt: scenePrompt(ctx, inputs, brief, previous),
     maxAttempts: ctx.config.limits.maxAttemptsPerShot,
     signal: ctx.signal,
-    check: (spec) => checkScene(ctx, spec, brief, inputs.bible, shotDir),
+    check: (spec) => checkScene(ctx, spec, brief, inputs, shotDir),
     onAttempt: async (attempt) => {
       await ctx.store.writeRaw(`${shotDir}/attempts/${String(attempt.attempt).padStart(2, "0")}.json`, attempt);
       await ctx.bus.emit(ctx.seriesId, "shot.attempt", { episodeId, shotId: shot.id, attempt: attempt.attempt, errors: attempt.issues.length });
@@ -69,7 +71,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     return { shotId: shot.id, fallback: false, attempts: result.attempts, contentHash: ctx.store.hashOf(specFile)! };
   }
 
-  const spec = withEngineFields(result.ok ? result.data : fallbackScene(brief, ctx.catalog), inputs);
+  const spec = withEngineFields(result.ok ? result.data : fallbackScene(brief, ctx.catalog, inputs.bible), inputs);
   if (!result.ok) {
     // Never silent: recorded in the ledger and shown in the UI as "needs attention".
     ctx.ledger.decide("fallback", `${episodeId}/${shot.id}`, `${result.attempts} attempts failed; last issues: ${result.issues.length}`);
@@ -113,7 +115,7 @@ async function upToDate(ctx: StageContext, specFile: string, sceneInput: InputRe
 // and the lip-sync track (from the audio).
 function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
   const visemes = shotVisemes(inputs.shot, inputs.voiceover);
-  return { ...withBibleVariants(spec, inputs.bible), visemes, grade: inputs.bible.style.grade };
+  return { ...withBibleVariants(spec, inputs.bible), visemes, grade: inputs.bible.style.grade, world: inputs.world && worldForShot(inputs.world, spec) };
 }
 
 function withBibleVariants(spec: SceneSpec, bible: SeriesBible): SceneSpec {
@@ -132,8 +134,8 @@ async function refreshEngineFields(ctx: StageContext, specFile: string, inputs: 
 }
 
 // L2, then L3 (render a few stills) only when L2 is clean: no point rendering a spec we already know is wrong.
-async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief, bible: SeriesBible, shotDir: string): Promise<Issue[]> {
-  const semantic = validateScene(spec, { brief, bible, catalog: ctx.catalog });
+async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief, inputs: SceneInputs, shotDir: string): Promise<Issue[]> {
+  const semantic = validateScene(spec, { brief, bible: inputs.bible, catalog: ctx.catalog });
   if (semantic.length > 0) return semantic;
 
   const lastFrame = spec.durationFrames - 1;
@@ -141,7 +143,7 @@ async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief,
   const outDir = join(ctx.dir, shotDir, "stills");
   // Saved before rendering, so a spec that crashes or hangs the renderer can be inspected afterwards.
   await ctx.store.writeRaw(`${shotDir}/stills/spec.json`, spec);
-  const check = await ctx.renderSlots.run(() => ctx.render.check(withBibleVariants(spec, bible), { frames, outDir }));
+  const check = await ctx.renderSlots.run(() => ctx.render.check(withEngineFields(spec, inputs), { frames, outDir }));
   if (check.ok) return [];
   return check.errors.map((error) => ({
     path: error.path ?? "",
@@ -164,7 +166,8 @@ function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, 
     jsonSection("Kit you can use", catalogSlice(ctx.catalog, inputs.bible, brief.shot)),
     jsonSection("Series style", inputs.bible.style),
     jsonSection("Continuity to respect", relevantFacts(inputs.memory, brief.shot)),
-    jsonSection("Example of a good SceneSpec (a different shot — copy the quality, not the content)", AiSceneSpec.parse(goldenScene())), // engine fields stripped
+    // The example shows the kit's 2D layout, which a generated world doesn't use.
+    inputs.world ? "" : jsonSection("Example of a good SceneSpec (a different shot — copy the quality, not the content)", AiSceneSpec.parse(goldenScene())), // engine fields stripped
     previous ? jsonSection("Your previous version — keep what the change below doesn't touch", previous) : "",
     feedbackSection(inputs.feedback),
   ]);
@@ -228,7 +231,7 @@ export async function sceneSharedInputs(ctx: StageContext, episodeId: string): P
   const voiceover = (await ctx.store.read(files.voiceover(episodeId), "VoiceoverTrack")).data;
   const bible = (await ctx.store.read(files.bible, "SeriesBible")).data;
   const memory = ctx.store.has(files.memory) ? (await ctx.store.read(files.memory, "SeriesMemory")).data : undefined;
-  return { episodeId, voiceover, bible, memory };
+  return { episodeId, voiceover, bible, memory, world: ctx.world };
 }
 
 // Stage hash recomputed from the specs on disk (after a single shot was regenerated).

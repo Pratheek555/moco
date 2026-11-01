@@ -318,17 +318,130 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
           "type": "string",
         },
         "leadEnd": {
+          "default": 0,
           "maximum": 300,
           "minimum": -300,
           "type": "number",
         },
         "leadStart": {
+          "default": 0,
           "maximum": 300,
           "minimum": -300,
           "type": "number",
         },
         "place": {
           "type": "string",
+        },
+        "players": {
+          "default": [],
+          "items": {
+            "properties": {
+              "actions": {
+                "default": [],
+                "items": {
+                  "properties": {
+                    "endFrame": {
+                      "exclusiveMinimum": 0,
+                      "maximum": 9007199254740991,
+                      "type": "integer",
+                    },
+                    "name": {
+                      "type": "string",
+                    },
+                    "params": {
+                      "additionalProperties": {},
+                      "propertyNames": {
+                        "type": "string",
+                      },
+                      "type": "object",
+                    },
+                    "startFrame": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                  },
+                  "required": [
+                    "name",
+                    "startFrame",
+                    "endFrame",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
+              "arriveFrame": {
+                "exclusiveMinimum": 0,
+                "maximum": 9007199254740991,
+                "type": "integer",
+              },
+              "at": {
+                "additionalItems": false,
+                "items": [
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "facing": {
+                "default": 0,
+                "maximum": 2000,
+                "minimum": -2000,
+                "type": "number",
+              },
+              "id": {
+                "type": "string",
+              },
+              "model": {
+                "type": "string",
+              },
+              "to": {
+                "additionalItems": false,
+                "items": [
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+            },
+            "required": [
+              "id",
+              "model",
+              "at",
+            ],
+            "type": "object",
+          },
+          "type": "array",
         },
         "subject": {
           "type": "string",
@@ -338,8 +451,6 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
         "camera",
         "place",
         "subject",
-        "leadStart",
-        "leadEnd",
       ],
       "type": "object",
     },

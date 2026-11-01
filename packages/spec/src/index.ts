@@ -9,7 +9,7 @@ import * as z from "zod";
 //          CameraMove "focus_on" + castId, SeriesBible.style.grade. All additive with defaults: old data parses as-is.
 //   0.3.0: PublishDefaults, PublishKit (new artifact kinds; nothing existing changed).
 //   0.4.0: PublishKit.thumbnail, AiPublishCopy.thumbnail (optional: old kits parse as-is).
-export const SPEC_VERSION = "0.4.0";
+export const SPEC_VERSION = "0.5.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -40,6 +40,113 @@ export type Meta = z.infer<typeof Meta>;
 
 // Every artifact on disk is { meta, data }.
 export const Envelope = <T extends z.ZodTypeAny>(data: T) => z.object({ meta: Meta, data });
+
+// ---------- Generated worlds ----------
+// A story the kit can't play gets its own 3D world, written by the AI as data: models built from shapes, sets,
+// sky and marks to stand on. It is data and not code because the packaged app ships a prebuilt bundle, and
+// because this text comes from a model: everything here is range-checked, and nothing in it can run.
+
+const Metres = z.number().min(-2000).max(2000);
+const Vec3 = z.tuple([Metres, Metres, Metres]);
+const Vec2 = z.tuple([Metres, Metres]);
+const Colour = z.string().regex(/^#[0-9a-fA-F]{6}$/, "a colour like #a1b2c3");
+const Id = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/, "letters, digits, - and _");
+const Fraction = z.number().min(0).max(1);
+
+export const WORLD_PATTERNS = ["plain", "noise", "stripes", "checker", "bricks", "planks", "windows", "scales"] as const;
+export const WORLD_SHAPES = ["box", "sphere", "cylinder", "capsule", "torus", "lathe", "extrude", "tube"] as const;
+export const WORLD_WEATHER = ["none", "rain", "snow", "dust", "embers", "fireflies", "bubbles"] as const;
+
+// How something looks. `pattern` mixes `colour` and `colour2`; `glow` makes it give off its own light.
+export const WorldSurface = z.object({
+  colour: Colour,
+  colour2: Colour.optional(),
+  pattern: z.enum(WORLD_PATTERNS).default("plain"),
+  repeat: z.number().min(0.05).max(400).default(1), // how many times the pattern fits across the shape
+  rough: Fraction.default(0.7),
+  metal: Fraction.default(0),
+  glow: z.number().min(0).max(12).default(0),
+  opacity: Fraction.default(1),
+});
+export type WorldSurface = z.infer<typeof WorldSurface>;
+
+// One shape of a model. Parts are a flat list joined by `parent`; `at` is where the part hinges on its parent,
+// and `offset` moves the shape away from that hinge, so an arm swings from the shoulder and not its middle.
+export const WorldPart = z.object({
+  id: Id,
+  parent: Id.nullish().transform((parent) => parent ?? undefined), // models write null for "no parent" as often as they leave it out
+  shape: z.enum(WORLD_SHAPES),
+  size: Vec3, // width, height, depth in metres. lathe, extrude and tube: a scale on their points, except tube's radius in x
+  surface: Id,
+  at: Vec3.default([0, 0, 0]),
+  turn: Vec3.default([0, 0, 0]), // degrees
+  offset: Vec3.default([0, 0, 0]),
+  taper: z.number().min(0).max(4).default(1), // cylinder: top radius over bottom radius; 0 is a cone
+  round: Fraction.default(0.15), // box: how soft the edges are
+  profile: z.array(Vec2).min(3).max(32).optional(), // lathe: [radius, height] points, turned around the y axis
+  outline: z.array(Vec2).min(3).max(48).optional(), // extrude: [x, y] points of a flat shape, pushed out by size z
+  path: z.array(Vec3).min(2).max(24).optional(), // tube: points the tube runs through; hair, tails, tentacles, pipes
+  spin: Vec3.optional(), // degrees per second, always on: wheels, rotors
+  blinks: z.boolean().default(false), // an eye: it shuts now and then
+});
+export type WorldPart = z.infer<typeof WorldPart>;
+
+// A named motion: poses at moments from 0 to 1 through the action, by part id, added to each part's rest turn.
+export const WorldMove = z.object({
+  name: Id,
+  minFrames: z.number().int().min(4).max(600).default(24),
+  loop: z.boolean().default(false), // repeats every minFrames while the action runs, like a walk
+  keys: z.array(z.object({ at: Fraction, turn: z.record(Id, Vec3).default({}) })).min(2).max(12),
+});
+export type WorldMove = z.infer<typeof WorldMove>;
+
+// `rig: humanoid` promises the standard joint ids and earns the built-in moves (walk, wave, kneel…).
+export const WorldModel = z.object({
+  id: Id,
+  rig: z.enum(["none", "humanoid"]).default("none"),
+  height: z.number().positive().max(2000), // metres, the camera frames by it
+  surfaces: z.record(Id, WorldSurface),
+  parts: z.array(WorldPart).min(1).max(160),
+  moves: z.array(WorldMove).max(12).default([]),
+});
+export type WorldModel = z.infer<typeof WorldModel>;
+
+// One location of the world.
+export const WorldLocation = z.object({
+  id: Id,
+  hint: z.string().min(1), // what is here, for the AI directing shots
+  sky: z.object({
+    top: Colour,
+    middle: Colour,
+    horizon: Colour,
+    sunAzimuth: z.number().min(-360).max(360), // degrees, 0 is along +z, the side cameras usually stand on
+    sunElevation: z.number().min(-10).max(90),
+    sunColour: Colour,
+    sunStrength: z.number().min(0).max(10),
+    fill: z.number().min(0).max(6), // light from everywhere
+    fog: Colour,
+    fogDensity: z.number().min(0).max(0.2),
+    stars: z.boolean().default(false),
+  }),
+  ground: z.object({
+    kind: z.enum(["land", "water", "none"]), // none: deep space, or a set that is its own floor
+    surface: WorldSurface,
+    hills: z.number().min(0).max(120).default(0), // metres of relief beyond 50 m from the middle
+  }),
+  set: z.array(z.object({ model: Id, at: Vec3, turn: Metres.default(0), scale: z.number().positive().max(100).default(1) })).max(160).default([]),
+  scatter: z.array(z.object({ model: Id, count: z.number().int().min(1).max(800), near: z.number().min(0).max(1500), far: z.number().min(1).max(1800), scaleMin: z.number().positive().max(40).default(0.8), scaleMax: z.number().positive().max(40).default(1.3) })).max(10).default([]),
+  lamps: z.array(z.object({ at: Vec3, colour: Colour, strength: z.number().min(0).max(4000), reach: z.number().min(1).max(300) })).max(8).default([]),
+  weather: z.enum(WORLD_WEATHER).default("none"),
+  marks: z.array(z.object({ id: Id, hint: z.string().min(1), at: Vec3, facing: Metres.default(0) })).min(1).max(12), // where shots happen
+});
+export type WorldLocation = z.infer<typeof WorldLocation>;
+
+export const World = z.object({
+  models: z.array(WorldModel).min(1).max(40),
+  locations: z.array(WorldLocation).min(1).max(8),
+  cast: z.array(z.object({ id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase with dashes"), model: Id, description: z.string() })).min(1),
+});
+export type World = z.infer<typeof World>;
 
 // ---------- Series level ----------
 
@@ -193,6 +300,18 @@ export const Caption = z.object({
 });
 export type Caption = z.infer<typeof Caption>;
 
+// One model in a shot of a generated world, placed in metres from the shot's mark.
+export const ScenePlayer = z.object({
+  id: z.string(), // a cast id, or a model id for a thing
+  model: z.string(), // the model that plays it (set by the engine for cast members)
+  at: Vec3,
+  to: Vec3.optional(), // where it has moved to by `arriveFrame`, for walking, flying, driving
+  arriveFrame: z.number().int().positive().optional(), // default: the end of the shot
+  facing: Metres.default(0), // degrees, 0 faces +z, the camera's usual side
+  actions: z.array(SceneAction).default([]),
+});
+export type ScenePlayer = z.infer<typeof ScenePlayer>;
+
 // A shot on a 3D stage (a background whose catalog entry has `stage`): real lenses and depth instead of layers.
 export const SceneStage = z.object({
   camera: z.string(), // one of the stage's camera rigs
@@ -200,8 +319,9 @@ export const SceneStage = z.object({
   subject: z.string(), // who the camera follows
   // Metres the subject is ahead of the other one, at the start and end of the shot. Negative is behind, and a
   // change of sign is an overtake.
-  leadStart: z.number().min(-300).max(300),
-  leadEnd: z.number().min(-300).max(300),
+  leadStart: z.number().min(-300).max(300).default(0),
+  leadEnd: z.number().min(-300).max(300).default(0),
+  players: z.array(ScenePlayer).default([]), // generated worlds: who is in the shot and what they do
 });
 export type SceneStage = z.infer<typeof SceneStage>;
 
@@ -224,13 +344,14 @@ export const SceneSpec = z.object({
     .default([]),
   // Engine-filled, never by the AI:
   visemes: VisemeTrack.default([]), // shot frames, copied from the voiceover
+  world: z.object({ location: WorldLocation, models: z.array(WorldModel) }).optional(), // a generated world: what this shot needs of it
   grade: z.string().default("none"), // the series grade, copied from the bible
   finish: z.object({ vignette: z.boolean().default(true), grain: z.boolean().default(true) }).default({ vignette: true, grain: true }),
 });
 export type SceneSpec = z.infer<typeof SceneSpec>;
 
 // What the AI is asked to write: a SceneSpec minus the fields the engine fills in.
-export const AiSceneSpec = SceneSpec.omit({ visemes: true, grade: true, finish: true });
+export const AiSceneSpec = SceneSpec.omit({ visemes: true, grade: true, finish: true, world: true });
 
 // ---------- Episode assembly + render ----------
 
@@ -357,6 +478,7 @@ export const ArtifactSchemas = {
   SeriesPlan,
   SeriesBible,
   SeriesMemory,
+  World,
   EpisodeScript,
   VoiceoverTrack,
   ShotList,

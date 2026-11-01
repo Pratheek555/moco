@@ -54,9 +54,9 @@ const EPISODE_COUNTS = [1, 2, 3, 5];
 
 // Quick starts under the idea box: a label and the idea it fills in.
 const SPARKS = [
-  ["A lesson from the Gita", IDEAS[0]!],
-  ["Krishna and Arjuna", IDEAS[1]!],
-  ["A last-lap F1 duel", IDEAS[6]!],
+  ["The keeper and the serpent", IDEAS[0]!],
+  ["A robot on Mars", IDEAS[1]!],
+  ["A last-lap F1 duel", IDEAS[5]!],
 ] as const;
 
 export function Studio() {
@@ -70,8 +70,7 @@ export function Studio() {
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
 
-  const { data: catalog } = useAsync(() => api.kit.catalog(), []),
-    { data: voices } = useAsync(() => api.voice.list(), []);
+  const { data: voices } = useAsync(() => api.voice.list(), []);
   // An empty list means the voices couldn't be read, not that none exist.
   const noVoice = (code: string) =>
     Boolean(voices?.length) && !voices!.some((voice) => voice.locale.split("-")[0] === code);
@@ -158,7 +157,7 @@ export function Studio() {
               id="idea"
               maxLength={4000}
               disabled={starting}
-              placeholder="A moment from the Gita. A rookie’s last-lap duel…"
+              placeholder="A lighthouse keeper and a sea serpent. A robot alone on Mars…"
               className="max-h-72 min-h-28 md:text-base"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
@@ -212,8 +211,7 @@ export function Studio() {
             </InputGroupAddon>
           </InputGroup>
           <FieldDescription>
-            {catalog && `Stories need ${catalog.characters.map((c) => c.id).join(", ")}: they’re the characters Moco has so far. `}
-            Moco plans the series, then stops so you can review each step.
+            Any story works: Moco builds a cast and world for it. It plans the series, then stops so you can review each step.
           </FieldDescription>
         </Field>
         <div className="flex flex-wrap items-center gap-2">

@@ -1,16 +1,16 @@
-// Stage bible: cast (kit characters only), style. The narrator voice is set by the engine, not the AI.
+// Stage bible: the cast and style. The cast comes from the kit, or from a world built for this story.
+// The narrator voice is set by the engine, not the AI.
 import * as z from "zod";
 import { CastMember, SeriesBible } from "@moco/spec";
 import type { Catalog } from "@moco/kit";
-import { EngineError } from "../errors.ts";
 import { feedbackSection, joinSections, jsonSection, promptRef } from "../generator/prompts.ts";
 import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
 import { checkIds, planWithAi, previousSection } from "./common.ts";
+import { runWorld } from "./world.ts";
 
-// What the AI writes: the bible without the narrator. The cast may be empty here, so that "the kit can't play this
-// story" is an answer the AI can give, not a schema it can only refuse.
+// What the AI writes: the bible without the narrator. An empty cast is how it says the kit can't play this story.
 const BibleDraft = SeriesBible.omit({ narrator: true }).extend({ cast: z.array(CastMember) });
 type BibleDraft = ReturnType<typeof BibleDraft.parse>;
 
@@ -33,12 +33,14 @@ export async function runBible(ctx: StageContext, feedback?: string): Promise<st
     check: (data) => checkBible(data, ctx.catalog),
   });
 
-  if (draft.cast.length === 0) {
-    const names = ctx.catalog.characters.map((character) => character.id).join(", ");
-    throw new EngineError("kit_gap", `Moco can't animate this story yet: its character kit only has ${names}. Start a new series with a story about them.`);
-  }
+  // No kit entry fits, so build the story's own cast and places. Sent back with a note, it builds them again.
+  const world = draft.cast.length === 0 ? await runWorld(ctx, plan.data, feedback) : undefined;
+  if (world) ctx.useWorld(world);
+  const cast = world ? world.cast.map(({ id, model, description }) => ({ id, kitCharacterId: model, description })) : draft.cast;
 
-  const bible: SeriesBible = { ...draft, narrator: { ...ctx.config.voice, language: plan.data.language } };
+  // A location's sky is its time of day, so the bible doesn't set one for a world.
+  const style = world ? { ...draft.style, timeOfDay: undefined } : draft.style;
+  const bible: SeriesBible = { ...draft, cast, style, narrator: { ...ctx.config.voice, language: plan.data.language } };
   const saved = await ctx.store.save(files.bible, "SeriesBible", bible, {
     producedBy: "ai",
     backend: ctx.ai.backendId,

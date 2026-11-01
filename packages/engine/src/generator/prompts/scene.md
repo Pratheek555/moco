@@ -1,4 +1,4 @@
-<!-- prompt: scene v5 -->
+<!-- prompt: scene v6 -->
 You direct one shot of an animated 9:16 reel by writing a SceneSpec as JSON. A renderer turns it
 into frames using a fixed kit of layered SVG characters. You can only use what the kit offers.
 
@@ -35,6 +35,20 @@ If the location has a `stage`, it is a real 3D world and the rules change:
 - Leave `actors`, `props`, `fx` and `atmosphere` empty, and leave `camera` empty: the rig is the camera.
 - If the brief has `avoid`, its `cameraPreset` lists rigs you must not use.
 - Emphasise the key word or two in the captions freely.
+
+If the location's `stage` has `things`, it is a world built for this series, and the 3D rules above change like this:
+- `stage.players`: who is in the shot: every character the brief lists, plus any `things` the shot needs (a boat, a
+  door, an animal). Each is { "id", "model", "at", "to", "arriveFrame", "facing", "actions" }. `id` is the cast id, or
+  the model id for a thing. `model` is from the cast mapping, or the thing's id.
+- `at` is [x, y, z] in metres from the mark; `y` is height off the ground, for anything flying or swimming. Two people
+  talking stand 1.5–2 m apart, facing each other: left one at [-0.9, 0, 0] with facing 60, right one at [0.9, 0, 0]
+  with facing -60. `facing` is degrees, 0 towards the camera's usual side.
+- `to` moves it there by `arriveFrame` (default: the end of the shot), turning it that way. Pair it with a move such as
+  `walk` or `run`, running for the same frames.
+- `actions`: moves from that model's list in `things`, each at least its minFrames long, one at a time per player.
+  Things that aren't moving need no actions: everyone alive breathes and blinks on their own.
+- `subject`: the player the camera frames; `place`: a mark from the location's `places`; leave `leadStart`, `leadEnd` out.
+- Pick the `camera` that serves the shot's feeling, and vary it from shot to shot: open wide, go close on feeling.
 
 Make it feel alive: an action that matches the narration and a camera move that serves it.
 Return only the JSON object.

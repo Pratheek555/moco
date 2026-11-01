@@ -270,7 +270,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                       <Textarea
                         id="shot-note"
                         rows={3}
-                        placeholder="e.g. “Closer on Krishna, slower camera.”"
+                        placeholder="e.g. “Closer on the hero, slower camera.”"
                         value={note}
                         onChange={(e) => setNote(e.target.value)}
                       />

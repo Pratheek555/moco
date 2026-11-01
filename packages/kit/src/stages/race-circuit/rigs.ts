@@ -77,7 +77,7 @@ function nodAt(progress: number): number {
   return Math.sin(stroke * Math.PI) * 0.42;
 }
 
-export function shotState(stage: SceneStage, frame: number, durationFrames: number): ShotState {
+export function shotState(stage: Omit<SceneStage, "players">, frame: number, durationFrames: number): ShotState {
   const place = PLACES[stage.place]!;
   const rig = RIGS[stage.camera]!;
   const progress = frame / durationFrames;

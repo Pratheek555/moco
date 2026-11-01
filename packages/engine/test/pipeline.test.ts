@@ -5,7 +5,7 @@ import { SchemaRefusal, type AiRequest } from "@moco/ai";
 import { describe, expect, it, vi } from "vitest";
 import { createEngine, defaultConfig } from "../src/index.ts";
 import { FakeAudio, FakeRenderPort } from "../src/testing/fakes.ts";
-import { advance, approveNext, sceneFor, scriptData, setup, validAnswer } from "./helpers.ts";
+import { advance, approveNext, sceneFor, scriptData, setup, testWorld, validAnswer } from "./helpers.ts";
 
 // An AI call that only ends when its job is stopped, like a real call killed by Stop.
 function untilStopped(request: AiRequest) {
@@ -90,17 +90,19 @@ describe("pipeline", () => {
     expect(ai.requests.at(-1)!.prompt).toContain("Gita Shorts"); // the AI sees the version the note is about
   });
 
-  it("ends the bible after one call, with a clear message, when the kit can't play anyone in the story", async () => {
-    const style = { palette: ["#000000"], captionStyle: "bold", mood: "fast" };
-    const { engine, ai } = await setup({ bible: () => ({ cast: [], style }) });
-    const seriesId = await engine.createSeries({ idea: "F1 racing", language: "en", episodes: 1 });
+  it("builds a world for a story the kit can't play, and casts it", async () => {
+    const style = { palette: ["#000000"], captionStyle: "bold", mood: "fast", timeOfDay: "dusk" };
+    const { engine, ai } = await setup({ bible: () => ({ cast: [], style }), world: () => testWorld() });
+    const seriesId = await engine.createSeries({ idea: "A young sailor", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
 
     const job = await engine.waitForJob(await engine.runStage({ seriesId }));
-    expect(job.error).toMatchObject({ code: "kit_gap" });
-    expect(job.error?.message).toContain("krishna");
-    expect(ai.requests.filter((request) => request.system.includes("prompt: bible"))).toHaveLength(1);
+    expect(job.error).toBeUndefined();
+    expect(ai.requests.filter((request) => request.system.includes("prompt: world"))).toHaveLength(1);
+    const bible = (await engine.readArtifact({ seriesId, file: "artifacts/bible.json" })) as { data: unknown };
+    expect(bible.data).toMatchObject({ cast: [{ id: "hero", kitCharacterId: "hero" }] });
+    expect((bible.data as { style: { timeOfDay?: string } }).style.timeOfDay).toBeUndefined(); // the location's sky decides
   });
 
   it("shows what the AI said when it refuses to answer", async () => {

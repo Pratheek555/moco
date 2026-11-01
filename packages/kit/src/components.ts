@@ -12,6 +12,7 @@ import { raceCircuit } from "./stages/race-circuit/index.tsx";
 export * from "./define.ts";
 export * from "./rig.ts";
 export * from "./looks.ts";
+export { worldStage } from "./stages/world/World.tsx";
 
 // Every installed kit entry. Packs (Ramayana, Shiva, …) add entries here.
 export const registry = {

@@ -6,7 +6,7 @@ import { Fragment } from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
 import { ThreeCanvas } from "@remotion/three";
-import { IMAGE_LAYER_BOX, registry, rigStateAt, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef, type StageDef } from "@moco/kit/components";
+import { IMAGE_LAYER_BOX, registry, rigStateAt, worldStage, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef, type StageDef } from "@moco/kit/components";
 import { FRAME_HEIGHT, FRAME_WIDTH, type Caption, type SceneActor, type SceneSpec, type SceneStage } from "@moco/spec";
 import { cameraAt, layerTransform, type CameraState, type Point } from "../camera.ts";
 import { Atmosphere, Finish, Grade, TimeOfDayTint } from "./Look.tsx";
@@ -32,7 +32,8 @@ interface PlacedAtmosphere {
 
 export function Scene({ scene }: { scene: SceneSpec }) {
   const frame = useCurrentFrame();
-  const background = registry.backgrounds.find((candidate) => candidate.id === scene.background.id);
+  // A generated world brings its own place, so the id means nothing to the kit.
+  const background = scene.world ? worldStage : registry.backgrounds.find((candidate) => candidate.id === scene.background.id);
   if (!background) throw specError("background.id", `unknown background "${scene.background.id}"`);
   const timeOfDay = scene.timeOfDay ?? background.timeOfDay[0]!;
   if (!background.timeOfDay.includes(timeOfDay)) throw specError("timeOfDay", `"${timeOfDay}" is not a time of day for ${background.id}`);
@@ -65,7 +66,7 @@ export function Scene({ scene }: { scene: SceneSpec }) {
       {/* A 3D stage lights itself: the flat tint, grade and grain would only muddy it. */}
       {background.stage ? null : <TimeOfDayTint timeOfDay={timeOfDay} />}
       {background.stage ? null : <Grade id={scene.grade} />}
-      <Finish settings={background.stage ? { ...scene.finish, grain: false } : scene.finish} frame={frame} />
+      <Finish settings={background.stage ? { vignette: !scene.world, grain: false } : scene.finish} frame={frame} />
       <Captions captions={scene.captions} frame={frame} />
     </AbsoluteFill>
   );
@@ -80,16 +81,16 @@ function StageView({ scene, def, timeOfDay }: { scene: SceneSpec; def: StageDef;
     <CameraMotionBlur samples={BLUR_SAMPLES} shutterAngle={180}>
       <AbsoluteFill>
         <ThreeCanvas width={FRAME_WIDTH} height={FRAME_HEIGHT} shadows>
-          <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} />
+          <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} world={scene.world} />
         </ThreeCanvas>
       </AbsoluteFill>
     </CameraMotionBlur>
   );
 }
 
-function StageFrame({ def, stage, durationFrames, timeOfDay }: { def: StageDef; stage: SceneStage; durationFrames: number; timeOfDay: string }) {
+function StageFrame({ def, stage, durationFrames, timeOfDay, world }: { def: StageDef; stage: SceneStage; durationFrames: number; timeOfDay: string; world: SceneSpec["world"] }) {
   const frame = useCurrentFrame();
-  return <def.Component stage={stage} frame={frame} durationFrames={durationFrames} timeOfDay={timeOfDay} />;
+  return <def.Component stage={stage} frame={frame} durationFrames={durationFrames} timeOfDay={timeOfDay} world={world} />;
 }
 
 function BackgroundLayer({ layer, frame, timeOfDay }: { layer: BackgroundLayerDef; frame: number; timeOfDay: string }) {

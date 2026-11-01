@@ -2,6 +2,10 @@
 // catalog.json is generated from the component registry (write-catalog.ts); a test keeps them in sync.
 import catalogJson from "./catalog.json" with { type: "json" };
 
+export { DEFAULT_IDLE } from "./define.ts";
+export { movesOf } from "./stages/world/moves.ts";
+export { HUMANOID_JOINTS, WORLD_CAMERAS, isSubject } from "./stages/world/options.ts";
+
 export interface CatalogAction {
   name: string;
   minFrames: number;
@@ -47,7 +51,12 @@ export interface Catalog {
     hint?: string;
     layers: { id: string; depth: number }[]; // depth 0 = far, 1 = near
     timeOfDay: string[];
-    stage?: { cameras: CatalogStageOption[]; places: CatalogStageOption[]; subjects: string[] }; // a 3D world
+    stage?: {
+      cameras: CatalogStageOption[];
+      places: CatalogStageOption[];
+      subjects: string[];
+      things?: { id: string; height: number; moves: { name: string; minFrames: number }[] }[]; // a generated world: every model that can be in a shot
+    }; // a 3D world
   }[];
   fx: { id: string; maxDurationFrames: number }[];
   atmosphere: { id: string; placement: "back" | "front" }[];

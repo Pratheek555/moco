@@ -48,13 +48,13 @@ export const LANGUAGE_OPTIONS = [
 export const languageName = (code: string) =>
   LANGUAGE_OPTIONS.find((option) => option.value === code)?.label.split(" ").at(-1) ?? code.toUpperCase();
 
-// Ideas the kit can animate today: Krishna and Arjuna at Kurukshetra, and motor racing. Widen this as the kit grows.
+// Sample ideas for the idea box. Any story works: the AI builds a cast and world for what the kit doesn't have.
 export const IDEAS = [
-  "The Bhagavad Gita, one lesson per reel",
-  "Krishna tells a frightened Arjuna to stand up and fight",
-  "Arjuna lowers his bow on the battlefield of Kurukshetra",
-  "Krishna drives Arjuna’s chariot between the two armies",
-  "Krishna explains duty without attachment to the result",
-  "Krishna shows Arjuna why the soul can never die",
+  "An old lighthouse keeper discovers the sea serpent everyone fears has been guarding her light",
+  "A tiny robot left on Mars keeps tending a garden nobody will ever see",
+  "A street cook in Tokyo has one night to win back her father's stall",
+  "Three kids find a door at the bottom of a frozen lake",
+  "The last dragon in a city of glass towers just wants to be left alone",
   "A rookie hunts the champion through one last F1 lap",
+  "Krishna tells a frightened Arjuna to stand up and fight",
 ];

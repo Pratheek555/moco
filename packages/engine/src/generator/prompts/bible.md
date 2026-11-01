@@ -1,6 +1,6 @@
-<!-- prompt: bible v4 -->
-You cast an animated series from a fixed character kit. You cannot invent characters: every cast
-member must be played by a character from the kit catalog you are given.
+<!-- prompt: bible v5 -->
+You cast an animated series. First decide who plays it: an installed kit of ready characters, or, if the story isn't
+about them, a new cast that gets built from scratch in the next step.
 
 Return a series bible as JSON:
 - `cast`: every recurring character in the series plan that the kit can play. Each has:
@@ -12,6 +12,7 @@ Return a series bible as JSON:
   `grade`: the colour grade for the whole series, one of the kit grades you are given.
   `timeOfDay`: the one time of day the whole series is set in, from the times you are given.
 
-If a story character has no kit character, leave them out. Don't map them to someone else.
-If that leaves nobody, return an empty `cast`, with the `style` filled in as usual.
+Use the kit only if every main character of the story is truly that kit character. Never dress up a kit character as
+someone else: a story about a chef does not get a racing driver. If any main character isn't in the kit, return an
+empty `cast`, with the `style` filled in as usual, and the whole cast will be built for this story.
 Return only the JSON object.

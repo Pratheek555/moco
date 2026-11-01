@@ -13,6 +13,7 @@ export interface PlanCall<T> {
   schema: z.ZodType<T>;
   prompt: string;
   check: (data: T) => Issue[];
+  timeoutMs?: number; // default: the engine's usual limit per call
 }
 
 export async function planWithAi<T>(ctx: StageContext, call: PlanCall<T>): Promise<T> {
@@ -26,6 +27,7 @@ export async function planWithAi<T>(ctx: StageContext, call: PlanCall<T>): Promi
     maxAttempts: ctx.config.limits.maxAttemptsPerPlanStage,
     check: call.check,
     signal: ctx.signal,
+    timeoutMs: call.timeoutMs,
   });
   if (!result.ok) {
     throw new EngineError("validation_failed", `The AI couldn't produce a valid ${call.promptName} after ${result.attempts} attempts:\n${formatIssues(result.issues)}`);

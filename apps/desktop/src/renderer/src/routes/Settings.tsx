@@ -52,7 +52,7 @@ import { ToggleGroup, ToggleGroupItem } from "@/components/ui/toggle-group";
 import { Page, PageHeader } from "../components/Page.tsx";
 
 const SYSTEM_VOICE = "system"; // Select items can't have an empty value; "" means the system voice.
-const PREVIEW_LINE = "Arise, Arjuna. Do your duty, and let go of the fruit of your actions.";
+const PREVIEW_LINE = "Every story starts with one small, stubborn step into the unknown.";
 
 export function SettingsPage() {
   const settings = useApp((s) => s.settings)!,

@@ -19,6 +19,7 @@ export interface LoopOptions<T> {
   maxAttempts: number;
   check: (data: T) => Issue[] | Promise<Issue[]>; // L2 (+ L3)
   signal?: AbortSignal;
+  timeoutMs?: number; // default: the engine's usual limit per call
   onAttempt?: (attempt: AttemptRecord) => Promise<void>; // store attempts, emit events
 }
 
@@ -51,7 +52,7 @@ async function runAttempt<T>(options: LoopOptions<T>, prompt: string): Promise<{
   let raw: unknown;
   try {
     const result = await options.ai.generate(
-      { system: options.system, prompt, jsonSchema: options.jsonSchema, signal: options.signal },
+      { system: options.system, prompt, jsonSchema: options.jsonSchema, signal: options.signal, timeoutMs: options.timeoutMs },
       options.scope,
     );
     raw = result.json ?? tryParseJson(result.text);
