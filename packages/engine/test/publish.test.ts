@@ -1,5 +1,5 @@
 // The publish stage: YouTube details written after the final render, the series defaults, and user edits.
-import { readFile } from "node:fs/promises";
+import { access, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { checkYoutube, hashtagsIn, tagsLength, type PublishKit } from "@moco/spec";
 import { describe, expect, it } from "vitest";
@@ -74,6 +74,52 @@ describe("publish", () => {
 
     await expect(engine.savePublish({ seriesId, episodeId: "ep-01" }, { youtube: { ...edited.youtube, title: "<b>bold</b>" } })).rejects.toMatchObject({ code: "validation_failed" });
     expect((await kit()).youtube.title).toBe("Arjuna's doubt | Ep 1");
+  });
+});
+
+describe("thumbnail", () => {
+  it("renders the shot and headline the AI picked, next to the final video", async () => {
+    const { dir, seriesId, kit, render, ai } = await finishedSeries();
+    const { thumbnail } = await kit();
+    expect(thumbnail).toMatchObject({ shotId: "s01", text: "Arjuna drops his bow", file: "episodes/ep-01/renders/thumbnail.jpg" });
+    expect(render.thumbnails).toEqual([{ shotId: "s01", frame: thumbnail!.frame, text: "Arjuna drops his bow" }]);
+    await access(join(dir, seriesId, thumbnail!.file));
+    // The AI chose from the episode's shots.
+    expect(ai.requests.find((request) => request.system.includes("prompt: publish"))!.prompt).toContain("## Shots");
+  });
+
+  it("asks the AI to fix a shot that doesn't exist, then falls back to a shot with the cast and the episode title", async () => {
+    const answer = { youtube: { title: "T", description: "D", hashtags: ["#a"], tags: ["a"] }, thumbnail: { shotId: "s99", text: "Nope" } };
+    const { kit, ai } = await finishedSeries({ publish: () => answer });
+    expect(ai.requests.at(-1)!.prompt).toContain('"s99" is not a shot in this episode');
+    expect((await kit()).thumbnail).toMatchObject({ shotId: "s01", text: "Episode 1" });
+  });
+
+  it("lets the user pick another shot and headline, and keeps it when they edit the text details", async () => {
+    const { engine, seriesId, kit, render } = await finishedSeries();
+    const ref = { seriesId, episodeId: "ep-01" };
+    await engine.setThumbnail(ref, { shotId: "s02", text: "  The bow falls  " });
+    expect((await kit()).thumbnail).toMatchObject({ shotId: "s02", text: "The bow falls" });
+    expect(render.thumbnails.at(-1)).toMatchObject({ shotId: "s02", text: "The bow falls" });
+
+    const edited = await kit();
+    await engine.savePublish(ref, { youtube: { ...edited.youtube, title: "New title" } });
+    expect((await kit()).thumbnail).toMatchObject({ shotId: "s02", text: "The bow falls" });
+
+    await expect(engine.setThumbnail(ref, { shotId: "s02", text: "x".repeat(41) })).rejects.toMatchObject({ code: "validation_failed" });
+    await expect(engine.setThumbnail(ref, { shotId: "s99", text: "" })).rejects.toMatchObject({ code: "not_found" });
+  });
+
+  it("still writes the details when the thumbnail can't be rendered", async () => {
+    const { engine, seriesId, kit, render } = await finishedSeries();
+    render.thumbnail = async () => {
+      throw new Error("browser crashed\nstack");
+    };
+    await engine.waitForJob(await engine.rewritePublish({ seriesId, episodeId: "ep-01" }));
+    const status = await engine.status(seriesId);
+    expect(status.stages.find((stage) => stage.key === "ep-01/publish")!.status).toBe("done");
+    expect(status.decisions.some((decision) => decision.category === "fallback" && decision.detail === "Couldn't render the thumbnail: browser crashed")).toBe(true);
+    expect((await kit()).thumbnail).toBeUndefined();
   });
 });
 

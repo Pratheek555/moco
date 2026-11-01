@@ -240,6 +240,7 @@ async function episodeMedia(
   );
   const preview = path.join(dir, "renders", "preview.mp4");
   const final = path.join(dir, "renders", "final.mp4");
+  const thumbnail = path.join(dir, "renders", "thumbnail.jpg");
   const shotsDir = path.join(dir, "shots");
   const shotIds = existsSync(shotsDir) ? await readdir(shotsDir) : [];
 
@@ -251,6 +252,8 @@ async function episodeMedia(
     preview: existsSync(preview) ? await versionedUrl(preview) : undefined,
     final: existsSync(final) ? await versionedUrl(final) : undefined,
     finalPath: existsSync(final) ? final : undefined,
+    thumbnail: existsSync(thumbnail) ? await versionedUrl(thumbnail) : undefined,
+    thumbnailPath: existsSync(thumbnail) ? thumbnail : undefined,
     stills,
   };
 }
@@ -311,10 +314,12 @@ app
     handle("app.copy", (text: string) => clipboard.writeText(String(text)));
     // Only rendered videos inside the projects folder can be dragged out.
     ipcMain.on("moco:app.startDrag", (e, file: unknown) => {
-      if (typeof file !== "string" || !file.endsWith(".mp4")) return;
+      if (typeof file !== "string" || !/\.(mp4|jpg)$/.test(file)) return;
       const relative = path.relative(settings.projectsDir, path.resolve(file));
       if (relative.startsWith("..") || path.isAbsolute(relative) || !existsSync(file)) return;
-      e.sender.startDrag({ file, icon: nativeImage.createFromPath(iconPath()).resize({ width: 48 }) });
+      // An image drags as a small copy of itself; a video as the app icon.
+      const icon = nativeImage.createFromPath(file.endsWith(".jpg") ? file : iconPath()).resize({ width: 48 });
+      e.sender.startDrag({ file, icon });
     });
 
     handle("settings.get", () => settings);
@@ -415,6 +420,11 @@ app
     );
     handle("publish.rewrite", (seriesId: string, episodeId: string, note?: string) =>
       engine().rewritePublish({ seriesId, episodeId }, note),
+    );
+    handle(
+      "publish.setThumbnail",
+      (seriesId: string, episodeId: string, choice: { shotId: string; text: string }) =>
+        engine().setThumbnail({ seriesId, episodeId }, choice),
     );
     handle("publish.setDefaults", (seriesId: string, defaults: Partial<PublishDefaults>) =>
       engine().setPublishDefaults(seriesId, defaults),

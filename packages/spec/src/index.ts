@@ -8,7 +8,7 @@ import * as z from "zod";
 //   0.2.0: SceneActor.idle, VoiceoverTrack.visemes, SceneSpec.visemes / timeOfDay / atmosphere / grade / finish,
 //          CameraMove "focus_on" + castId, SeriesBible.style.grade. All additive with defaults: old data parses as-is.
 //   0.3.0: PublishDefaults, PublishKit (new artifact kinds; nothing existing changed).
-//   0.4.0: SeriesBible.style.timeOfDay and SceneSpec.stage, for shots on a 3D stage. Additive: old data parses as-is.
+//   0.4.0: PublishKit.thumbnail, AiPublishCopy.thumbnail (optional: old kits parse as-is).
 export const SPEC_VERSION = "0.4.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
@@ -286,7 +286,19 @@ export const YoutubeMetadata = z.object({
 });
 export type YoutubeMetadata = z.infer<typeof YoutubeMetadata>;
 
-export const PublishKit = z.object({ youtube: YoutubeMetadata });
+// Headline on the thumbnail: it has to read at feed size, so a few words at most.
+export const THUMBNAIL_TEXT_MAX = 40;
+
+// A still from one shot with a headline on it, rendered by the engine next to the kit.
+export const PublishThumbnail = z.object({
+  shotId: z.string().min(1),
+  frame: z.number().int().nonnegative(), // within the shot
+  text: z.string().max(THUMBNAIL_TEXT_MAX), // empty = no headline
+  file: z.string().min(1), // the JPEG, relative to the series folder
+});
+export type PublishThumbnail = z.infer<typeof PublishThumbnail>;
+
+export const PublishKit = z.object({ youtube: YoutubeMetadata, thumbnail: PublishThumbnail.optional() });
 export type PublishKit = z.infer<typeof PublishKit>;
 
 // What the AI writes; the engine adds the series defaults to make a PublishKit.
@@ -297,6 +309,8 @@ export const AiPublishCopy = z.object({
     hashtags: z.array(z.string()),
     tags: z.array(z.string()),
   }),
+  // The shot that makes the best thumbnail, and a headline for it.
+  thumbnail: z.object({ shotId: z.string(), text: z.string() }).optional(),
 });
 export type AiPublishCopy = z.infer<typeof AiPublishCopy>;
 

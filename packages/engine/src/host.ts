@@ -27,6 +27,7 @@ export const ENGINE_METHODS = [
   "savePublish",
   "setPublishDefaults",
   "rewritePublish",
+  "setThumbnail",
 ] as const;
 export type EngineMethod = (typeof ENGINE_METHODS)[number];
 

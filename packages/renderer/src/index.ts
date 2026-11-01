@@ -3,7 +3,7 @@
 import { createReadStream } from "node:fs";
 import { mkdir, stat } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
-import { extname, join } from "node:path";
+import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
 import { bundle } from "@remotion/bundler";
 import { makeCancelSignal, openBrowser, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
@@ -28,6 +28,7 @@ export interface RemotionRenderPort {
   check(spec: SceneSpec, opts: { frames: number[]; outDir: string }): Promise<
     { ok: true; stills: string[] } | { ok: false; errors: { shotId: string; frame?: number; message: string; path?: string }[] }
   >;
+  thumbnail(spec: SceneSpec, opts: { frame: number; text: string; out: string }): Promise<void>;
   renderEpisode(
     episode: EpisodeSpec,
     out: string,
@@ -94,6 +95,24 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
           throw err;
         }
         return { ok: false, errors: [toRenderError(spec.shotId, frame, err)] };
+      }
+    },
+
+    async thumbnail(spec, { frame, text, out }) {
+      const inputProps = { scene: spec, text };
+      await mkdir(dirname(out), { recursive: true });
+      try {
+        const [url, puppeteerInstance] = await Promise.all([getServeUrl(), getBrowser()]);
+        const composition = await withTimeout(
+          selectComposition({ serveUrl: url, id: "Thumbnail", inputProps, puppeteerInstance, ...shared }),
+          stillTimeoutMs,
+        );
+        const still = { composition, serveUrl: url, output: out, frame, inputProps, puppeteerInstance, ...shared };
+        // Full size; JPEG keeps it well under YouTube's 2 MB thumbnail limit.
+        await withTimeout(renderStill({ ...still, imageFormat: "jpeg", jpegQuality: 90 }), stillTimeoutMs);
+      } catch (err) {
+        if (isInfrastructureError(err)) resetBrowser();
+        throw err;
       }
     },
 
