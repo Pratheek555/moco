@@ -7,7 +7,8 @@ import * as z from "zod";
 // Bump on any schema change; breaking changes also need a migration (see migrations below).
 //   0.2.0: SceneActor.idle, VoiceoverTrack.visemes, SceneSpec.visemes / timeOfDay / atmosphere / grade / finish,
 //          CameraMove "focus_on" + castId, SeriesBible.style.grade. All additive with defaults: old data parses as-is.
-export const SPEC_VERSION = "0.2.0";
+//   0.3.0: PublishDefaults, PublishKit (new artifact kinds; nothing existing changed).
+export const SPEC_VERSION = "0.3.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -235,6 +236,91 @@ export const RenderReport = z.object({
 });
 export type RenderReport = z.infer<typeof RenderReport>;
 
+// ---------- Publishing ----------
+// The publish kit is everything a user pastes into YouTube Studio for one episode. The same fields
+// later feed a direct videos.insert upload, so they follow the YouTube Data API's names and limits.
+
+// Studio's category names, with the API's categoryId for each.
+export const YOUTUBE_CATEGORIES = {
+  "Film & Animation": "1",
+  "People & Blogs": "22",
+  Entertainment: "24",
+  Education: "27",
+  "Nonprofits & Activism": "29",
+} as const;
+export const YoutubeCategory = z.enum(Object.keys(YOUTUBE_CATEGORIES) as [keyof typeof YOUTUBE_CATEGORIES, ...(keyof typeof YOUTUBE_CATEGORIES)[]]);
+export type YoutubeCategory = z.infer<typeof YoutubeCategory>;
+
+// Set once per series by the user; applied to every episode's kit.
+export const PublishDefaults = z.object({
+  footer: z.string().max(1500).default(""), // appended to every description: channel links, a follow line
+  hashtags: z.array(z.string()).max(5).default([]), // always included, before the episode's own
+  madeForKids: z.boolean().default(false),
+  category: YoutubeCategory.default("Entertainment"),
+  secondLanguage: z.string().optional(), // e.g. "en" on a Hindi series: titles carry both
+});
+export type PublishDefaults = z.infer<typeof PublishDefaults>;
+
+export const YoutubeMetadata = z.object({
+  title: z.string().min(1),
+  description: z.string(), // the full text as pasted: body, hashtags and footer
+  tags: z.array(z.string().min(1)),
+  category: YoutubeCategory,
+  madeForKids: z.boolean(),
+  language: z.string().min(1), // the video's language code
+});
+export type YoutubeMetadata = z.infer<typeof YoutubeMetadata>;
+
+export const PublishKit = z.object({ youtube: YoutubeMetadata });
+export type PublishKit = z.infer<typeof PublishKit>;
+
+// What the AI writes; the engine adds the series defaults to make a PublishKit.
+export const AiPublishCopy = z.object({
+  youtube: z.object({
+    title: z.string().min(1),
+    description: z.string().min(1), // without hashtags; they go in `hashtags`
+    hashtags: z.array(z.string()),
+    tags: z.array(z.string()),
+  }),
+});
+export type AiPublishCopy = z.infer<typeof AiPublishCopy>;
+
+// YouTube's own limits (Data API videos resource and Studio): what Studio would refuse or silently drop.
+export const YOUTUBE_LIMITS = { titleChars: 100, descriptionBytes: 5000, tagsChars: 500, hashtags: 15 } as const;
+
+export interface PublishProblem {
+  field: "title" | "description" | "tags";
+  problem: string;
+}
+
+// Hashtags as YouTube reads them out of a description.
+export function hashtagsIn(text: string): string[] {
+  return text.match(/#[\p{L}\p{N}\p{M}_]+/gu) ?? [];
+}
+
+// Tags as Studio counts them: commas between tags, and quotes around a tag with a space.
+export function tagsLength(tags: string[]): number {
+  return tags.reduce((total, tag) => total + tag.length + (tag.includes(" ") ? 2 : 0), 0) + Math.max(0, tags.length - 1);
+}
+
+export function checkYoutube(meta: Pick<YoutubeMetadata, "title" | "description" | "tags">): PublishProblem[] {
+  const problems: PublishProblem[] = [];
+  const angle = /[<>]/;
+  const title = [...meta.title.trim()].length;
+  if (title === 0) problems.push({ field: "title", problem: "The title is empty." });
+  if (title > YOUTUBE_LIMITS.titleChars) problems.push({ field: "title", problem: `The title is ${title} characters; YouTube allows ${YOUTUBE_LIMITS.titleChars}.` });
+  if (angle.test(meta.title)) problems.push({ field: "title", problem: "YouTube doesn't allow < or > in titles." });
+  const bytes = new TextEncoder().encode(meta.description).length;
+  if (bytes > YOUTUBE_LIMITS.descriptionBytes) problems.push({ field: "description", problem: `The description is ${bytes} bytes; YouTube allows ${YOUTUBE_LIMITS.descriptionBytes}.` });
+  if (angle.test(meta.description)) problems.push({ field: "description", problem: "YouTube doesn't allow < or > in descriptions." });
+  const hashtags = hashtagsIn(meta.description).length;
+  if (hashtags > YOUTUBE_LIMITS.hashtags) problems.push({ field: "description", problem: `${hashtags} hashtags; with more than ${YOUTUBE_LIMITS.hashtags} YouTube ignores them all.` });
+  const tags = tagsLength(meta.tags);
+  if (tags > YOUTUBE_LIMITS.tagsChars) problems.push({ field: "tags", problem: `Tags use ${tags} characters; YouTube allows ${YOUTUBE_LIMITS.tagsChars}.` });
+  if (meta.tags.some((tag) => angle.test(tag))) problems.push({ field: "tags", problem: "YouTube doesn't allow < or > in tags." });
+  return problems;
+}
+
 // ---------- Registry ----------
 
 // Every artifact kind the engine can store, by name. Meta.kind is one of these keys.
@@ -247,6 +333,8 @@ export const ArtifactSchemas = {
   ShotList,
   SceneSpec,
   RenderReport,
+  PublishDefaults,
+  PublishKit,
 } as const;
 export type ArtifactKind = keyof typeof ArtifactSchemas;
 export type ArtifactData<K extends ArtifactKind> = z.infer<(typeof ArtifactSchemas)[K]>;

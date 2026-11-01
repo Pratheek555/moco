@@ -4,6 +4,7 @@ import { EngineError } from "../errors.ts";
 import { runSample, runScenes } from "../generator/generate.ts";
 import { runMemoryUpdate } from "../memory/continuity.ts";
 import { runBible } from "../planner/bible.ts";
+import { runPublish } from "../planner/publish.ts";
 import { runScript } from "../planner/script.ts";
 import { runSeriesPlan } from "../planner/series.ts";
 import { runShotList } from "../planner/shots.ts";
@@ -16,8 +17,8 @@ import { GATED, parseStageKey } from "./stages.ts";
 // A stage either produced output (with its hash) or sent its input back to be redone.
 type StageOutput = { kind: "done"; hash: string } | { kind: "sent_back" };
 
-// Run `firstKey` (or the next runnable stage), then keep going. Returns the stage keys that ran.
-export async function runStages(ctx: StageContext, firstKey?: string): Promise<string[]> {
+// Run `firstKey` (or the next runnable stage), then keep going unless `once`. Returns the stage keys that ran.
+export async function runStages(ctx: StageContext, firstKey?: string, options: { once?: boolean } = {}): Promise<string[]> {
   const ran: string[] = [];
   let key: string | undefined = firstKey ?? runnableNext(ctx);
 
@@ -25,7 +26,7 @@ export async function runStages(ctx: StageContext, firstKey?: string): Promise<s
     if (ctx.signal.aborted) throw new EngineError("cancelled", "cancelled");
     const { status } = await runOne(ctx, key);
     ran.push(key);
-    if (status !== "done") break; // waiting for the user (gate) or failed
+    if (status !== "done" || options.once) break; // waiting for the user (gate), failed, or asked for one stage
     key = runnableNext(ctx);
   }
   return ran;
@@ -102,5 +103,7 @@ async function execute(ctx: StageContext, key: string, feedback: string | undefi
       return done(await runRender(ctx, episodeId, "final"));
     case "memory_update":
       return done(await runMemoryUpdate(ctx, episodeId));
+    case "publish":
+      return done(await runPublish(ctx, episodeId, feedback));
   }
 }

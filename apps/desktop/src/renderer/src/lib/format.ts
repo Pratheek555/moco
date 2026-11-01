@@ -1,5 +1,15 @@
-export const cx = (...parts: (string | false | null | undefined)[]) =>
-  parts.filter(Boolean).join(" ");
+import { api } from "./api.ts";
+
+/** The shortcut modifier as this platform labels it: ⌘ on a Mac, Ctrl elsewhere. */
+export const MOD_KEY = api.platform === "darwin" ? "⌘" : "Ctrl";
+
+/** "raise_hand" → "Raise hand", "kurukshetra" → "Kurukshetra". */
+export function humanize(id: string) {
+  const words = id.replace(/[_-]+/g, " ").trim();
+  return words.charAt(0).toUpperCase() + words.slice(1);
+}
+
+export const pad2 = (n: number) => String(n).padStart(2, "0");
 
 export function timeAgo(iso?: string | number) {
   if (!iso) return "";
@@ -33,6 +43,10 @@ export const LANGUAGE_OPTIONS = [
   { value: "kn", label: "ಕನ್ನಡ Kannada" },
   { value: "ml", label: "മലയാളം Malayalam" },
 ];
+
+/** "hi" → "Hindi". */
+export const languageName = (code: string) =>
+  LANGUAGE_OPTIONS.find((option) => option.value === code)?.label.split(" ").at(-1) ?? code.toUpperCase();
 
 export const IDEAS = [
   "The Mahabharat in seven reels — from the dice game to Kurukshetra",

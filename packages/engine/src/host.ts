@@ -24,6 +24,9 @@ export const ENGINE_METHODS = [
   "history",
   "restore",
   "readArtifact",
+  "savePublish",
+  "setPublishDefaults",
+  "rewritePublish",
 ] as const;
 export type EngineMethod = (typeof ENGINE_METHODS)[number];
 

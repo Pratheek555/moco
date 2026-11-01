@@ -6,11 +6,11 @@ The backbone. Orchestrates the pipeline, is the single writer of `projects/`, an
 
 ```
 series:  series_plan (gate) → bible (gate)
-episode: script (gate) → voiceover → shot_list → [sample (gate), first episode only] → scenes → preview (gate) → final
+episode: script (gate) → voiceover → shot_list → [sample (gate), first episode only] → scenes → preview (gate) → final → publish
                                                                                                              → memory_update
 ```
 
-- `planner/`: idea → series plan → bible (kit characters only) → script fitted to 30–60 s → voiceover (send-back if off target) → shot list cut on word boundaries
+- `planner/`: idea → series plan → bible (kit characters only) → script fitted to 30–60 s → voiceover (send-back if off target) → shot list cut on word boundaries; after the final render, `publish` writes the YouTube title, description, hashtags and tags (checked against YouTube's limits, plus the series' publish defaults; plain details from the plan if the AI can't fit them). `savePublish`, `setPublishDefaults` and `rewritePublish` let the UI edit, configure and redo a kit.
 - `generator/`: shot → SceneSpec via `ai`, with a catalog slice, memory and the golden Krishna example; reuses a shot's spec when nothing it depends on changed
 - `loop/`: L0 JSON → L1 schema → L2 semantic (kit, bible, timing, captions, slideshow risk) → L3 render stills; issues fed back; fallback shot after the cap
 - `memory/`: continuity facts and story-so-far, merged after each approved preview

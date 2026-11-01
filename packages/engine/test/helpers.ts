@@ -102,6 +102,15 @@ export function validAnswer(request: AiRequest, task: string): unknown {
       return sceneFor(request.prompt);
     case "memory":
       return { storySoFar: "Krishna began guiding Arjuna.", newFacts: [{ entity: "arjuna", fact: "Arjuna has lowered his bow.", sinceEpisode: section<{ episodeId: string }>(request.prompt, "Approved episode").episodeId }] };
+    case "publish":
+      return {
+        youtube: {
+          title: "Krishna lifts the bow | Gita Shorts Ep 1",
+          description: "Arjuna freezes on the battlefield.\nWhat does Krishna tell him next?",
+          hashtags: ["#krishna", "#mahabharat", "#shorts"],
+          tags: ["krishna", "arjuna", "bhagavad gita", "mahabharat shorts"],
+        },
+      };
     default:
       throw new Error(`no answer for task ${task}`);
   }
