@@ -1,5 +1,5 @@
 // End-to-end with fakes: idea → plan → bible → episode → VO → shots → scenes → preview → final + memory.
-import { readFile, writeFile } from "node:fs/promises";
+import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import { createEngine } from "../src/index.ts";
@@ -175,6 +175,15 @@ describe("pipeline", () => {
     const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
     const job = await engine.waitForJob(await engine.runStage({ seriesId }));
     expect(job.error).toMatchObject({ code: "ai_unavailable" });
+  });
+
+  it("skips projects made before specVersion existed instead of failing the list", async () => {
+    const { engine, dir } = await setup();
+    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    await mkdir(join(dir, "old-demo"));
+    await writeFile(join(dir, "old-demo", "series.json"), JSON.stringify({ id: "old-demo", title: "Old" }));
+    expect((await engine.listSeries()).map((info) => info.id)).toEqual([seriesId]);
+    await expect(engine.status("old-demo")).rejects.toThrow("made by an older moco");
   });
 
   it("rejects unsafe input", async () => {

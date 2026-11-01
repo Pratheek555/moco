@@ -3,6 +3,7 @@
 import type { VoiceInfo } from "@moco/audio";
 import type { EngineEvent, SeriesStatus } from "@moco/engine";
 import type { Catalog } from "@moco/kit";
+import type { PublishDefaults, PublishKit } from "@moco/spec";
 
 export type Theme = "light" | "dark" | "system";
 
@@ -60,6 +61,8 @@ export interface MocoApi {
     showItem(p: string): Promise<void>;
     openExternal(url: string): Promise<void>;
     chooseFolder(): Promise<string | null>;
+    copy(text: string): Promise<void>;
+    startDrag(file: string): void; // drag a rendered video out of the app, e.g. into YouTube's upload box
   };
   settings: {
     get(): Promise<Settings>;
@@ -92,6 +95,13 @@ export interface MocoApi {
     media(seriesId: string, episodeId: string): Promise<EpisodeMedia>;
     regenerateShot(seriesId: string, episodeId: string, shotId: string, feedback?: string): Promise<string>;
   };
+  // The YouTube details for an episode, pasted into Studio by the user (no YouTube API yet).
+  publish: {
+    save(seriesId: string, episodeId: string, kit: PublishKit): Promise<void>;
+    rewrite(seriesId: string, episodeId: string, note?: string): Promise<string>; // job id
+    setDefaults(seriesId: string, defaults: Partial<PublishDefaults>): Promise<void>;
+    openStudio(): Promise<void>;
+  };
   on(channel: "engine" | "library" | "settings", cb: (payload: unknown) => void): () => void;
 }
 
@@ -99,7 +109,7 @@ export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
 };
 
-export type { Catalog, EngineEvent, SeriesStatus, VoiceInfo };
+export type { Catalog, EngineEvent, PublishDefaults, PublishKit, SeriesStatus, VoiceInfo };
 
 /** moco-asset:// URL for a file under the projects folder. */
 export const assetUrl = (relativeToProjects: string) =>

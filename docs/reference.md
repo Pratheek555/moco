@@ -5,7 +5,7 @@
 > - **Ledger:** JSON file (`ledger.json`) for v0 (§14.6).
 > - **TTS deferred** (R5): `@moco/audio` ships `placeholderAudio` (silent WAV, even word timings) so the pipeline runs end to end. Replace it once a TTS engine is chosen; the engine only depends on the `AudioPort` shape (§8).
 > - **No test UI:** Pratheek builds `apps/desktop`. The backend side of it is `apps/desktop/src/engine-host.ts` (utilityProcess entry) + `@moco/engine/client` (typed client for the UI).
-> - **Verified:** `--safe-mode` + `--system-prompt-file` + `--json-schema` + `--tools ""` on Claude Code 2.1.312 — the model sees only `StructuredOutput` (§6.2 [VERIFY] resolved). Remotion 4.0.539 stills + H.264 episode render with audio work from Node (§7.2). Running Remotion inside a `utilityProcess` is still unverified.
+> - **Verified:** `--safe-mode` + `--system-prompt-file` + `--json-schema` + `--tools ""` on Claude Code 2.1.312 and 2.1.302 (the minimum) — the model sees only `StructuredOutput` (§6.2 [VERIFY] resolved). Remotion 4.0.539 stills + H.264 episode render with audio work from Node (§7.2). Running Remotion inside a `utilityProcess` is still unverified.
 >
 > **Implementation status vs §13:**
 > - E0 ✅ pnpm, TS strict, Vitest, CI (`.github/workflows/ci.yml`); dependency rule enforced by `packages/engine/test/boundaries.test.ts` instead of dependency-cruiser.

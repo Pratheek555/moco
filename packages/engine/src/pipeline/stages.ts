@@ -1,19 +1,21 @@
 // The stage graph: what runs, in which order, which stages wait for the user, and where outputs live.
 //
 // series:  series_plan (gate) → bible (gate)
-// episode: script (gate) → voiceover → shot_list → [sample (gate)] → scenes → preview (gate) → final
+// episode: script (gate) → voiceover → shot_list → [sample (gate)] → scenes → preview (gate) → final → publish
 //                                                                                            → memory_update
 // `sample` exists only for the first episode: one shot is generated and approved before the rest
 // ("sample before batch"), so a wrong look is caught after one shot, not a whole episode.
 // Episodes run in order: episode N's script waits for episode N-1's memory_update,
 // so continuity from N-1 is in N's prompts.
+// `publish` writes the YouTube title, description and tags; nothing waits for it, and it runs after
+// memory_update so the next episode is unblocked first.
 
 export type SeriesStage = "series_plan" | "bible";
-export type EpisodeStage = "script" | "voiceover" | "shot_list" | "sample" | "scenes" | "preview" | "final" | "memory_update";
+export type EpisodeStage = "script" | "voiceover" | "shot_list" | "sample" | "scenes" | "preview" | "final" | "memory_update" | "publish";
 export type StageName = SeriesStage | EpisodeStage;
 
 export const SERIES_STAGES: SeriesStage[] = ["series_plan", "bible"];
-export const EPISODE_STAGES: EpisodeStage[] = ["script", "voiceover", "shot_list", "sample", "scenes", "preview", "final", "memory_update"];
+export const EPISODE_STAGES: EpisodeStage[] = ["script", "voiceover", "shot_list", "sample", "scenes", "preview", "final", "memory_update", "publish"];
 
 // Stages that stop and wait for approve() from the UI.
 export const GATED = new Set<StageName>(["series_plan", "bible", "script", "sample", "preview"]);
@@ -75,6 +77,8 @@ export function requires(key: string, episodeIds: string[]): string[] {
     case "final":
     case "memory_update":
       return [stageKey("preview", ep)];
+    case "publish":
+      return [stageKey("final", ep)];
   }
 }
 
@@ -102,7 +106,9 @@ export function dependants(key: string, episodeIds: string[]): string[] {
     case "preview":
       return [stageKey("final", ep), stageKey("memory_update", ep)];
     case "final":
+      return [stageKey("publish", ep)];
     case "memory_update":
+    case "publish":
       return [];
   }
 }
@@ -117,6 +123,8 @@ export const files = {
   shotList: (ep: string) => `episodes/${ep}/artifacts/shot_list.json`,
   previewReport: (ep: string) => `episodes/${ep}/artifacts/preview_report.json`,
   renderReport: (ep: string) => `episodes/${ep}/artifacts/render_report.json`,
+  publishDefaults: "artifacts/publish_defaults.json",
+  publish: (ep: string) => `episodes/${ep}/artifacts/publish.json`,
   shotDir: (ep: string, shot: string) => `episodes/${ep}/shots/${shot}`,
   shotSpec: (ep: string, shot: string) => `episodes/${ep}/shots/${shot}/spec.json`,
   audioDir: (ep: string) => `episodes/${ep}/audio`,

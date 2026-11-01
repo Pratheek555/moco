@@ -1,27 +1,79 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import {
-  ArrowRight,
-  ArrowUpRight,
-  Sparkles,
-  Plus,
-  WandSparkles,
-  Search,
-  Check,
+  ArrowRightIcon,
+  CheckIcon,
+  FilmIcon,
+  PlusIcon,
+  SearchIcon,
+  SparklesIcon,
+  TriangleAlertIcon,
+  WandSparklesIcon,
 } from "lucide-react";
-import { api } from "../lib/api.ts";
-import { useApp, runningSeries } from "../lib/store.ts";
-import { IDEAS, LANGUAGE_OPTIONS } from "../lib/format.ts";
-import { Button, CastArt, Empty, SeriesCard, Tag, report } from "../components/ui.tsx";
+import type { SeriesSummary } from "@/lib/api.ts";
+import { api } from "@/lib/api.ts";
+import { newSeries, report, useApp } from "@/lib/store.ts";
+import { IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Empty,
+  EmptyContent,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyMedia,
+  EmptyTitle,
+} from "@/components/ui/empty";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import {
+  InputGroup,
+  InputGroupAddon,
+  InputGroupButton,
+  InputGroupInput,
+  InputGroupTextarea,
+} from "@/components/ui/input-group";
+import { Kbd, KbdGroup } from "@/components/ui/kbd";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { Separator } from "@/components/ui/separator";
+import { Spinner } from "@/components/ui/spinner";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
+import { CastArt } from "../components/CastArt.tsx";
+import { Page, PageHeader } from "../components/Page.tsx";
+import { SeriesCard } from "../components/SeriesCard.tsx";
+
+const EPISODE_COUNTS = [1, 2, 3, 5];
+
+// Quick starts under the idea box: a label and the idea it fills in.
+const SPARKS = [
+  ["A lesson from the Gita", IDEAS[9]!],
+  ["Hanuman’s great leap", IDEAS[1]!],
+  ["Little Krishna’s adventures", IDEAS[6]!],
+] as const;
 
 export function Studio() {
   const settings = useApp((s) => s.settings)!,
     library = useApp((s) => s.library),
     idea = useApp((s) => s.composerIdea),
     setIdea = useApp((s) => s.setComposerIdea),
+    ai = useApp((s) => s.ai),
     go = useApp((s) => s.go);
   const [episodes, setEpisodes] = useState(settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
+
+  // Check Claude Code once, so a missing setup shows here instead of failing after "Create series".
+  useEffect(() => {
+    if (!useApp.getState().ai) useApp.getState().checkAi().catch(() => {});
+  }, []);
+
   const submit = async () => {
     if (!idea.trim() || starting) return;
     setStarting(true);
@@ -35,234 +87,291 @@ export function Studio() {
       setStarting(false);
     }
   };
+
+  // Fills the idea box; if that replaced something the user wrote, offers it back.
+  const pickIdea = (text: string) => {
+    const previous = idea;
+    setIdea(text);
+    document.getElementById("idea")?.focus();
+    if (previous.trim() && previous !== text)
+      useApp.getState().toast("Replaced your idea", "info", {
+        action: { label: "Undo", run: () => setIdea(previous) },
+      });
+  };
+  const surprise = () => {
+    const others = IDEAS.filter((text) => text !== idea);
+    pickIdea(others[Math.floor(Math.random() * others.length)]!);
+  };
+
   return (
-    <div className="page studio-page enter">
-      <div className="studio-heading">
-        <div>
-          <div className="eyebrow">
-            <span className="status-dot" /> YOUR STORY STARTS HERE
-          </div>
-          <h1>
+    <Page className="gap-10">
+      <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-8">
+        <div className="flex flex-col gap-4">
+          <h1 className="text-4xl font-semibold tracking-tight text-balance xl:text-5xl">
             Small idea.
             <br />
-            <span>Epic possibilities.</span>
+            <span className="text-muted-foreground">Epic possibilities.</span>
           </h1>
-          <p>
-            Turn the stories in your head into animated reels.
-            <br />A cast, a world, a little movie. All yours.
+          <p className="max-w-md text-base text-pretty text-muted-foreground">
+            Turn the stories in your head into animated reels. A cast, a world, a little movie. All
+            yours.
           </p>
         </div>
-        <div className="hero-illustration">
-          <div className="hero-orbit orbit-one" />
-          <div className="hero-orbit orbit-two" />
-          <span className="hero-star star-one">✦</span>
-          <span className="hero-star star-two">✧</span>
-          <CastArt />
-          <span className="floating-label">
-            <Sparkles size={12} /> A world of your own
-          </span>
-        </div>
-      </div>
-      <section className="composer">
-        <div className="composer-title">
-          <span>
-            <Sparkles size={17} /> What story will you tell?
-          </span>
-          <Tag>IDEA → ANIMATION</Tag>
-        </div>
-        <textarea
-          id="idea"
-          aria-label="Your story idea"
-          maxLength={4000}
-          placeholder="A moment from the Mahabharat. A lesson from Chanakya. A story only you can tell…"
-          value={idea}
-          onChange={(e) => setIdea(e.target.value)}
-          onKeyDown={(e) => {
-            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") void submit();
-          }}
-        />
-        <div className="composer-options">
-          <label>
-            <span>Episodes</span>
-            <select
-              aria-label="Number of episodes"
-              value={episodes}
-              onChange={(e) => setEpisodes(+e.target.value)}
-            >
-              {[1, 2, 3, 5].map((n) => (
-                <option key={n} value={n}>
-                  {n} {n === 1 ? "episode" : "episodes"}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label>
-            <span>Language</span>
-            <select
-              aria-label="Story language"
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-            >
-              {LANGUAGE_OPTIONS.map((o) => (
-                <option key={o.value} value={o.value}>
-                  {o.label}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-        <div className="composer-footer">
-          <span className="hint">Moco plans the series, then stops for you to review each step.</span>
-          <Button
-            variant="primary"
-            disabled={!idea.trim()}
-            busy={starting}
-            onClick={() => void submit()}
-          >
-            <Sparkles size={15} /> Create series <ArrowRight size={15} />
-          </Button>
+        <div className="hero-art hidden h-64 w-80 items-center justify-center lg:flex" aria-hidden="true">
+          <div className="hero-orbit h-48 w-64 -rotate-[18deg]" />
+          <div className="hero-orbit h-64 w-48 rotate-[50deg] border-dashed" />
+          <span className="absolute top-12 right-8 text-xl text-amber-600/60">✦</span>
+          <span className="absolute bottom-16 left-8 text-lg text-violet-500/50">✧</span>
+          <CastArt className="h-60 w-auto drop-shadow-[0_10px_10px_rgb(113_79_73/0.12)]" />
         </div>
       </section>
-      <div className="idea-row">
-        <span>Need a spark?</span>
-        {[
-          "A lesson from the Gita",
-          "Hanuman’s great leap",
-          "Little Krishna’s adventures",
-        ].map((t, i) => (
-          <button key={t} onClick={() => setIdea(IDEAS[[9, 1, 6][i]])}>
-            {t}
-            <ArrowUpRight size={12} />
-          </button>
-        ))}
-        <button
-          className="shuffle-idea"
-          aria-label="Surprise me with a story idea"
-          onClick={() =>
-            setIdea(IDEAS[Math.floor(Math.random() * IDEAS.length)])
-          }
-        >
-          <WandSparkles size={14} />
-        </button>
-      </div>
-      <div className="section-heading">
-        <div>
-          <h2>Continue the story</h2>
-          <p>Your worlds, waiting for the next chapter.</p>
-        </div>
-        <Button variant="ghost" onClick={() => go({ name: "library" })}>
-          All series <ArrowRight size={14} />
-        </Button>
-      </div>
-      {library.length ? (
-        <div className="series-grid">
-          {library.slice(0, 3).map((s) => (
-            <SeriesCard key={s.id} series={s} />
-          ))}
-        </div>
-      ) : (
-        <Empty
-          title="Your next great story lives here"
-          detail="Start with an idea above. Moco writes it with your Claude Code and renders it on this computer."
-        />
-      )}
-      <div className="studio-bottom">
-        <span>
-          <Check size={14} /> Rendered on your device
-        </span>
-        <span>
-          <Check size={14} /> Your own AI connection
-        </span>
-        <span>
-          <Check size={14} /> Ready for Reels & Shorts
-        </span>
-        {runningSeries(library).length > 0 && (
-          <button onClick={() => go({ name: "renders" })}>
-            See what’s being made <ArrowRight size={13} />
-          </button>
+
+      <section className="flex flex-col gap-4">
+        {ai && !ai.ok && (
+          <Alert>
+            <TriangleAlertIcon />
+            <AlertTitle>Claude Code isn’t ready yet</AlertTitle>
+            <AlertDescription>
+              <p className="select-text">{ai.reason}</p>
+              <Button
+                variant="outline"
+                size="sm"
+                className="mt-1"
+                onClick={() => go({ name: "settings", section: "ai" })}
+              >
+                Open AI settings
+              </Button>
+            </AlertDescription>
+          </Alert>
         )}
+        <Field>
+          <FieldLabel htmlFor="idea">What story will you tell?</FieldLabel>
+          <InputGroup>
+            <InputGroupTextarea
+              id="idea"
+              maxLength={4000}
+              disabled={starting}
+              placeholder="A moment from the Mahabharat. A lesson from Chanakya. A story only you can tell…"
+              className="max-h-72 min-h-28 md:text-base"
+              value={idea}
+              onChange={(e) => setIdea(e.target.value)}
+              onKeyDown={(e) => {
+                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") void submit();
+              }}
+            />
+            <InputGroupAddon align="block-end" className="border-t">
+              <Select value={String(episodes)} onValueChange={(v) => setEpisodes(Number(v))} disabled={starting}>
+                <SelectTrigger size="sm" aria-label="Number of episodes">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {EPISODE_COUNTS.map((n) => (
+                      <SelectItem key={n} value={String(n)}>
+                        {n} {n === 1 ? "episode" : "episodes"}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <Select value={language} onValueChange={setLanguage} disabled={starting}>
+                <SelectTrigger size="sm" aria-label="Story language">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectGroup>
+                    {LANGUAGE_OPTIONS.map((option) => (
+                      <SelectItem key={option.value} value={option.value}>
+                        {option.label}
+                      </SelectItem>
+                    ))}
+                  </SelectGroup>
+                </SelectContent>
+              </Select>
+              <KbdGroup className="ml-auto" aria-hidden="true">
+                <Kbd>{MOD_KEY}</Kbd>
+                <Kbd>Enter</Kbd>
+              </KbdGroup>
+              <InputGroupButton
+                variant="default"
+                size="sm"
+                disabled={!idea.trim() || starting}
+                onClick={() => void submit()}
+              >
+                {starting ? <Spinner data-icon="inline-start" aria-hidden /> : <SparklesIcon data-icon="inline-start" />}
+                {starting ? "Creating…" : "Create series"}
+              </InputGroupButton>
+            </InputGroupAddon>
+          </InputGroup>
+          <FieldDescription>Moco plans the series, then stops so you can review each step.</FieldDescription>
+        </Field>
+        <div className="flex flex-wrap items-center gap-2">
+          <span className="mr-1 text-sm text-muted-foreground">Need a spark?</span>
+          {SPARKS.map(([label, text]) => (
+            <Button key={label} variant="outline" size="sm" onClick={() => pickIdea(text)}>
+              {label}
+            </Button>
+          ))}
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button variant="ghost" size="icon-sm" aria-label="Surprise me" onClick={surprise}>
+                <WandSparklesIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Surprise me</TooltipContent>
+          </Tooltip>
+        </div>
+      </section>
+
+      <section className="flex flex-col gap-4">
+        <div className="flex items-end justify-between gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">Continue the story</h2>
+            <p className="text-sm text-muted-foreground">Your worlds, waiting for the next chapter.</p>
+          </div>
+          {library.length > 0 && (
+            <Button variant="ghost" size="sm" onClick={() => go({ name: "library" })}>
+              All series
+              <ArrowRightIcon data-icon="inline-end" />
+            </Button>
+          )}
+        </div>
+        {library.length ? (
+          <SeriesGrid series={library.slice(0, 3)} />
+        ) : (
+          <Empty className="border">
+            <EmptyHeader>
+              <EmptyMedia variant="icon">
+                <FilmIcon />
+              </EmptyMedia>
+              <EmptyTitle>Your next great story lives here</EmptyTitle>
+              <EmptyDescription>
+                Start with an idea above. Moco writes it with your Claude Code and renders it on this
+                computer.
+              </EmptyDescription>
+            </EmptyHeader>
+          </Empty>
+        )}
+      </section>
+
+      <div className="flex flex-col gap-6">
+        <Separator />
+        <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
+          {["Rendered on your device", "Uses your own Claude plan", "Ready for Reels and Shorts"].map((text) => (
+            <li key={text} className="flex items-center gap-2">
+              <CheckIcon className="size-4" />
+              {text}
+            </li>
+          ))}
+        </ul>
       </div>
+    </Page>
+  );
+}
+
+function SeriesGrid({ series }: { series: SeriesSummary[] }) {
+  return (
+    <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+      {series.map((s) => (
+        <SeriesCard key={s.id} series={s} />
+      ))}
     </div>
   );
 }
 
+const FILTERS = [
+  { value: "all", label: "All", test: () => true },
+  { value: "planned", label: "In progress", test: (s: SeriesSummary) => s.next.kind !== "finished" },
+  { value: "rendered", label: "With exports", test: (s: SeriesSummary) => s.finals > 0 },
+] as const;
+
 export function LibraryPage() {
-  const library = useApp((s) => s.library),
-    go = useApp((s) => s.go);
+  const library = useApp((s) => s.library);
   const [q, setQ] = useState(""),
-    [filter, setFilter] = useState("all");
-  const list = library.filter(
-    (s) =>
-      `${s.title} ${s.premise}`.toLowerCase().includes(q.toLowerCase()) &&
-      (filter === "all" ||
-        (filter === "rendered" ? s.finals > 0 : s.next.kind !== "finished")),
-  );
+    [filter, setFilter] = useState<string>("all");
+  const query = q.trim().toLowerCase();
+  const matching = library.filter((s) => `${s.title} ${s.premise}`.toLowerCase().includes(query));
   return (
-    <div className="page enter">
-      <div className="page-heading">
-        <div>
-          <div className="eyebrow">YOUR CREATIVE UNIVERSE</div>
-          <h1>
-            My series<span className="count">{library.length}</span>
-          </h1>
-          <p>Every world you’ve started. Every story still unfolding.</p>
-        </div>
-        <Button variant="primary" onClick={() => go({ name: "studio" })}>
-          <Plus size={16} /> New series
-        </Button>
-      </div>
-      <div className="toolbar">
-        <div className="tabs">
-          {[
-            ["all", "All series"],
-            ["planned", "In progress"],
-            ["rendered", "With exports"],
-          ].map(([v, l]) => (
-            <button
-              className={filter === v ? "selected" : ""}
-              key={v}
-              onClick={() => setFilter(v)}
-            >
-              {l}
-            </button>
-          ))}
-        </div>
-        <div className="search-input">
-          <Search size={15} />
-          <input
-            aria-label="Search series"
-            placeholder="Find a series…"
-            value={q}
-            onChange={(e) => setQ(e.target.value)}
-          />
-        </div>
-      </div>
-      {list.length ? (
-        <div className="series-grid library-grid">
-          {list.map((s) => (
-            <SeriesCard key={s.id} series={s} />
-          ))}
-        </div>
-      ) : (
-        <Empty
-          title={q ? "No matching stories" : "A blank page is a beginning"}
-          detail={
-            q
-              ? "Try another title or clear your filters."
-              : "Create your first series in the studio."
-          }
-        >
-          <Button
-            onClick={() =>
-              q || filter !== "all"
-                ? (setQ(""), setFilter("all"))
-                : go({ name: "studio" })
-            }
-          >
-            {q || filter !== "all" ? "Clear filters" : "Create a series"}
+    <Page>
+      <PageHeader
+        title="My series"
+        description="Every world you’ve started, and every story still unfolding."
+        actions={
+          <Button onClick={newSeries}>
+            <PlusIcon data-icon="inline-start" />
+            New series
           </Button>
-        </Empty>
-      )}
-    </div>
+        }
+      />
+      <Tabs value={filter} onValueChange={setFilter} className="gap-6">
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <TabsList>
+            {FILTERS.map((f) => (
+              <TabsTrigger key={f.value} value={f.value}>
+                {f.label}
+                <Badge variant="secondary" className="tabular-nums">
+                  {matching.filter(f.test).length}
+                </Badge>
+              </TabsTrigger>
+            ))}
+          </TabsList>
+          <InputGroup className="w-64">
+            <InputGroupAddon>
+              <SearchIcon />
+            </InputGroupAddon>
+            <InputGroupInput
+              aria-label="Search series"
+              placeholder="Find a series…"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </InputGroup>
+        </div>
+        {FILTERS.map((f) => {
+          const list = matching.filter(f.test);
+          return (
+            <TabsContent key={f.value} value={f.value}>
+              {list.length ? (
+                <SeriesGrid series={list} />
+              ) : (
+                <LibraryEmpty filter={f.value} query={q.trim()} clear={() => setQ("")} />
+              )}
+            </TabsContent>
+          );
+        })}
+      </Tabs>
+    </Page>
+  );
+}
+
+function LibraryEmpty({ filter, query, clear }: { filter: string; query: string; clear(): void }) {
+  const library = useApp((s) => s.library);
+  const [title, detail] = query
+    ? ["No matching stories", `Nothing matches “${query}”. Try another title.`]
+    : library.length === 0
+      ? ["A blank page is a beginning", "Create your first series in the studio."]
+      : filter === "planned"
+        ? ["Nothing in progress", "Every series is finished. Start a new one in the studio."]
+        : ["No exports yet", "A series shows up here once an episode’s final video is rendered."];
+  return (
+    <Empty className="border">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">{query ? <SearchIcon /> : <FilmIcon />}</EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        <EmptyDescription>{detail}</EmptyDescription>
+      </EmptyHeader>
+      <EmptyContent>
+        {query ? (
+          <Button variant="outline" onClick={clear}>
+            Clear search
+          </Button>
+        ) : (
+          <Button variant="outline" onClick={newSeries}>
+            <PlusIcon data-icon="inline-start" />
+            New series
+          </Button>
+        )}
+      </EmptyContent>
+    </Empty>
   );
 }

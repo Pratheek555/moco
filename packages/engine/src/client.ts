@@ -67,6 +67,9 @@ export function createEngineClient(port: ClientPort): EngineClient {
     history: call("history"),
     restore: call("restore"),
     readArtifact: call("readArtifact"),
+    savePublish: call("savePublish"),
+    setPublishDefaults: call("setPublishDefaults"),
+    rewritePublish: call("rewritePublish"),
     on(type, listener): Unsubscribe {
       const entry = { type, listener };
       listeners.add(entry);

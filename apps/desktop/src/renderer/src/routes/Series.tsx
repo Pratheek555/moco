@@ -2,29 +2,65 @@
 // The engine stops at each gate (plan, bible, script, sample shot, preview); nothing moves on until you approve.
 import { useState } from "react";
 import {
-  ArrowUpRight,
-  Check,
-  CircleStop,
-  FolderOpen,
-  LoaderCircle,
-  MessageSquare,
-  Play,
-  RotateCcw,
-  Trash2,
+  CheckCheckIcon,
+  CheckIcon,
+  ChevronRightIcon,
+  CircleCheckIcon,
+  FolderOpenIcon,
+  MessageSquareIcon,
+  PlayIcon,
+  RotateCcwIcon,
+  SquareIcon,
+  Trash2Icon,
+  TriangleAlertIcon,
 } from "lucide-react";
 import type { EpisodeScript, SeriesBible, SeriesPlan } from "@moco/spec";
-import { api, type SeriesStatus } from "../lib/api.ts";
-import { stageLabel, useApp } from "../lib/store.ts";
+import { api, type SeriesStatus } from "@/lib/api.ts";
+import { useAsync } from "@/lib/async.ts";
+import { report, stageLabel, useApp } from "@/lib/store.ts";
+import { humanize, languageName, pad2 } from "@/lib/format.ts";
+import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
-  Button,
-  CastArt,
-  Empty,
-  Loading,
-  Modal,
-  Tag,
-  report,
-  useAsync,
-} from "../components/ui.tsx";
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
+import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
+import {
+  Card,
+  CardAction,
+  CardContent,
+  CardDescription,
+  CardFooter,
+  CardHeader,
+  CardTitle,
+} from "@/components/ui/card";
+import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import { Field, FieldLabel } from "@/components/ui/field";
+import {
+  Item,
+  ItemActions,
+  ItemContent,
+  ItemDescription,
+  ItemFooter,
+  ItemGroup,
+  ItemMedia,
+  ItemTitle,
+} from "@/components/ui/item";
+import { Progress } from "@/components/ui/progress";
+import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { Spinner } from "@/components/ui/spinner";
+import { Textarea } from "@/components/ui/textarea";
+import { CastArt, CastAvatar } from "../components/CastArt.tsx";
+import { Page, PageError, PageLoading } from "../components/Page.tsx";
 
 type Stage = SeriesStatus["stages"][number];
 
@@ -41,6 +77,10 @@ function reviewFile(key: string): string | undefined {
 }
 
 const episodeOf = (key: string) => (key.includes("/") ? key.split("/")[0] : undefined);
+
+// A stage name mid-sentence: "the series plan", "Episode 1 script".
+const inSentence = (label: string) => (label.startsWith("Series") ? `the ${label.toLowerCase()}` : label);
+const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
 
 export function SeriesPage({ id }: { id: string }) {
   const version = useApp((s) => s.version),
@@ -61,9 +101,16 @@ export function SeriesPage({ id }: { id: string }) {
     },
     [id, version],
   );
-  const [deleting, setDeleting] = useState(false);
-  if (error) return <Empty title="Could not open series" detail={error} />;
-  if (!data) return <Loading />;
+  const [stopping, setStopping] = useState(false);
+  if (error)
+    return (
+      <PageError
+        title="Couldn’t open this series"
+        detail={error}
+        action={{ label: "Back to my series", run: () => go({ name: "library" }) }}
+      />
+    );
+  if (!data) return <PageLoading label="Opening series…" />;
   const { status, plan, bible } = data;
   const running = status.activeJob !== undefined;
   const stage = (key: string) => status.stages.find((s) => s.key === key);
@@ -73,187 +120,336 @@ export function SeriesPage({ id }: { id: string }) {
     status.next.kind === "waiting" && status.next.status === "awaiting_approval"
       ? stage(status.next.key)
       : undefined;
+  const aiCalls = Object.values(status.usage.aiCalls).reduce((a, b) => a + b, 0);
 
   const run = (key?: string) => void api.stages.run(id, key).catch(report);
+  const stop = async () => {
+    setStopping(true);
+    try {
+      await api.stages.cancel(status.activeJob!.id);
+    } catch (e) {
+      report(e);
+    } finally {
+      setStopping(false);
+    }
+  };
 
   return (
-    <div className="page enter">
-      <div className="series-cover">
-        <div>
-          <div className="eyebrow">
-            {status.series.language.toUpperCase()} · {status.series.episodes}{" "}
-            {status.series.episodes === 1 ? "EPISODE" : "EPISODES"}
+    <Page>
+      <Card className="flex-row gap-0 overflow-hidden py-0">
+        <div className="flex min-w-0 flex-1 flex-col gap-5 p-6">
+          <div className="flex flex-wrap gap-2">
+            <Badge variant="secondary">{languageName(status.series.language)}</Badge>
+            <Badge variant="secondary">
+              {status.series.episodes} {status.series.episodes === 1 ? "episode" : "episodes"}
+            </Badge>
           </div>
-          <h1>{plan?.title ?? "Planning your series…"}</h1>
-          <p>{plan?.premise ?? status.series.idea}</p>
-          <div className="row">
-            {running ? (
-              <Button
-                onClick={() => void api.stages.cancel(status.activeJob!.id).catch(report)}
-              >
-                <CircleStop size={15} /> Stop
+          <div className="flex flex-col gap-2">
+            <h1 className="text-3xl font-semibold tracking-tight text-balance">
+              {plan?.title ??
+                (running ? <span className="shimmer">Planning your series…</span> : "A new series")}
+            </h1>
+            <p className="max-w-2xl text-base text-pretty text-muted-foreground select-text">
+              {plan?.premise ?? status.series.idea}
+            </p>
+          </div>
+          <div className="mt-auto flex flex-wrap gap-2">
+            {!running && !failed && status.next.kind === "run" && (
+              <Button onClick={() => run()}>
+                <PlayIcon data-icon="inline-start" />
+                Continue: {stageLabel(status.next.key)}
               </Button>
-            ) : status.next.kind === "run" ? (
-              <Button variant="primary" onClick={() => run()}>
-                <Play size={15} /> Continue: {stageLabel(status.next.key)}
-              </Button>
-            ) : null}
+            )}
             <Button
+              variant="outline"
               onClick={() =>
-                void api.app
-                  .openPath(`${useApp.getState().settings!.projectsDir}/${id}`)
-                  .catch(report)
+                void api.app.openPath(`${useApp.getState().settings!.projectsDir}/${id}`).catch(report)
               }
             >
-              <FolderOpen size={15} /> Project folder
+              <FolderOpenIcon data-icon="inline-start" />
+              Open project folder
             </Button>
           </div>
         </div>
-        <CastArt characters={bible?.cast.map((c) => c.kitCharacterId)} />
-      </div>
+        <div className="cast-backdrop hidden w-72 shrink-0 items-end border-l lg:flex">
+          <CastArt characters={bible?.cast.map((c) => c.kitCharacterId)} className="h-56 w-full" />
+        </div>
+      </Card>
 
       {running && (
-        <div className="editor-job">
-          <span className="shimmer">
-            <LoaderCircle size={14} className="spin" />{" "}
-            {current ? `Working on ${stageLabel(current.key)}…` : "Starting…"}
-          </span>
-          {progress !== undefined && <span>{Math.round(progress * 100)}%</span>}
-          <i style={{ width: `${(progress ?? 0) * 100}%` }} />
-        </div>
+        <Item variant="outline" role="status">
+          <ItemMedia variant="icon">
+            <Spinner aria-hidden />
+          </ItemMedia>
+          <ItemContent>
+            <ItemTitle>
+              {current ? `Working on ${inSentence(stageLabel(current.key))}…` : "Starting…"}
+            </ItemTitle>
+            <ItemDescription>
+              You can leave this page. Moco keeps working and lets you know when a step is ready for
+              review.
+            </ItemDescription>
+          </ItemContent>
+          <ItemActions>
+            {progress !== undefined && (
+              <span className="text-sm text-muted-foreground tabular-nums">
+                {Math.round(progress * 100)}%
+              </span>
+            )}
+            <Button variant="outline" size="sm" disabled={stopping} onClick={() => void stop()}>
+              {stopping ? <Spinner data-icon="inline-start" aria-hidden /> : <SquareIcon data-icon="inline-start" />}
+              Stop
+            </Button>
+          </ItemActions>
+          {progress !== undefined && (
+            <ItemFooter>
+              <Progress value={progress * 100} aria-label="Render progress" className="h-1.5" />
+            </ItemFooter>
+          )}
+        </Item>
       )}
       {!running && failed && (
-        <div className="notice">
-          {stageLabel(failed.key)} failed: {failed.error?.message}
-          <Button variant="ghost" onClick={() => run(failed.key)}>
-            <RotateCcw size={14} /> Try again
-          </Button>
-        </div>
+        <Alert variant="destructive">
+          <TriangleAlertIcon />
+          <AlertTitle>{capitalize(stageLabel(failed.key))} failed</AlertTitle>
+          <AlertDescription>
+            <p className="select-text">{failed.error?.message ?? "Something went wrong."}</p>
+            <Button variant="secondary" size="sm" className="mt-1" onClick={() => run(failed.key)}>
+              <RotateCcwIcon data-icon="inline-start" />
+              Try again
+            </Button>
+          </AlertDescription>
+        </Alert>
       )}
       {!running && waiting && (
-        <Review seriesId={id} stage={waiting} plan={plan} bible={bible} />
+        <Review key={waiting.key} seriesId={id} stage={waiting} plan={plan} bible={bible} />
       )}
       {status.next.kind === "finished" && (
-        <div className="notice">
-          <Check size={15} /> Every episode is rendered. Open an episode to
-          watch or export it.
-        </div>
+        <Alert>
+          <CircleCheckIcon />
+          <AlertTitle>Every episode is rendered</AlertTitle>
+          <AlertDescription>Open an episode to watch it, export it or get it ready for YouTube.</AlertDescription>
+        </Alert>
       )}
 
-      <div className="series-layout">
-        <section>
-          <div className="section-heading">
-            <div>
-              <h2>The episode board</h2>
-              <p>One story, one chapter at a time.</p>
-            </div>
+      <div className="grid grid-cols-[minmax(0,1fr)_16rem] gap-10 xl:grid-cols-[minmax(0,1fr)_18rem]">
+        <section className="flex flex-col gap-4">
+          <div className="flex flex-col gap-1">
+            <h2 className="text-lg font-semibold tracking-tight">The episode board</h2>
+            <p className="text-sm text-muted-foreground">One story, one chapter at a time.</p>
           </div>
           {plan ? (
-            <div className="episode-list">
+            <ItemGroup aria-label="Episodes" className="gap-2">
               {plan.episodes.map((ep, index) => (
-                <button
-                  className="episode-row"
-                  key={ep.id}
-                  onClick={() => go({ name: "episode", seriesId: id, episodeId: ep.id })}
-                >
-                  <div className="episode-number">
-                    {String(index + 1).padStart(2, "0")}
-                  </div>
-                  <div className="episode-row-info">
-                    <h3>{ep.title}</h3>
-                    <p>{ep.synopsis}</p>
-                  </div>
-                  <Tag tone={stage(`${ep.id}/final`)?.status === "done" ? "green" : ""}>
-                    {episodeState(status, ep.id)}
-                  </Tag>
-                  <ArrowUpRight size={17} />
-                </button>
+                <div role="listitem" key={ep.id}>
+                  <Item asChild variant="outline">
+                    <button onClick={() => go({ name: "episode", seriesId: id, episodeId: ep.id })}>
+                      <ItemMedia className="w-7 text-base font-medium text-muted-foreground tabular-nums">
+                        {pad2(index + 1)}
+                      </ItemMedia>
+                      <ItemContent>
+                        <ItemTitle>{ep.title}</ItemTitle>
+                        <ItemDescription>{ep.synopsis}</ItemDescription>
+                      </ItemContent>
+                      <ItemActions>
+                        <EpisodeState status={status} episodeId={ep.id} />
+                        <ChevronRightIcon className="size-4 text-muted-foreground" />
+                      </ItemActions>
+                    </button>
+                  </Item>
+                </div>
               ))}
-            </div>
+            </ItemGroup>
+          ) : running ? (
+            <EpisodeSkeleton count={status.series.episodes} />
           ) : (
-            <p className="hint">Episodes appear once the series plan is written.</p>
+            <Empty className="border">
+              <EmptyHeader>
+                <EmptyTitle>No episodes yet</EmptyTitle>
+                <EmptyDescription>Episodes appear once the series plan is written.</EmptyDescription>
+              </EmptyHeader>
+            </Empty>
           )}
         </section>
-        <aside className="series-details">
-          <h3>The cast</h3>
-          {bible ? (
-            bible.cast.map((c) => (
-              <div className="cast-row" key={c.id}>
-                <div className="cast-avatar">
-                  <CastArt characters={[c.kitCharacterId]} />
-                </div>
-                <div>
-                  <strong>{c.id}</strong>
-                  <p>{c.description}</p>
-                </div>
-              </div>
-            ))
-          ) : (
-            <p className="hint">The cast is chosen with the series bible.</p>
-          )}
+
+        <aside className="flex flex-col gap-6">
+          <section className="flex flex-col gap-3">
+            <h2 className="text-sm font-semibold">Cast</h2>
+            {bible ? (
+              <ItemGroup className="gap-4">
+                {bible.cast.map((c) => (
+                  <Item key={c.id} role="listitem" size="sm" className="p-0">
+                    <ItemMedia>
+                      <CastAvatar character={c.kitCharacterId} />
+                    </ItemMedia>
+                    <ItemContent>
+                      <ItemTitle>{humanize(c.id)}</ItemTitle>
+                      <ItemDescription className="line-clamp-3">{c.description}</ItemDescription>
+                    </ItemContent>
+                  </Item>
+                ))}
+              </ItemGroup>
+            ) : running ? (
+              <CastSkeleton />
+            ) : (
+              <p className="text-sm text-muted-foreground">The cast is chosen with the series bible.</p>
+            )}
+          </section>
           {status.decisions.length > 0 && (
             <>
-              <hr />
-              <h3>What the engine decided</h3>
-              {status.decisions.slice(-6).map((d, i) => (
-                <p className="hint" key={i}>
-                  <strong>{d.subject}</strong>: {d.detail}
-                </p>
-              ))}
+              <Separator />
+              <section className="flex flex-col gap-3">
+                <h2 className="text-sm font-semibold">What the engine decided</h2>
+                <ul className="flex flex-col gap-2.5 text-sm select-text">
+                  {status.decisions.slice(-6).map((d, i) => (
+                    <li key={i} className="flex flex-col gap-0.5">
+                      <span className="font-medium">{d.subject}</span>
+                      <span className="text-pretty text-muted-foreground">{d.detail}</span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
             </>
           )}
-          <hr />
-          <p className="hint">
-            AI calls: {Object.values(status.usage.aiCalls).reduce((a, b) => a + b, 0)}
-          </p>
-          <Button
-            variant="ghost"
-            className="danger-text"
-            disabled={running}
-            onClick={() => setDeleting(true)}
-          >
-            <Trash2 size={14} /> Delete series
-          </Button>
+          <Separator />
+          <section className="flex flex-col items-start gap-3">
+            {aiCalls > 0 && (
+              <p className="text-sm text-muted-foreground tabular-nums">
+                {aiCalls} {aiCalls === 1 ? "AI call" : "AI calls"} so far
+              </p>
+            )}
+            <DeleteSeries seriesId={id} title={plan?.title ?? status.series.idea} running={running} />
+          </section>
         </aside>
       </div>
-      {deleting && (
-        <Modal title="Delete this series?" close={() => setDeleting(false)}>
-          <p>
-            This permanently removes “{plan?.title ?? status.series.idea}”, its
-            episodes, audio, and exported videos from your project folder.
-          </p>
-          <div className="modal-actions">
-            <Button onClick={() => setDeleting(false)}>Keep series</Button>
-            <Button
-              variant="danger"
-              onClick={async () => {
-                try {
-                  await api.series.remove(id);
-                  go({ name: "library" });
-                  useApp.getState().toast("Series deleted");
-                } catch (e) {
-                  report(e);
-                }
+    </Page>
+  );
+}
+
+function DeleteSeries({ seriesId, title, running }: { seriesId: string; title: string; running: boolean }) {
+  const go = useApp((s) => s.go);
+  const [open, setOpen] = useState(false),
+    [deleting, setDeleting] = useState(false);
+  const remove = async () => {
+    setDeleting(true);
+    try {
+      await api.series.remove(seriesId);
+      setOpen(false);
+      go({ name: "library" });
+      useApp.getState().toast("Series deleted");
+    } catch (e) {
+      report(e);
+    } finally {
+      setDeleting(false);
+    }
+  };
+  return (
+    <>
+      <AlertDialog open={open} onOpenChange={(next) => !deleting && setOpen(next)}>
+        <AlertDialogTrigger asChild>
+          <Button variant="ghost" size="sm" className="-ml-2.5" disabled={running}>
+            <Trash2Icon data-icon="inline-start" />
+            Delete series
+          </Button>
+        </AlertDialogTrigger>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Delete this series?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This permanently removes “{title}”, with its episodes, audio and exported videos, from your
+              project folder. You can’t undo this.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel disabled={deleting}>Keep series</AlertDialogCancel>
+            <AlertDialogAction
+              variant="destructive"
+              disabled={deleting}
+              onClick={(e) => {
+                e.preventDefault(); // stay open until the files are gone
+                void remove();
               }}
             >
+              {deleting && <Spinner data-icon="inline-start" aria-hidden />}
               Delete series
-            </Button>
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      {running && <p className="text-xs text-muted-foreground">Stop the current work to delete this series.</p>}
+    </>
+  );
+}
+
+// Placeholder rows shaped like the episode board while the plan is written.
+function EpisodeSkeleton({ count }: { count: number }) {
+  return (
+    <ItemGroup aria-busy="true" aria-label="Writing the series plan" className="gap-2">
+      {Array.from({ length: Math.min(Math.max(count, 1), 6) }, (_, i) => (
+        <Item key={i} role="listitem" variant="outline">
+          <ItemMedia className="w-7 text-base font-medium text-muted-foreground tabular-nums">
+            {pad2(i + 1)}
+          </ItemMedia>
+          <ItemContent className="gap-2">
+            <Skeleton className="h-4 w-2/5" />
+            <Skeleton className="h-3 w-11/12" />
+            <Skeleton className="h-3 w-3/5" />
+          </ItemContent>
+          <ItemActions>
+            <Skeleton className="h-5 w-16 rounded-full" />
+          </ItemActions>
+        </Item>
+      ))}
+    </ItemGroup>
+  );
+}
+
+// Placeholder cast rows while the series bible picks characters.
+function CastSkeleton() {
+  return (
+    <div aria-busy="true" aria-label="Choosing the cast" className="flex flex-col gap-4">
+      {[0, 1].map((i) => (
+        <div key={i} className="flex items-center gap-3">
+          <Skeleton className="size-10 rounded-full" />
+          <div className="flex flex-1 flex-col gap-2">
+            <Skeleton className="h-3.5 w-1/2" />
+            <Skeleton className="h-3 w-5/6" />
           </div>
-        </Modal>
-      )}
+        </div>
+      ))}
     </div>
   );
 }
 
-// One word for where an episode is, from its stages.
-function episodeState(status: SeriesStatus, episodeId: string): string {
+// Where an episode is, as one badge: what needs you stands out, what's done is quiet.
+function EpisodeState({ status, episodeId }: { status: SeriesStatus; episodeId: string }) {
   const stages = status.stages.filter((s) => episodeOf(s.key) === episodeId);
-  if (stages.some((s) => s.key.endsWith("/final") && s.status === "done")) return "Rendered";
-  if (stages.some((s) => s.status === "running")) return "Working";
-  if (stages.some((s) => s.status === "awaiting_approval")) return "Needs review";
-  if (stages.some((s) => s.status === "failed")) return "Needs attention";
-  if (stages.some((s) => s.status === "done")) return "In progress";
-  return "Not started";
+  const has = (test: (s: Stage) => boolean) => stages.some(test);
+  if (has((s) => s.key.endsWith("/publish") && s.status === "done"))
+    return (
+      <Badge variant="outline">
+        <CheckCheckIcon />
+        Ready to post
+      </Badge>
+    );
+  if (has((s) => s.key.endsWith("/final") && s.status === "done"))
+    return (
+      <Badge variant="outline">
+        <CheckIcon />
+        Rendered
+      </Badge>
+    );
+  if (has((s) => s.status === "running"))
+    return (
+      <Badge variant="secondary">
+        <Spinner aria-hidden />
+        Working
+      </Badge>
+    );
+  if (has((s) => s.status === "awaiting_approval")) return <Badge>Needs review</Badge>;
+  if (has((s) => s.status === "failed")) return <Badge variant="destructive">Needs attention</Badge>;
+  if (has((s) => s.status === "done")) return <Badge variant="secondary">In progress</Badge>;
+  return <Badge variant="outline">Not started</Badge>;
 }
 
 // The step waiting for you: what it made, and approve or ask for changes.
@@ -269,7 +465,7 @@ function Review({
   bible?: SeriesBible;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null),
-    [busy, setBusy] = useState(false);
+    [busy, setBusy] = useState<"approve" | "redo" | null>(null);
   const file = reviewFile(stage.key);
   const episodeId = episodeOf(stage.key);
   const { data: script } = useAsync(
@@ -284,24 +480,24 @@ function Review({
     [seriesId, episodeId, stage.artifactHash],
   );
 
-  const act = async (work: () => Promise<unknown>) => {
-    setBusy(true);
+  const act = async (kind: "approve" | "redo", work: () => Promise<unknown>) => {
+    setBusy(kind);
     try {
       await work();
     } catch (e) {
       report(e);
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   };
   // Approving moves straight on to the next steps, up to the next review.
   const approve = () =>
-    act(async () => {
+    act("approve", async () => {
       await api.stages.approve(seriesId, stage.key, stage.artifactHash!);
       await api.stages.run(seriesId);
     });
   const requestChanges = () =>
-    act(async () => {
+    act("redo", async () => {
       await api.stages.reject(seriesId, stage.key, feedback ?? "");
       await api.stages.run(seriesId, stage.key);
       setFeedback(null);
@@ -309,89 +505,132 @@ function Review({
 
   const stills = Object.values(media?.stills ?? {}).flat();
   return (
-    <section className="composer review-card" aria-label="Review">
-      <div className="composer-title">
-        <span>
-          <MessageSquare size={17} /> Your review: {stageLabel(stage.key)}
-        </span>
-        <Tag>WAITING FOR YOU</Tag>
-      </div>
-
-      {stage.key === "series_plan" && plan && (
-        <ol className="review-list">
-          {plan.episodes.map((ep) => (
-            <li key={ep.id}>
-              <strong>{ep.title}</strong> {ep.synopsis}
-            </li>
-          ))}
-        </ol>
-      )}
-      {stage.key === "bible" && bible && (
-        <ul className="review-list">
-          {bible.cast.map((c) => (
-            <li key={c.id}>
-              <strong>{c.id}</strong> ({c.kitCharacterId}
-              {c.variant ? `, ${c.variant}` : ""}): {c.description}
-            </li>
-          ))}
-          <li>
-            <strong>Look</strong> {bible.style.mood} · grade {bible.style.grade} ·
-            captions {bible.style.captionStyle}
-          </li>
-        </ul>
-      )}
-      {script && (
-        <ol className="review-list">
-          {script.lines.map((line) => (
-            <li key={line.id}>
-              <span className="hint">{line.beat}</span> {line.text}
-            </li>
-          ))}
-        </ol>
-      )}
-      {stage.key.endsWith("/sample") && (
-        <div className="review-stills">
-          {stills.map((url) => (
-            <img key={url} src={url} alt="Sample shot still" />
-          ))}
-        </div>
-      )}
-      {stage.key.endsWith("/preview") && media?.preview && (
-        <video className="review-video" src={media.preview} controls />
-      )}
-
-      {feedback !== null && (
-        <textarea
-          aria-label="What should change"
-          rows={3}
-          placeholder="What should change? e.g. “Make Krishna calmer, end on the blessing.”"
-          value={feedback}
-          onChange={(e) => setFeedback(e.target.value)}
-        />
-      )}
-      <div className="composer-footer">
-        <span className="hint">
-          Approving moves on to the next step. Asking for changes redoes this
-          one with your note.
-        </span>
-        <div className="row">
-          {feedback === null ? (
-            <Button disabled={busy} onClick={() => setFeedback("")}>
-              Ask for changes
-            </Button>
+    <Card role="region" aria-labelledby="review-title" className="ring-4 ring-primary/10">
+      <CardHeader>
+        <CardTitle id="review-title">Review {inSentence(stageLabel(stage.key))}</CardTitle>
+        <CardDescription>
+          Approve to move on to the next step, or ask for changes and Moco redoes this one with your note.
+        </CardDescription>
+        <CardAction>
+          <Badge>Waiting for you</Badge>
+        </CardAction>
+      </CardHeader>
+      <CardContent className="flex flex-col gap-5">
+        {stage.key === "series_plan" && plan && (
+          <ol className="flex flex-col gap-3 select-text">
+            {plan.episodes.map((ep, i) => (
+              <li key={ep.id} className="flex gap-3 text-sm">
+                <span className="w-6 shrink-0 font-medium text-muted-foreground tabular-nums">{pad2(i + 1)}</span>
+                <div className="flex flex-col gap-0.5">
+                  <span className="font-medium">{ep.title}</span>
+                  <span className="text-pretty text-muted-foreground">{ep.synopsis}</span>
+                </div>
+              </li>
+            ))}
+          </ol>
+        )}
+        {stage.key === "bible" && bible && (
+          <div className="flex flex-col gap-4">
+            <ItemGroup className="gap-4">
+              {bible.cast.map((c) => (
+                <Item key={c.id} role="listitem" size="sm" className="p-0">
+                  <ItemMedia>
+                    <CastAvatar character={c.kitCharacterId} />
+                  </ItemMedia>
+                  <ItemContent>
+                    <ItemTitle>
+                      {humanize(c.id)}
+                      <span className="font-normal text-muted-foreground">
+                        {humanize(c.kitCharacterId)}
+                        {c.variant ? `, ${c.variant}` : ""}
+                      </span>
+                    </ItemTitle>
+                    <ItemDescription className="line-clamp-none select-text">{c.description}</ItemDescription>
+                  </ItemContent>
+                </Item>
+              ))}
+            </ItemGroup>
+            <div className="flex flex-wrap items-center gap-2">
+              <span className="mr-1 text-sm font-medium">Look</span>
+              <Badge variant="outline">{bible.style.mood}</Badge>
+              <Badge variant="outline">Grade: {humanize(bible.style.grade).toLowerCase()}</Badge>
+              <Badge variant="outline">Captions: {humanize(bible.style.captionStyle).toLowerCase()}</Badge>
+            </div>
+          </div>
+        )}
+        {script && (
+          <ol className="flex flex-col gap-3 select-text">
+            {script.lines.map((line) => (
+              <li key={line.id} className="flex flex-col gap-0.5">
+                <span className="text-xs font-medium text-muted-foreground">
+                  {humanize(line.beat)}
+                  {line.speaker !== "narrator" && ` · ${humanize(line.speaker)}`}
+                </span>
+                <p className="text-sm leading-relaxed text-pretty">{line.text}</p>
+              </li>
+            ))}
+          </ol>
+        )}
+        {stage.key.endsWith("/sample") && (
+          <div className="flex gap-3 overflow-x-auto pb-1">
+            {media
+              ? stills.map((url) => (
+                  <img
+                    key={url}
+                    src={url}
+                    alt="Sample shot still"
+                    className="aspect-[9/16] h-72 shrink-0 rounded-lg border object-cover"
+                  />
+                ))
+              : [0, 1, 2].map((i) => <Skeleton key={i} className="aspect-[9/16] h-72 shrink-0 rounded-lg" />)}
+          </div>
+        )}
+        {stage.key.endsWith("/preview") &&
+          (media?.preview ? (
+            <video src={media.preview} controls className="aspect-[9/16] h-[32rem] rounded-lg bg-black" />
           ) : (
+            <Skeleton className="aspect-[9/16] h-[32rem] rounded-lg" />
+          ))}
+        {feedback !== null && (
+          <Field>
+            <FieldLabel htmlFor="review-note">What should change?</FieldLabel>
+            <Textarea
+              id="review-note"
+              autoFocus
+              rows={3}
+              placeholder="e.g. “Make Krishna calmer, end on the blessing.”"
+              value={feedback}
+              onChange={(e) => setFeedback(e.target.value)}
+            />
+          </Field>
+        )}
+      </CardContent>
+      <CardFooter className="justify-end gap-2 border-t">
+        {feedback === null ? (
+          <Button variant="outline" disabled={busy !== null} onClick={() => setFeedback("")}>
+            <MessageSquareIcon data-icon="inline-start" />
+            Ask for changes
+          </Button>
+        ) : (
+          <>
+            <Button variant="ghost" disabled={busy !== null} onClick={() => setFeedback(null)}>
+              Cancel
+            </Button>
             <Button
-              disabled={busy || !feedback.trim()}
+              variant="outline"
+              disabled={busy !== null || !feedback.trim()}
               onClick={() => void requestChanges()}
             >
+              {busy === "redo" && <Spinner data-icon="inline-start" aria-hidden />}
               Redo with my note
             </Button>
-          )}
-          <Button variant="primary" busy={busy} onClick={() => void approve()}>
-            <Check size={15} /> Approve
-          </Button>
-        </div>
-      </div>
-    </section>
+          </>
+        )}
+        <Button disabled={busy !== null} onClick={() => void approve()}>
+          {busy === "approve" ? <Spinner data-icon="inline-start" aria-hidden /> : <CheckIcon data-icon="inline-start" />}
+          Approve
+        </Button>
+      </CardFooter>
+    </Card>
   );
 }

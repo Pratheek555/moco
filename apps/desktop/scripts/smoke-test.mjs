@@ -49,7 +49,7 @@ try {
   console.log(`PASS Claude Code ${ai.version} ready`);
 
   // The prompt.
-  await page.getByLabel("Your story idea").fill(idea);
+  await page.getByLabel("What story will you tell?").fill(idea);
   await page.getByRole("button", { name: /Create series/ }).click();
   await expect(page.getByText("The episode board")).toBeVisible({ timeout: 30_000 });
   console.log(`PASS series created from the idea (${elapsed()})`);
@@ -57,12 +57,12 @@ try {
   // Approve each review as it comes up, until every episode is rendered.
   const review = page.getByRole("region", { name: "Review" });
   const finished = page.getByText("Every episode is rendered");
-  const failed = page.getByText(/ failed: /);
+  const failed = page.getByRole("alert").filter({ hasText: / failed/ });
   for (let gate = 1; gate <= 8; gate += 1) {
     await expect(review.or(finished).or(failed).first()).toBeVisible({ timeout: 25 * MINUTES });
     if (await failed.isVisible()) throw new Error(`a stage failed: ${await failed.textContent()}`);
     if (await finished.isVisible()) break;
-    const title = (await review.locator(".composer-title span").first().textContent())?.replace("Your review: ", "").trim();
+    const title = (await review.locator("[data-slot=card-title]").first().textContent())?.replace(/^Review (the )?/, "").trim();
     await page.screenshot({ path: path.join(artifacts, `0${gate + 1}-review-${title?.replace(/\W+/g, "-").toLowerCase()}.png`), fullPage: true });
     console.log(`PASS review ${gate}: ${title} (${elapsed()})`);
     await review.getByRole("button", { name: "Approve" }).click();
@@ -72,8 +72,8 @@ try {
   console.log(`PASS every stage approved and rendered (${elapsed()})`);
 
   // The episode page plays the final render.
-  await page.locator(".episode-row").first().click();
-  await expect(page.getByText("FINAL RENDER")).toBeVisible({ timeout: 30_000 });
+  await page.getByRole("list", { name: "Episodes" }).getByRole("button").first().click();
+  await expect(page.getByText("Final render", { exact: true })).toBeVisible({ timeout: 30_000 });
   await page.waitForTimeout(1500);
   await page.screenshot({ path: path.join(artifacts, "09-episode.png") });
 

@@ -14,6 +14,9 @@ const api: MocoApi = {
     showItem: call("app.showItem"),
     openExternal: call("app.openExternal"),
     chooseFolder: call("app.chooseFolder"),
+    copy: call("app.copy"),
+    // A drag has to start synchronously from the dragstart event, so this is a send, not an invoke.
+    startDrag: (file: string) => ipcRenderer.send("moco:app.startDrag", file),
   } as MocoApi["app"],
   settings: {
     get: call("settings.get"),
@@ -42,6 +45,12 @@ const api: MocoApi = {
     media: call("episode.media"),
     regenerateShot: call("episode.regenerateShot"),
   } as MocoApi["episode"],
+  publish: {
+    save: call("publish.save"),
+    rewrite: call("publish.rewrite"),
+    setDefaults: call("publish.setDefaults"),
+    openStudio: call("publish.openStudio"),
+  } as MocoApi["publish"],
   on(channel, cb) {
     const listener = (_e: Electron.IpcRendererEvent, payload: unknown) =>
       cb(payload);

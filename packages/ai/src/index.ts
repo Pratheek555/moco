@@ -41,9 +41,9 @@ export class BackendError extends AiError {}
 
 // ---------- claude-cli ----------
 
-// Oldest Claude Code version the flag set below was verified against (2.1.312 on 30 Oct 2026).
+// Oldest Claude Code version the flag set below was verified against (2.1.312 on 30 Oct 2026, 2.1.302 on 1 Nov 2026).
 // shortcut: set to the verified version; lower it only after testing older releases.
-export const MIN_CLAUDE_VERSION = "2.1.312";
+export const MIN_CLAUDE_VERSION = "2.1.302";
 
 // -1, 0 or 1, comparing "a.b.c" numerically.
 export function compareVersions(a: string, b: string): number {

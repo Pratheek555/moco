@@ -6,7 +6,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend } from "@moco/ai";
 import { catalog as defaultCatalog, type Catalog } from "@moco/kit";
-import { SPEC_VERSION } from "@moco/spec";
+import { checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION } from "@moco/spec";
 import { defaultConfig, type EngineConfig } from "./config.ts";
 import { EngineError } from "./errors.ts";
 import { EventBus, type EngineEvent, type EngineEventType, type Unsubscribe } from "./events/bus.ts";
@@ -83,6 +83,10 @@ export interface Engine {
   history(ref: ArtifactRef): Promise<{ revision: number; current: boolean }[]>;
   restore(ref: ArtifactRef, revision: number): Promise<void>;
   readArtifact(ref: ArtifactRef): Promise<unknown>; // { meta, data } for the UI to show
+  // Publishing: the user's edits to an episode's kit, the series defaults, and rewriting one kit.
+  savePublish(ref: EpisodeRef, kit: PublishKit): Promise<void>;
+  setPublishDefaults(seriesId: SeriesId, defaults: Partial<PublishDefaults>): Promise<void>;
+  rewritePublish(ref: EpisodeRef, feedback?: string): Promise<JobId>;
 }
 
 export interface CreateEngineOptions {
@@ -214,9 +218,9 @@ export function createEngine(options: CreateEngineOptions): Engine {
   function stageOfFile(file: string): string | undefined {
     const series = { "artifacts/series_plan.json": "series_plan", "artifacts/bible.json": "bible" }[file];
     if (series) return series;
-    const episodeArtifact = /^episodes\/([a-z0-9-]+)\/artifacts\/(script|voiceover|shot_list|preview_report|render_report)\.json$/.exec(file);
+    const episodeArtifact = /^episodes\/([a-z0-9-]+)\/artifacts\/(script|voiceover|shot_list|preview_report|render_report|publish)\.json$/.exec(file);
     if (episodeArtifact) {
-      const stage = { script: "script", voiceover: "voiceover", shot_list: "shot_list", preview_report: "preview", render_report: "final" }[episodeArtifact[2]!]!;
+      const stage = { script: "script", voiceover: "voiceover", shot_list: "shot_list", preview_report: "preview", render_report: "final", publish: "publish" }[episodeArtifact[2]!]!;
       return `${episodeArtifact[1]}/${stage}`;
     }
     const shotSpec = /^episodes\/([a-z0-9-]+)\/shots\/[a-z0-9-]+\/spec\.json$/.exec(file);
@@ -254,7 +258,8 @@ export function createEngine(options: CreateEngineOptions): Engine {
       const names = (await exists(config.projectsDir)) ? await readdir(config.projectsDir) : [];
       const markers = names.map((name) => join(config.projectsDir, name, "series.json"));
       const found = await Promise.all(markers.map(async (path) => ((await exists(path)) ? readJson<SeriesInfo>(path) : undefined)));
-      return found.filter((info): info is SeriesInfo => info !== undefined);
+      // Projects from an older or newer moco can't be opened, so they aren't listed.
+      return found.filter((info): info is SeriesInfo => info !== undefined && isCompatible(info));
     },
 
     async runStage(ref) {
@@ -376,15 +381,60 @@ export function createEngine(options: CreateEngineOptions): Engine {
       if (!record) throw new EngineError("not_found", `artifact ${ref.file} does not exist`);
       return series.store.read(ref.file, record.kind as Parameters<ArtifactStore["read"]>[1]);
     },
+
+    async savePublish(ref, kit) {
+      assertSafeId(ref.episodeId, "episode id");
+      const series = await load(ref.seriesId);
+      if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
+      const key = stageKey("publish", ref.episodeId);
+      if (!series.store.has(files.publish(ref.episodeId))) throw new EngineError("stage_blocked", `${key} hasn't run yet`);
+      const parsed = PublishKit.safeParse(kit);
+      if (!parsed.success) throw new EngineError("validation_failed", `the publish kit is invalid: ${parsed.error.message}`);
+      // Studio would refuse these, so they aren't saved.
+      const problems = checkYoutube(parsed.data.youtube);
+      if (problems.length > 0) throw new EngineError("validation_failed", problems.map((problem) => problem.problem).join(" "));
+      const saved = await series.store.save(files.publish(ref.episodeId), "PublishKit", parsed.data, { producedBy: "human" });
+      if (!saved.changed) return;
+      series.ledger.decide("edit", key, `edited by you (revision ${saved.meta.revision})`);
+      await outputChanged(series, key, saved.meta.contentHash);
+    },
+
+    // Kits already written keep their text; rewritePublish applies new defaults to one.
+    async setPublishDefaults(seriesId, defaults) {
+      const series = await load(seriesId);
+      const current = series.store.has(files.publishDefaults) ? (await series.store.read(files.publishDefaults, "PublishDefaults")).data : {};
+      const parsed = PublishDefaults.safeParse({ ...current, ...defaults });
+      if (!parsed.success) throw new EngineError("validation_failed", `publish defaults are invalid: ${parsed.error.message}`);
+      await series.store.save(files.publishDefaults, "PublishDefaults", parsed.data, { producedBy: "human" });
+    },
+
+    async rewritePublish(ref, feedback) {
+      assertSafeId(ref.episodeId, "episode id");
+      const key = stageKey("publish", ref.episodeId);
+      const series = await load(ref.seriesId);
+      if (series.activeJob) throw new EngineError("busy", `a job is already running for ${ref.seriesId}`);
+      const note = feedback?.trim().slice(0, 2000);
+      series.ledger.setStage(key, { feedback: note || undefined });
+      await series.ledger.save();
+      return startJob(ref.seriesId, "stage", key, async (ctx, job) => {
+        job.stagesRun = await runStages(ctx, key, { once: true });
+      });
+    },
   };
 }
 
 // A project made by a newer moco, or an older spec major with no migration, can't be opened safely.
 // shortcut: no migrations exist yet; add them in @moco/spec when the spec has its first breaking change.
+// Projects from before specVersion existed have none and count as incompatible.
+function isCompatible(info: SeriesInfo): boolean {
+  const major = (version: unknown) => (typeof version === "string" ? Number(version.split(".")[0]) : Number.NaN);
+  return major(info.specVersion) === major(SPEC_VERSION);
+}
+
 function assertCompatible(info: SeriesInfo): void {
-  const major = (version: string) => Number(version.split(".")[0]);
-  if (major(info.specVersion) !== major(SPEC_VERSION)) {
-    throw new EngineError("not_found", `${info.id} uses spec ${info.specVersion}; this moco reads ${SPEC_VERSION}. It needs a migration.`);
+  if (!isCompatible(info)) {
+    const made = typeof info.specVersion === "string" ? `uses spec ${info.specVersion}` : "was made by an older moco";
+    throw new EngineError("not_found", `${info.id} ${made}; this moco reads ${SPEC_VERSION}. It needs a migration.`);
   }
 }
 

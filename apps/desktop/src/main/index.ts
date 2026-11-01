@@ -3,13 +3,15 @@ import { systemAudio, systemVoices } from "@moco/audio";
 import type { Engine, EngineEvent, SeriesStatus } from "@moco/engine";
 import { createEngineClient, EngineClientError } from "@moco/engine/client";
 import { catalog } from "@moco/kit";
-import type { SeriesBible, SeriesPlan } from "@moco/spec";
+import type { PublishDefaults, PublishKit, SeriesBible, SeriesPlan } from "@moco/spec";
 import {
   BrowserWindow,
   MessageChannelMain,
   app,
+  clipboard,
   dialog,
   ipcMain,
+  nativeImage,
   nativeTheme,
   shell,
   utilityProcess,
@@ -65,6 +67,14 @@ function applyChrome() {
     });
 }
 
+const iconPath = () =>
+  app.isPackaged
+    ? path.join(process.resourcesPath, "icon.png")
+    : path.join(app.getAppPath(), "resources", "icon.png");
+
+// YouTube's upload page; it opens the Studio upload dialog for whichever account is signed in.
+const YOUTUBE_UPLOAD_URL = "https://www.youtube.com/upload";
+
 function createWindow() {
   const dark = isDark();
   win = new BrowserWindow({
@@ -74,9 +84,7 @@ function createWindow() {
     minHeight: 720,
     show: false,
     title: "Moco",
-    icon: app.isPackaged
-      ? path.join(process.resourcesPath, "icon.png")
-      : path.join(app.getAppPath(), "resources", "icon.png"),
+    icon: iconPath(),
     backgroundColor: dark ? "#0f0f11" : "#f7f7f8",
     titleBarStyle: "hidden",
     ...(process.platform === "darwin"
@@ -300,6 +308,15 @@ app
       return r.canceled ? null : (r.filePaths[0] ?? null);
     });
 
+    handle("app.copy", (text: string) => clipboard.writeText(String(text)));
+    // Only rendered videos inside the projects folder can be dragged out.
+    ipcMain.on("moco:app.startDrag", (e, file: unknown) => {
+      if (typeof file !== "string" || !file.endsWith(".mp4")) return;
+      const relative = path.relative(settings.projectsDir, path.resolve(file));
+      if (relative.startsWith("..") || path.isAbsolute(relative) || !existsSync(file)) return;
+      e.sender.startDrag({ file, icon: nativeImage.createFromPath(iconPath()).resize({ width: 48 }) });
+    });
+
     handle("settings.get", () => settings);
     handle("settings.set", async (patch: DeepPartial<Settings>) => {
       // The engine is built with these, so changing them restarts it, which would cut a running job short.
@@ -341,7 +358,13 @@ app
 
     handle("series.list", async () => {
       const infos = await engine().listSeries();
-      const summaries = await Promise.all(infos.map((info) => summarize(info.id)));
+      // One unreadable project must not hide the rest of the workspace.
+      const results = await Promise.allSettled(infos.map((info) => summarize(info.id)));
+      const summaries = results.flatMap((result, i) => {
+        if (result.status === "fulfilled") return [result.value];
+        console.warn(`[moco] skipping series ${infos[i]!.id}:`, result.reason);
+        return [];
+      });
       return summaries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
     });
     handle(
@@ -386,6 +409,17 @@ app
       (seriesId: string, episodeId: string, shotId: string, feedback?: string) =>
         engine().regenerateShot({ seriesId, episodeId, shotId }, feedback),
     );
+
+    handle("publish.save", (seriesId: string, episodeId: string, kit: PublishKit) =>
+      engine().savePublish({ seriesId, episodeId }, kit),
+    );
+    handle("publish.rewrite", (seriesId: string, episodeId: string, note?: string) =>
+      engine().rewritePublish({ seriesId, episodeId }, note),
+    );
+    handle("publish.setDefaults", (seriesId: string, defaults: Partial<PublishDefaults>) =>
+      engine().setPublishDefaults(seriesId, defaults),
+    );
+    handle("publish.openStudio", () => shell.openExternal(YOUTUBE_UPLOAD_URL));
 
     nativeTheme.on("updated", () => {
       applyChrome();
