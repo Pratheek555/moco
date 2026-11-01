@@ -131,7 +131,9 @@ function checkStage(spec: SceneSpec, catalog: Catalog): Issue[] {
   return [
     ...checkKnownId(spec.stage.camera, "stage.camera", "stage camera", stage.cameras.map((camera) => camera.id)),
     ...checkKnownId(spec.stage.place, "stage.place", "stage place", stage.places.map((place) => place.id)),
-    ...checkKnownId(spec.stage.subject, "stage.subject", "stage subject", stage.subjects),
+    // A generated world's camera can follow anything in the shot (see checkPlayers): a boat, a tower, not just the cast.
+    // Held to the cast, a shot of the boat alone had no right answer, and the AI put the lighthouse keeper on the boat.
+    ...(stage.things ? [] : checkKnownId(spec.stage.subject, "stage.subject", "stage subject", stage.subjects)),
     ...unused,
   ];
 }

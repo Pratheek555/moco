@@ -34,7 +34,7 @@ export function placePlayer(player: ScenePlayer, model: WorldModel, mark: WorldL
 // Distance at which something `span` metres tall fills the frame's height through this lens.
 const distanceFor = (span: number, fov: number) => span / (2 * Math.tan(radians(fov) / 2));
 
-interface Lens {
+export interface Lens {
   eye: THREE.Vector3;
   target: THREE.Vector3;
   fov: number;
@@ -93,8 +93,10 @@ export const RIGS: Record<string, Rig> = {
   behind: ({ position, facing, model }) => ({ fov: 44, eye: around(position, facing, 176, distanceFor(model.height * 1.2, 44), model.height * 1.15), target: around(position, facing, 0, model.height * 4, model.height * 0.75) }),
 };
 
+export const subjectOf = (stage: SceneStage, placed: Placed[]): Placed => placed.find((item) => isSubject(item.player, stage.subject)) ?? placed[0]!;
+
 export function lensFor(stage: SceneStage, placed: Placed[], frame: number, durationFrames: number): Lens {
-  const subject = placed.find((item) => isSubject(item.player, stage.subject)) ?? placed[0]!;
+  const subject = subjectOf(stage, placed);
   const other = placed.find((item) => item !== subject);
   const rig = RIGS[stage.camera] ?? RIGS.medium!;
   return rig(subject, other, frame / durationFrames);

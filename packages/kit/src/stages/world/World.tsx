@@ -7,9 +7,10 @@ import { Reflections, Sky } from "../race-circuit/Circuit.tsx";
 import { Lens } from "../race-circuit/index.tsx";
 import { seededRandom } from "../race-circuit/textures.ts";
 import { geometryOf, materialOf, measureModel, patternTexture, restParts } from "./build.ts";
+import { blockersOf, steadyLens } from "./clearance.ts";
 import { isBlinking, poseAt, seedOf, spinAt, type Pose } from "./moves.ts";
 import { WORLD_CAMERAS, isSubject } from "./options.ts";
-import { lensFor, placePlayer, type Placed } from "./shots.ts";
+import { placePlayer, type Placed } from "./shots.ts";
 
 const radians = THREE.MathUtils.degToRad;
 const NO_ACTIONS: SceneAction[] = [];
@@ -271,13 +272,20 @@ function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
 
   const players = stage.players.filter((player) => modelOf(player.model));
   // The camera frames what was really built, so it goes by the measured size.
-  const placed: Placed[] = players.map((player) => {
-    const model = modelOf(player.model)!;
-    const { height, ...size } = measureModel(model);
-    return placePlayer(player, { ...model, height }, mark, frame, durationFrames, size);
-  });
-  const framed = placed.length > 0 ? placed : [placePlayer(STAND_IN_PLAYER, STAND_IN, mark, frame, durationFrames)];
-  const lens = lensFor(stage, framed, frame, durationFrames);
+  const placeAt = (at: number): Placed[] =>
+    players.map((player) => {
+      const model = modelOf(player.model)!;
+      const { height, ...size } = measureModel(model);
+      return placePlayer(player, { ...model, height }, mark, at, durationFrames, size);
+    });
+  const framing = (at: number): Placed[] => {
+    const placed = placeAt(at);
+    return placed.length > 0 ? placed : [placePlayer(STAND_IN_PLAYER, STAND_IN, mark, at, durationFrames)];
+  };
+  const placed = placeAt(frame);
+  const framed = framing(frame);
+  // The camera works out its whole path through the set, so it never ends up behind a wall.
+  const lens = steadyLens(stage, framing, frame, durationFrames, blockersOf(location, models));
   const focus = (framed.find((item) => isSubject(item.player, stage.subject)) ?? framed[0]!).position;
   const light = useMemo(() => skyLight(location.sky), [location]);
   const shadowReach = Math.max(36, Math.max(...framed.map((item) => item.model.height)) * 6);

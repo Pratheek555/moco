@@ -249,7 +249,7 @@ loop:
        - caption words/timings match VO words for this shot
        - positions/scale inside safe area for 1080×1920
        - camera moves within allowed ranges
-  L3 render check (RenderPort.check)          → runtime errors? (render a few stills)
+  L3 render check (RenderPort.check)          → runtime errors, or a still that is black/one flat colour? (render a few stills)
   if no errors: save spec → done
   attempt += 1
   if attempt == maxAttempts (default 3): fallback

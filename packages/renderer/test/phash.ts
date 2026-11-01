@@ -2,67 +2,10 @@
 // "is this cell brighter than the one to its right" (16 × 32 = 512 bits). The usual 9×8 grid is too coarse for a
 // 9:16 frame where the character is small: Krishna raising his arm flipped only 1 of its 64 bits. Even at 512
 // bits a small pose change barely moves a whole-frame hash, so callers also hash the character's region.
-// Includes a minimal PNG decoder for what Chrome writes (8-bit RGB or RGBA, not interlaced), so no dependency.
-import { inflateSync } from "node:zlib";
+// Stills are read with the renderer's own PNG decoder (src/pixels.ts).
+import type { Pixels } from "../src/pixels.ts";
 
-export interface Pixels {
-  width: number;
-  height: number;
-  channels: 3 | 4;
-  data: Uint8Array; // rows of width × channels bytes, no padding
-}
-
-export function decodePng(png: Buffer): Pixels {
-  const width = png.readUInt32BE(16);
-  const height = png.readUInt32BE(20);
-  const [bitDepth, colorType, , , interlace] = png.subarray(24, 29);
-  if (bitDepth !== 8 || (colorType !== 2 && colorType !== 6) || interlace !== 0) {
-    throw new Error(`unsupported PNG: bit depth ${bitDepth}, colour type ${colorType}, interlace ${interlace}`);
-  }
-  const channels = colorType === 6 ? 4 : 3;
-
-  // The image data is every IDAT chunk's body, joined, then inflated.
-  const bodies: Buffer[] = [];
-  for (let offset = 8; offset < png.length; ) {
-    const length = png.readUInt32BE(offset);
-    if (png.toString("ascii", offset + 4, offset + 8) === "IDAT") bodies.push(png.subarray(offset + 8, offset + 8 + length));
-    offset += 12 + length; // length + type + body + crc
-  }
-  const raw = inflateSync(Buffer.concat(bodies));
-
-  // Undo the per-row filters in one pass over every output byte. Each row in `raw` starts with its filter type.
-  const stride = width * channels;
-  const data = new Uint8Array(stride * height);
-  for (let index = 0; index < data.length; index += 1) {
-    const y = Math.floor(index / stride);
-    const x = index % stride;
-    const value = raw[y * (stride + 1) + 1 + x]!;
-    const left = x >= channels ? data[index - channels]! : 0;
-    const up = y > 0 ? data[index - stride]! : 0;
-    const upLeft = x >= channels && y > 0 ? data[index - stride - channels]! : 0;
-    data[index] = (value + predictor(raw[y * (stride + 1)]!, left, up, upLeft)) & 255;
-  }
-  return { width, height, channels, data };
-}
-
-// PNG filter types 0–4: None, Sub, Up, Average, Paeth.
-function predictor(filter: number, left: number, up: number, upLeft: number): number {
-  if (filter === 0) return 0;
-  if (filter === 1) return left;
-  if (filter === 2) return up;
-  if (filter === 3) return Math.floor((left + up) / 2);
-  if (filter === 4) return paeth(left, up, upLeft);
-  throw new Error(`unknown PNG filter ${filter}`);
-}
-
-function paeth(left: number, up: number, upLeft: number): number {
-  const estimate = left + up - upLeft;
-  const toLeft = Math.abs(estimate - left);
-  const toUp = Math.abs(estimate - up);
-  const toUpLeft = Math.abs(estimate - upLeft);
-  if (toLeft <= toUp && toLeft <= toUpLeft) return left;
-  return toUp <= toUpLeft ? up : upLeft;
-}
+export { decodePng } from "../src/pixels.ts";
 
 const GRID = { columns: 17, rows: 32 };
 

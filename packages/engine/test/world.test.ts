@@ -101,4 +101,15 @@ describe("the world as a catalog", () => {
     const wrong = { ...named, stage: { ...named.stage, subject: "nobody" } };
     expect(validateScene(wrong, { brief: brief2, bible, catalog: catalog2 }).map((issue) => issue.path)).toContain("stage.subject");
   });
+
+  it("lets a shot with none of the cast in it follow a thing", () => {
+    const empty = { ...brief, shot: { ...shot, characters: [] } };
+    const crate = { id: "crate", model: "crate", at: [0, 0, 0] as [number, number, number], facing: 0, actions: [] };
+    const scene = { ...fallbackScene(empty, own, bible), fallback: false };
+    const onCrate = { ...scene, stage: { ...scene.stage!, subject: "crate", players: [crate] } };
+    expect(validateScene(onCrate, { brief: empty, bible, catalog: own })).toEqual([]);
+    // Still only something that is in the shot.
+    const elsewhere = { ...onCrate, stage: { ...onCrate.stage, players: [] } };
+    expect(validateScene(elsewhere, { brief: empty, bible, catalog: own }).map((issue) => issue.path)).toContain("stage.subject");
+  });
 });
