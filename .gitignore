@@ -8,6 +8,8 @@ artifacts/
 *.mp4
 *.tsbuildinfo
 .env
+.venv-voice/
+__pycache__/
 projects/*
 !projects/README.md
 # copied from node_modules by `pnpm --filter @moco/renderer spike:rive`

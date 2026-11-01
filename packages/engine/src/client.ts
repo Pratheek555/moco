@@ -54,6 +54,7 @@ export function createEngineClient(port: ClientPort): EngineClient {
 
   return {
     createSeries: call("createSeries"),
+    extendSeries: call("extendSeries"),
     listSeries: call("listSeries"),
     runStage: call("runStage"),
     approve: call("approve"),

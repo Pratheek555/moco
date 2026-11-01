@@ -17,6 +17,7 @@ import { approveGate, markDependantsStale, nextStage, type Next } from "./pipeli
 import { runStages } from "./pipeline/run.ts";
 import { renderThumbnail } from "./planner/publish.ts";
 import { worldCatalog } from "./planner/world.ts";
+import { MAX_EPISODES } from "./planner/series.ts";
 import { allStageKeys, files, GATED, parseStageKey, stageKey } from "./pipeline/stages.ts";
 import type { AudioPort, RenderPort } from "./ports.ts";
 import { ArtifactStore } from "./store/artifacts.ts";
@@ -71,6 +72,8 @@ export interface SeriesStatus {
 
 export interface Engine {
   createSeries(input: { idea: string; language: string; episodes?: number }): Promise<SeriesId>;
+  // Plan `episodes` more after the approved ones, steered by an optional note. The longer plan waits for approval.
+  extendSeries(seriesId: SeriesId, input: { episodes: number; note?: string }): Promise<JobId>;
   listSeries(): Promise<SeriesInfo[]>;
   runStage(ref: StageRef): Promise<JobId>;
   approve(ref: Required<StageRef>, contentHash: string): Promise<void>;
@@ -267,6 +270,28 @@ export function createEngine(options: CreateEngineOptions): Engine {
       return id;
     },
 
+    async extendSeries(seriesId, input) {
+      const series = await load(seriesId);
+      if (series.activeJob) throw new EngineError("busy", `a job is already running for ${seriesId}`);
+      const { ledger } = series;
+      if (ledger.data.planExtension || ledger.stage("series_plan").status !== "approved") {
+        throw new EngineError("stage_blocked", "approve the series plan before adding episodes");
+      }
+      const keep = ledger.data.episodeIds.length;
+      if (!Number.isInteger(input.episodes) || input.episodes < 1 || keep + input.episodes > MAX_EPISODES) {
+        throw new EngineError("invalid_id", `a series can have at most ${MAX_EPISODES} episodes; this one has ${keep}`);
+      }
+      const note = input.note?.trim().slice(0, 2000);
+      series.info = { ...series.info, episodes: keep + input.episodes };
+      await writeJsonAtomic(join(series.dir, "series.json"), series.info);
+      ledger.data.planExtension = { keep, ...(note && { note }) };
+      ledger.setStage("series_plan", { status: "pending", feedback: undefined });
+      await ledger.save();
+      return startJob(seriesId, "stage", "series_plan", async (ctx, job) => {
+        job.stagesRun = await runStages(ctx, "series_plan", { once: true });
+      });
+    },
+
     async listSeries() {
       const names = (await exists(config.projectsDir)) ? await readdir(config.projectsDir) : [];
       const markers = names.map((name) => join(config.projectsDir, name, "series.json"));
@@ -284,6 +309,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
     async approve(ref, contentHash) {
       const series = await load(ref.seriesId);
       approveGate(series.ledger, ref.key, contentHash);
+      if (ref.key === "series_plan") series.ledger.data.planExtension = undefined;
       await series.ledger.save();
       await bus.emit(ref.seriesId, "stage.approved", { key: ref.key, contentHash });
     },
@@ -381,6 +407,10 @@ export function createEngine(options: CreateEngineOptions): Engine {
       const saved = await series.store.save(ref.file, kind, data, { producedBy: "human" });
       if (ref.file === files.seriesPlan) {
         series.ledger.data.episodeIds = (saved.data as { episodes: { id: string }[] }).episodes.map((episode) => episode.id);
+        // An older plan may be shorter or longer than the last request; a redo of it should keep its length.
+        series.ledger.data.planExtension = undefined;
+        series.info = { ...series.info, episodes: series.ledger.data.episodeIds.length };
+        await writeJsonAtomic(join(series.dir, "series.json"), series.info);
       }
       series.ledger.decide("restore", ref.file, `restored revision ${revision} as revision ${saved.meta.revision}`);
 

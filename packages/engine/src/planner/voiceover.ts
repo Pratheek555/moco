@@ -14,7 +14,7 @@ export type VoiceoverOutcome = { kind: "done"; hash: string } | { kind: "sent_ba
 export async function runVoiceover(ctx: StageContext, episodeId: string): Promise<VoiceoverOutcome> {
   const script = await ctx.store.read(files.script(episodeId), "EpisodeScript");
   const bible = await ctx.store.read(files.bible, "SeriesBible");
-  const lines = script.data.lines.map((line) => ({ id: line.id, text: line.text }));
+  const lines = script.data.lines.map((line) => ({ id: line.id, text: line.text, delivery: line.delivery }));
   const { narrator } = bible.data;
 
   const spoken = await ctx.ttsSlots.run(() =>

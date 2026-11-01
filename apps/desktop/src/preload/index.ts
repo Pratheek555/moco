@@ -25,12 +25,16 @@ const api: MocoApi = {
   ai: { status: call("ai.status") } as MocoApi["ai"],
   voice: {
     list: call("voice.list"),
+    models: call("voice.models"),
+    download: call("voice.download"),
+    cancelDownload: call("voice.cancelDownload"),
     preview: call("voice.preview"),
   } as MocoApi["voice"],
   kit: { catalog: call("kit.catalog") } as MocoApi["kit"],
   series: {
     list: call("series.list"),
     create: call("series.create"),
+    extend: call("series.extend"),
     status: call("series.status"),
     artifact: call("series.artifact"),
     remove: call("series.remove"),

@@ -1,6 +1,6 @@
 // What the engine needs from the renderer and audio packages.
 // The engine never imports Remotion or TTS code; real implementations are injected.
-import type { EpisodeSpec, SceneSpec, TimedWord, VisemeTrack } from "@moco/spec";
+import type { Delivery, EpisodeSpec, SceneSpec, TimedWord, VisemeTrack } from "@moco/spec";
 
 export interface RenderError {
   shotId: string;
@@ -29,7 +29,7 @@ export interface RenderPort {
 export interface AudioPort {
   // Speak all lines into one file. `words` is filled when the TTS backend gives timings.
   tts(
-    lines: { id: string; text: string }[],
+    lines: { id: string; text: string; delivery?: Delivery }[],
     voice: { voiceId: string; backend: string },
     language: string,
     outDir: string,

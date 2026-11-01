@@ -13,7 +13,7 @@ import type { SeriesSummary } from "@/lib/api.ts";
 import { api } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
 import { newSeries, report, useApp } from "@/lib/store.ts";
-import { IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
+import { EPISODE_COUNTS, IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CastArt } from "../components/CastArt.tsx";
 import { Page, PageHeader } from "../components/Page.tsx";
 import { SeriesCard } from "../components/SeriesCard.tsx";
-
-const EPISODE_COUNTS = [1, 2, 3, 5];
 
 // Quick starts under the idea box: a label and the idea it fills in.
 const SPARKS = [

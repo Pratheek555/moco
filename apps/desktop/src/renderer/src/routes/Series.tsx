@@ -9,6 +9,7 @@ import {
   FolderOpenIcon,
   MessageSquareIcon,
   PlayIcon,
+  PlusIcon,
   RotateCcwIcon,
   SquareIcon,
   Trash2Icon,
@@ -18,7 +19,7 @@ import type { EpisodeScript, SeriesBible, SeriesPlan } from "@moco/spec";
 import { api, type SeriesStatus } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
 import { report, stageLabel, useApp } from "@/lib/store.ts";
-import { humanize, languageName, pad2 } from "@/lib/format.ts";
+import { EPISODE_COUNTS, humanize, languageName, pad2 } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -42,8 +43,18 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogClose,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
-import { Field, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
   Item,
   ItemActions,
@@ -55,6 +66,14 @@ import {
   ItemTitle,
 } from "@/components/ui/item";
 import { Progress } from "@/components/ui/progress";
+import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
@@ -65,6 +84,7 @@ import { Page, PageError, PageLoading } from "../components/Page.tsx";
 type Stage = SeriesStatus["stages"][number];
 
 const PLAN = "artifacts/series_plan.json";
+const MAX_EPISODES = 99; // episode ids run "ep-01" … "ep-99"
 const BIBLE = "artifacts/bible.json";
 
 // Which artifact a gate asks you to review. Sample and preview are reviewed as pictures, not JSON.
@@ -254,27 +274,32 @@ export function SeriesPage({ id }: { id: string }) {
             <p className="text-sm text-muted-foreground">One story, one chapter at a time.</p>
           </div>
           {plan ? (
-            <ItemGroup aria-label="Episodes" className="gap-2">
-              {plan.episodes.map((ep, index) => (
-                <div role="listitem" key={ep.id}>
-                  <Item asChild variant="outline">
-                    <button onClick={() => go({ name: "episode", seriesId: id, episodeId: ep.id })}>
-                      <ItemMedia className="w-7 text-base font-medium text-muted-foreground tabular-nums">
-                        {pad2(index + 1)}
-                      </ItemMedia>
-                      <ItemContent>
-                        <ItemTitle>{ep.title}</ItemTitle>
-                        <ItemDescription>{ep.synopsis}</ItemDescription>
-                      </ItemContent>
-                      <ItemActions>
-                        <EpisodeState status={status} episodeId={ep.id} />
-                        <ChevronRightIcon className="size-4 text-muted-foreground" />
-                      </ItemActions>
-                    </button>
-                  </Item>
-                </div>
-              ))}
-            </ItemGroup>
+            <>
+              <ItemGroup aria-label="Episodes" className="gap-2">
+                {plan.episodes.map((ep, index) => (
+                  <div role="listitem" key={ep.id}>
+                    <Item asChild variant="outline">
+                      <button onClick={() => go({ name: "episode", seriesId: id, episodeId: ep.id })}>
+                        <ItemMedia className="w-7 text-base font-medium text-muted-foreground tabular-nums">
+                          {pad2(index + 1)}
+                        </ItemMedia>
+                        <ItemContent>
+                          <ItemTitle>{ep.title}</ItemTitle>
+                          <ItemDescription>{ep.synopsis}</ItemDescription>
+                        </ItemContent>
+                        <ItemActions>
+                          <EpisodeState status={status} episodeId={ep.id} />
+                          <ChevronRightIcon className="size-4 text-muted-foreground" />
+                        </ItemActions>
+                      </button>
+                    </Item>
+                  </div>
+                ))}
+              </ItemGroup>
+              {stage("series_plan")?.status === "approved" && plan.episodes.length < MAX_EPISODES && (
+                <AddEpisodes seriesId={id} have={plan.episodes.length} running={running} />
+              )}
+            </>
           ) : running ? (
             <EpisodeSkeleton count={status.series.episodes} />
           ) : (
@@ -393,6 +418,86 @@ function DeleteSeries({ seriesId, title, running }: { seriesId: string; title: s
       </AlertDialog>
       {running && <p className="text-xs text-muted-foreground">Stop the current work to delete this series.</p>}
     </>
+  );
+}
+
+// Plan the next episodes after the approved ones. The longer plan comes back for review like the first one.
+function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: number; running: boolean }) {
+  const counts = EPISODE_COUNTS.filter((n) => have + n <= MAX_EPISODES);
+  const [open, setOpen] = useState(false),
+    [count, setCount] = useState(counts.includes(5) ? 5 : counts.at(-1)!),
+    [note, setNote] = useState(""),
+    [adding, setAdding] = useState(false);
+  const add = async () => {
+    setAdding(true);
+    try {
+      await api.series.extend(seriesId, { episodes: count, note: note.trim() || undefined });
+      setOpen(false);
+      setNote("");
+    } catch (e) {
+      report(e);
+    } finally {
+      setAdding(false);
+    }
+  };
+  return (
+    <Dialog open={open} onOpenChange={(next) => !adding && setOpen(next)}>
+      <DialogTrigger asChild>
+        <Button variant="outline" className="self-start" disabled={running}>
+          <PlusIcon data-icon="inline-start" />
+          Add episodes
+        </Button>
+      </DialogTrigger>
+      <DialogContent>
+        <DialogHeader>
+          <DialogTitle>Add episodes</DialogTitle>
+          <DialogDescription>
+            Moco plans the next episodes after episode {have}, carrying on from what the story has established.
+            The episodes you have stay as they are.
+          </DialogDescription>
+        </DialogHeader>
+        <Field>
+          <FieldLabel htmlFor="add-count">How many</FieldLabel>
+          <Select value={String(count)} onValueChange={(v) => setCount(Number(v))} disabled={adding}>
+            <SelectTrigger id="add-count" className="w-full">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectGroup>
+                {counts.map((n) => (
+                  <SelectItem key={n} value={String(n)}>
+                    {n} {n === 1 ? "episode" : "episodes"}
+                  </SelectItem>
+                ))}
+              </SelectGroup>
+            </SelectContent>
+          </Select>
+        </Field>
+        <Field>
+          <FieldLabel htmlFor="add-note">Where should the story go? (optional)</FieldLabel>
+          <Textarea
+            id="add-note"
+            rows={3}
+            disabled={adding}
+            placeholder="e.g. “Cover the dice game and end on Draupadi’s vow.”"
+            value={note}
+            onChange={(e) => setNote(e.target.value)}
+          />
+          <FieldDescription>Leave it empty to continue the story in order.</FieldDescription>
+        </Field>
+        <DialogFooter>
+          <DialogClose asChild>
+            <Button variant="ghost" disabled={adding}>
+              Cancel
+            </Button>
+          </DialogClose>
+          <Button disabled={adding} onClick={() => void add()}>
+            {adding && <Spinner data-icon="inline-start" aria-hidden />}
+            Plan {count} more
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
 }
 

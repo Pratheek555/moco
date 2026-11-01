@@ -1,5 +1,7 @@
 import { claudeCli } from "@moco/ai";
-import { systemAudio, systemVoices } from "@moco/audio";
+import { systemVoices } from "@moco/audio";
+import { narrationAudio } from "./narration.ts";
+import { createVoiceModelManager, voiceRuntimePaths } from "./voice-models.ts";
 import type { Engine, EngineEvent, SeriesStatus } from "@moco/engine";
 import { createEngineClient, EngineClientError } from "@moco/engine/client";
 import { catalog } from "@moco/kit";
@@ -37,6 +39,10 @@ const here = path.dirname(fileURLToPath(import.meta.url));
 if (process.env.MOCO_USER_DATA)
   app.setPath("userData", path.resolve(process.env.MOCO_USER_DATA));
 registerAssetScheme();
+const voiceRuntime = voiceRuntimePaths(app.getPath("userData"), app.isPackaged
+  ? path.join(process.resourcesPath, "voice-worker")
+  : path.resolve(app.getAppPath(), "../../packages/audio/python"));
+const voiceModels = createVoiceModelManager(voiceRuntime);
 
 if (!app.requestSingleInstanceLock()) app.quit();
 
@@ -139,6 +145,7 @@ function startEngineHost(): Engine {
   const config: EngineHostConfig = {
     projectsDir: settings.projectsDir,
     voice: { ...settings.voice },
+    voiceRuntime,
     concurrency: settings.render.concurrency || null,
   };
   child.postMessage(config, [port1]);
@@ -344,12 +351,18 @@ app
     handle("ai.status", () => claudeCli().available());
 
     handle("voice.list", () => systemVoices().catch(() => []));
+    handle("voice.models", () => voiceModels.list());
+    handle("voice.download", (model) => {
+      if (model !== "english" && model !== "multilingual") throw new Error("Unknown voice model");
+      voiceModels.download(model);
+    });
+    handle("voice.cancelDownload", () => voiceModels.cancel());
     handle("voice.preview", async (text: string) => {
       try {
         const dir = path.join(previewsDir(), String(Date.now()));
-        const spoken = await systemAudio(settings.voice).tts(
-          [{ id: "preview", text: text.slice(0, 400) }],
-          { voiceId: settings.voice.voice, backend: "system" },
+        const spoken = await narrationAudio(settings.voice, voiceRuntime).tts(
+          [{ id: "preview", text: text.slice(0, 400), delivery: { emotion: "resolute", intensity: 0.6, pauseAfterMs: 300 } }],
+          { voiceId: settings.voice.voice, backend: settings.voice.backend ?? "system" },
           settings.defaults.language,
           dir,
         );
@@ -380,6 +393,9 @@ app
         send("library", { seriesId: id });
         return id;
       },
+    );
+    handle("series.extend", (id: string, input: { episodes: number; note?: string }) =>
+      engine().extendSeries(id, input),
     );
     handle("series.status", (id: string) => engine().status(id));
     handle("series.artifact", (seriesId: string, file: string) =>
@@ -441,7 +457,7 @@ app
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
-    app.on("before-quit", () => stopEngineHost());
+    app.on("before-quit", () => { voiceModels.cancel(); stopEngineHost(); });
   })
   .catch((err) => {
     dialog.showErrorBox(
