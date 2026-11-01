@@ -2,7 +2,7 @@ import { mkdtemp, readFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
-import { joinLines, parseWav, systemAudio } from "../src/index.ts";
+import { joinLines, parseWav, pickVoice, systemAudio } from "../src/index.ts";
 
 it("joins lines with a pause and times each line's words inside its own audio", () => {
   const second = (sampleRate: number) => ({ sampleRate, samples: new Float32Array(sampleRate) });
@@ -18,6 +18,20 @@ it("joins lines with a pause and times each line's words inside its own audio", 
     ["rise", "l02", 1.25, 2.25],
   ]);
   expect(() => joinLines(lines, [second(1000), second(2000)])).toThrow(/2000 Hz/);
+});
+
+it("picks a voice that can speak the language", () => {
+  const voices = [
+    { id: "Samantha", name: "Samantha", locale: "en-US" },
+    { id: "Lekha", name: "Lekha", locale: "hi-IN" },
+    { id: "Neel", name: "Neel", locale: "hi-IN" },
+  ];
+  expect(pickVoice(voices, "hi", "Neel")).toBe("Neel"); // the user's choice, when it fits
+  expect(pickVoice(voices, "hi", "Samantha")).toBe("Lekha"); // it would read Hindi as silence
+  expect(pickVoice(voices, "hi", "")).toBe("Lekha");
+  expect(pickVoice(voices, "en", "Samantha")).toBe("Samantha");
+  expect(pickVoice(voices, "en", "")).toBeUndefined(); // the OS default
+  expect(() => pickVoice(voices, "ta", "")).toThrow(/No ta voice/);
 });
 
 it.runIf(process.platform === "darwin")("speaks with macOS say into one WAV whose length matches the words", async () => {

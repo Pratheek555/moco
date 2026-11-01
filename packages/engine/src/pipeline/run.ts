@@ -71,10 +71,12 @@ async function runOne(ctx: StageContext, key: string): Promise<{ status: "done" 
     return { status };
   } catch (err) {
     const error = err instanceof EngineError ? { code: err.code, message: err.message } : { code: "internal", message: err instanceof Error ? err.message : String(err) };
-    // A cancelled stage can simply run again; anything else is shown as failed.
-    ctx.ledger.setStage(key, { status: error.code === "cancelled" ? "pending" : "failed", error });
+    // A stopped stage can simply run again; anything else is shown as failed. This reads the signal, not the
+    // error: a stop surfaces as whatever the AI, voice or renderer threw when it was killed.
+    const stopped = ctx.signal.aborted;
+    ctx.ledger.setStage(key, stopped ? { status: "pending" } : { status: "failed", error });
     await ctx.ledger.save();
-    await ctx.bus.emit(ctx.seriesId, "stage.failed", { key, error });
+    if (!stopped) await ctx.bus.emit(ctx.seriesId, "stage.failed", { key, error });
     throw err;
   }
 }
@@ -96,7 +98,7 @@ async function execute(ctx: StageContext, key: string, feedback: string | undefi
     case "sample":
       return done(await runSample(ctx, episodeId, feedback));
     case "scenes":
-      return done(await runScenes(ctx, episodeId));
+      return done(await runScenes(ctx, episodeId, feedback));
     case "preview":
       return done(await runRender(ctx, episodeId, "preview"));
     case "final":

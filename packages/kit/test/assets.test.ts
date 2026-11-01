@@ -14,7 +14,7 @@ it("baked assets on disk are current and reproducible (run `pnpm --filter @moco/
     return !existsSync(file) || !readFileSync(file).equals(encodePng(image));
   });
   expect(stale.map(([path]) => path)).toEqual([]);
-}, 60_000);
+}, 60_000); // re-bakes every asset, which took over 5 s on the CI runner
 
 it("every asset the kit refers to exists, and none is over the 5 MB limit", () => {
   const referenced = [

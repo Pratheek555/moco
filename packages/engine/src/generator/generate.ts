@@ -44,13 +44,16 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
   const reusable = !inputs.force && !inputs.feedback && (await upToDate(ctx, specFile, sceneInput));
   if (reusable) return { shotId: shot.id, fallback: false, attempts: 0, contentHash: await refreshEngineFields(ctx, specFile, inputs) };
 
+  // A redo changes the current shot, so the AI has to see it. Engine fields are stripped, as in the golden example.
+  const previous = inputs.feedback && ctx.store.has(specFile) ? AiSceneSpec.parse((await ctx.store.read(specFile, "SceneSpec")).data) : undefined;
+
   const result = await generateValidated({
     ai: ctx.ai,
     scope: episodeId,
     schema: SceneSpec,
     jsonSchema: sceneJsonSchema,
     system: loadPrompt("scene"),
-    prompt: scenePrompt(ctx, inputs, brief),
+    prompt: scenePrompt(ctx, inputs, brief, previous),
     maxAttempts: ctx.config.limits.maxAttemptsPerShot,
     signal: ctx.signal,
     check: (spec) => checkScene(ctx, spec, brief, inputs.bible, shotDir),
@@ -66,7 +69,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     return { shotId: shot.id, fallback: false, attempts: result.attempts, contentHash: ctx.store.hashOf(specFile)! };
   }
 
-  const spec = withEngineFields(result.ok ? result.data : fallbackScene(brief), inputs);
+  const spec = withEngineFields(result.ok ? result.data : fallbackScene(brief, ctx.catalog), inputs);
   if (!result.ok) {
     // Never silent: recorded in the ledger and shown in the UI as "needs attention".
     ctx.ledger.decide("fallback", `${episodeId}/${shot.id}`, `${result.attempts} attempts failed; last issues: ${result.issues.length}`);
@@ -106,8 +109,8 @@ async function upToDate(ctx: StageContext, specFile: string, sceneInput: InputRe
   return !existing.data.fallback && recorded?.contentHash === sceneInput.contentHash;
 }
 
-// Fields the engine owns, not the AI: costume/age variants and the series grade (bible decisions) and the
-// lip-sync track (from the audio).
+// Fields the engine owns, not the AI: costume/age variants, time of day and the series grade (bible decisions)
+// and the lip-sync track (from the audio).
 function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
   const visemes = shotVisemes(inputs.shot, inputs.voiceover);
   return { ...withBibleVariants(spec, inputs.bible), visemes, grade: inputs.bible.style.grade };
@@ -115,7 +118,7 @@ function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
 
 function withBibleVariants(spec: SceneSpec, bible: SeriesBible): SceneSpec {
   const actors = spec.actors.map((actor) => ({ ...actor, variant: bible.cast.find((member) => member.id === actor.castId)?.variant }));
-  return { ...spec, actors };
+  return { ...spec, actors, timeOfDay: bible.style.timeOfDay ?? spec.timeOfDay };
 }
 
 // A reused spec keeps the AI's work but picks up new engine fields (a re-recorded voiceover, a bible variant
@@ -146,7 +149,7 @@ async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief,
   }));
 }
 
-function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief): string {
+function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, previous: unknown): string {
   return joinSections([
     jsonSection("Shot brief", {
       shotId: brief.shot.id,
@@ -162,6 +165,7 @@ function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief):
     jsonSection("Series style", inputs.bible.style),
     jsonSection("Continuity to respect", relevantFacts(inputs.memory, brief.shot)),
     jsonSection("Example of a good SceneSpec (a different shot — copy the quality, not the content)", AiSceneSpec.parse(goldenScene())), // engine fields stripped
+    previous ? jsonSection("Your previous version — keep what the change below doesn't touch", previous) : "",
     feedbackSection(inputs.feedback),
   ]);
 }
@@ -176,12 +180,12 @@ export async function runSample(ctx: StageContext, episodeId: string, feedback?:
   return outcome.contentHash;
 }
 
-// Stage scenes: every shot in parallel (the AI semaphore limits real concurrency). Up-to-date specs are reused.
-// Returns the stage hash: the shot spec hashes in order.
-export async function runScenes(ctx: StageContext, episodeId: string): Promise<string> {
+// Stage scenes: every shot in parallel (the AI semaphore limits real concurrency). Up-to-date specs are reused,
+// unless there is a note on the preview: that rewrites every shot. Returns the stage hash: the shot spec hashes in order.
+export async function runScenes(ctx: StageContext, episodeId: string, feedback?: string): Promise<string> {
   const shotList = (await ctx.store.read(files.shotList(episodeId), "ShotList")).data;
   const shared = await sceneSharedInputs(ctx, episodeId);
-  const settled = await Promise.allSettled(shotList.shots.map((shot) => generateScene(ctx, { ...shared, shot })));
+  const settled = await Promise.allSettled(shotList.shots.map((shot) => generateScene(ctx, { ...shared, shot, feedback })));
   // Wait for every shot before failing, so no shot keeps writing after the stage is marked failed.
   const failure = settled.find((outcome) => outcome.status === "rejected");
   if (failure) throw failure.reason;

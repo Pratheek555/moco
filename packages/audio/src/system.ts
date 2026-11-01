@@ -27,13 +27,13 @@ export interface VoiceInfo {
 // Same shape as the engine's AudioPort.
 export function systemAudio(options: SystemAudioOptions = {}) {
   return {
-    async tts(lines: Line[], _voice: { voiceId: string; backend: string }, _language: string, outDir: string, signal?: AbortSignal) {
-      // shortcut: the OS default voice speaks every language; pick a voice per language once Hindi etc. are tested.
+    async tts(lines: Line[], _voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal) {
+      const voice = pickVoice(await systemVoices(), language, options.voice);
       const work = await mkdtemp(join(tmpdir(), "moco-tts-"));
       try {
         const spoken: Pcm[] = [];
         for (const [index, line] of lines.entries()) {
-          spoken.push(parseWav(await speak(line.text, join(work, `line-${index}.wav`), options, signal)));
+          spoken.push(parseWav(await speak(line.text, join(work, `line-${index}.wav`), { ...options, voice }, signal)));
         }
         const joined = joinLines(lines, spoken);
         await mkdir(outDir, { recursive: true });
@@ -52,6 +52,18 @@ export function systemAudio(options: SystemAudioOptions = {}) {
       return amplitudeVisemes(parseWav(await readFile(file)), words);
     },
   };
+}
+
+// A voice that can speak `language`: the user's choice if it can, otherwise the first installed one.
+// macOS voices read a script they don't know as near-silence, so a mismatch has to be caught here.
+// English keeps the OS default: the first English voices macOS lists are novelty ones ("Albert", "Bad News").
+export function pickVoice(voices: VoiceInfo[], language: string, chosen: string | undefined): string | undefined {
+  const code = language.split("-")[0]!;
+  const speakers = voices.filter((voice) => voice.locale.split("-")[0]!.toLowerCase() === code);
+  if (speakers.some((voice) => voice.id === chosen)) return chosen;
+  if (code === "en") return undefined;
+  if (speakers[0]) return speakers[0].id;
+  throw new Error(`No ${language} voice is installed on this computer. Add one in your system's speech settings, then try again.`);
 }
 
 // The lines one after another with a pause between them, and every word's time in the joined audio.
@@ -86,7 +98,7 @@ function timeWords(line: Line, start: number, duration: number): TimedWord[] {
 }
 
 // 16-bit mono PCM WAV of the samples.
-function wavFrom(pcm: Pcm): Buffer {
+export function wavFrom(pcm: Pcm): Buffer {
   const dataBytes = pcm.samples.length * 2;
   const wav = Buffer.alloc(44 + dataBytes);
   wav.write("RIFF", 0);
@@ -149,7 +161,8 @@ $s.Dispose()
 export async function systemVoices(): Promise<VoiceInfo[]> {
   if (process.platform === "darwin") {
     const { stdout } = await run("say", ["-v", "?"]);
-    return stdout.split("\n").filter(Boolean).map(parseSayVoice);
+    const voices = stdout.split("\n").filter(Boolean).map(parseSayVoice);
+    return [...new Map(voices.map((voice) => [voice.id, voice])).values()]; // macOS lists some voices twice
   }
   if (process.platform === "win32") {
     const script = "Add-Type -AssemblyName System.Speech; (New-Object System.Speech.Synthesis.SpeechSynthesizer).GetInstalledVoices() | ForEach-Object { $v = $_.VoiceInfo; \"$($v.Name)|$($v.Culture)\" }";

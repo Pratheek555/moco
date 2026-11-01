@@ -45,7 +45,9 @@ describe("claude-cli", () => {
 
   it("reports a missing structured output as a refusal", async () => {
     const { bin } = await fakeClaude({ result: "I can't do that" });
-    await expect(claudeCli({ bin }).generate(request)).rejects.toBeInstanceOf(SchemaRefusal);
+    const refusal = claudeCli({ bin }).generate(request);
+    await expect(refusal).rejects.toBeInstanceOf(SchemaRefusal);
+    await expect(refusal).rejects.toThrow("I can't do that");
   });
 
   it("checks the installed version and login", async () => {

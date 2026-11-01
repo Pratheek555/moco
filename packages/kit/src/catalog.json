@@ -1,5 +1,5 @@
 {
-  "kitVersion": "0.2.0",
+  "kitVersion": "0.4.0",
   "characters": [
     {
       "id": "krishna",
@@ -188,6 +188,162 @@
       "anchors": {
         "defaultScale": 0.6
       }
+    },
+    {
+      "id": "racer_red",
+      "packs": [
+        "motorsport"
+      ],
+      "variants": [
+        "default"
+      ],
+      "actions": [
+        {
+          "name": "blink",
+          "minFrames": 4
+        },
+        {
+          "name": "raise_hand",
+          "minFrames": 12,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "celebrate",
+          "minFrames": 16,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "point",
+          "minFrames": 10,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "turn_head",
+          "minFrames": 8
+        },
+        {
+          "name": "lower_head",
+          "minFrames": 10
+        }
+      ],
+      "expressions": [
+        "neutral",
+        "smile",
+        "serious",
+        "sad",
+        "determined"
+      ],
+      "visemes": [],
+      "layers": [],
+      "angles": [
+        "front"
+      ],
+      "idle": {
+        "breathPeriodFrames": 96,
+        "breathAmount": 0.012,
+        "blinkMinSeconds": 2,
+        "blinkMaxSeconds": 5,
+        "blinkFrames": 4,
+        "swayDegrees": 1.2,
+        "swayPeriodFrames": 160,
+        "secondaryDelayFrames": 4
+      },
+      "anchors": {
+        "defaultScale": 0.6
+      }
+    },
+    {
+      "id": "racer_blue",
+      "packs": [
+        "motorsport"
+      ],
+      "variants": [
+        "default"
+      ],
+      "actions": [
+        {
+          "name": "blink",
+          "minFrames": 4
+        },
+        {
+          "name": "raise_hand",
+          "minFrames": 12,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "celebrate",
+          "minFrames": 16,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "point",
+          "minFrames": 10,
+          "params": {
+            "side": [
+              "left",
+              "right"
+            ]
+          }
+        },
+        {
+          "name": "turn_head",
+          "minFrames": 8
+        },
+        {
+          "name": "lower_head",
+          "minFrames": 10
+        }
+      ],
+      "expressions": [
+        "neutral",
+        "smile",
+        "serious",
+        "sad",
+        "determined"
+      ],
+      "visemes": [],
+      "layers": [],
+      "angles": [
+        "front"
+      ],
+      "idle": {
+        "breathPeriodFrames": 96,
+        "breathAmount": 0.012,
+        "blinkMinSeconds": 2,
+        "blinkMaxSeconds": 5,
+        "blinkFrames": 4,
+        "swayDegrees": 1.2,
+        "swayPeriodFrames": 160,
+        "secondaryDelayFrames": 4
+      },
+      "anchors": {
+        "defaultScale": 0.6
+      }
     }
   ],
   "props": [
@@ -225,6 +381,79 @@
         "dusk",
         "night"
       ]
+    },
+    {
+      "id": "race_circuit",
+      "hint": "A 3D motor racing circuit with grandstands and a harbour. Two cars: red #27 is driven by racer_red, blue #4 by racer_blue. Leave characters empty: drivers are seen through the cars. No flags, pit crews or people on foot exist here.",
+      "layers": [],
+      "timeOfDay": [
+        "dusk",
+        "dawn",
+        "noon",
+        "night"
+      ],
+      "stage": {
+        "cameras": [
+          {
+            "id": "chase",
+            "hint": "Behind the subject, looking up the road. Shows the car and whatever is ahead of it."
+          },
+          {
+            "id": "onboard",
+            "hint": "Mounted above the subject's airbox: the driver's eye view, halo and road rushing in."
+          },
+          {
+            "id": "front",
+            "hint": "Nose-on, flying ahead of the subject and looking back at it. Shows who is behind it."
+          },
+          {
+            "id": "wheel",
+            "hint": "Low beside the subject's rear tyre, for speed and for tyres that are dying."
+          },
+          {
+            "id": "cockpit",
+            "hint": "Tight on the subject's helmet through the halo: the nearest thing to a face. Use for a driver's decision or a nod."
+          },
+          {
+            "id": "alongside",
+            "hint": "Tracking level with the subject from the side, the world streaking past. Best for two cars wheel to wheel."
+          },
+          {
+            "id": "trackside",
+            "hint": "A fixed camera at the barrier; the subject flashes past it halfway through the shot."
+          },
+          {
+            "id": "helicopter",
+            "hint": "High and behind, showing both cars and the shape of the track."
+          }
+        ],
+        "places": [
+          {
+            "id": "start_straight",
+            "hint": "Flat out past the grandstands."
+          },
+          {
+            "id": "finish_line",
+            "hint": "The subject crosses the start and finish line halfway through the shot."
+          },
+          {
+            "id": "harbour",
+            "hint": "Fast sweeping corners along the water, with the skyline behind."
+          },
+          {
+            "id": "hairpin",
+            "hint": "The slowest corner, under braking. The right place for a pass."
+          },
+          {
+            "id": "parc_ferme",
+            "hint": "After the race: cars parked side by side, engines off. The subject's driver nods once in the shot's last third."
+          }
+        ],
+        "subjects": [
+          "red",
+          "blue"
+        ]
+      }
     }
   ],
   "fx": [

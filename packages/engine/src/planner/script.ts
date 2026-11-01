@@ -5,7 +5,7 @@ import { feedbackSection, joinSections, jsonSection, promptRef } from "../genera
 import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
-import { checkIds, planWithAi } from "./common.ts";
+import { checkIds, planWithAi, previousSection } from "./common.ts";
 
 // Allowed drift from the word budget before the AI is asked to fix it. The real check is the VO duration.
 const BUDGET_TOLERANCE = 0.2;
@@ -28,6 +28,7 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
       jsonSection("Series", { title: plan.data.title, premise: plan.data.premise }),
       jsonSection("Cast", bible.data.cast),
       jsonSection("Story so far", memory?.storySoFar ?? "This is the first episode."),
+      await previousSection(ctx, files.script(episodeId), "EpisodeScript", feedback),
       feedbackSection(feedback),
     ]),
     check: (data) => checkScript(data, ctx.config, budget),

@@ -2,7 +2,7 @@
 export interface EngineLimits {
   maxAttemptsPerShot: number; // generate → validate → fix rounds before the fallback shot
   maxAttemptsPerPlanStage: number; // same, for plan/bible/script/shot list/memory
-  maxAiCallsPerEpisode: number; // hard cap on AI calls for one episode
+  maxAiCallsPerEpisode: number; // hard cap on AI calls for one episode in one job
   maxSendBacks: number; // VO-duration send-backs to the script before asking the user
   aiConcurrency: number; // parallel AI calls (subscription rate limits)
   aiTimeoutMs: number;

@@ -11,8 +11,10 @@ export function buildCatalog(registry: Registry): Catalog {
     props: registry.props.map((prop) => ({ id: prop.id, attachPoints: prop.attachPoints })),
     backgrounds: registry.backgrounds.map((background) => ({
       id: background.id,
+      ...(background.hint ? { hint: background.hint } : {}),
       layers: background.layers.map((layer) => ({ id: layer.id, depth: layer.depth })),
       timeOfDay: background.timeOfDay,
+      ...(background.stage ? { stage: { cameras: background.stage.cameras, places: background.stage.places, subjects: background.stage.subjects } } : {}),
     })),
     fx: registry.fx.map((fx) => ({ id: fx.id, maxDurationFrames: fx.maxDurationFrames })),
     atmosphere: registry.atmospheres.map((atmosphere) => ({ id: atmosphere.id, placement: atmosphere.placement })),

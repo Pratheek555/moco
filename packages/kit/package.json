@@ -11,10 +11,13 @@
   },
   "dependencies": {
     "@moco/spec": "workspace:*",
-    "react": "19.3.1"
+    "@react-three/fiber": "^9.8.2",
+    "react": "19.3.1",
+    "three": "0.170.0"
   },
   "devDependencies": {
-    "@types/react": "^19.3.0"
+    "@types/react": "^19.3.0",
+    "@types/three": "0.170.0"
   },
   "scripts": {
     "catalog": "tsx src/write-catalog.ts",

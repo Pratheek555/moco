@@ -56,7 +56,7 @@ async function runAttempt<T>(options: LoopOptions<T>, prompt: string): Promise<{
     );
     raw = result.json ?? tryParseJson(result.text);
   } catch (err) {
-    if (err instanceof SchemaRefusal) return { raw: null, issues: [{ path: "", problem: "no JSON was returned", fix: "Return only the JSON object." }] };
+    if (err instanceof SchemaRefusal) return { raw: null, issues: [{ path: "", problem: `no JSON was returned, the reply was: ${err.message.slice(0, 500)}`, fix: "Return only the JSON object." }] };
     throw err;
   }
 
