@@ -22,6 +22,7 @@ describe("catalog validation", () => {
 
   it("has sane background and fx entries", () => {
     const badBackgrounds = catalog.backgrounds.filter((background) => {
+      if (background.stage) return background.layers.length > 0; // a 3D stage has no layers
       const depths = background.layers.map((layer) => layer.depth);
       const sorted = depths.every((depth, index) => index === 0 || depth >= depths[index - 1]!);
       const inRange = depths.every((depth) => depth >= 0 && depth <= 1);

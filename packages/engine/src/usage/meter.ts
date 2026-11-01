@@ -21,17 +21,25 @@ export function meteredAi(
   seriesId: string,
   config: EngineConfig,
 ): MeteredAi {
+  // One meter is made per job, so the cap stops a runaway job and can't lock a series after a few redos.
+  // The ledger keeps the lifetime count.
+  const callsThisJob: Record<string, number> = {};
+
   return {
     backendId: ai.id,
     async generate(request, scope) {
-      const calls = ledger.data.usage.aiCalls[scope] ?? 0;
+      const calls = callsThisJob[scope] ?? 0;
       if (calls >= config.limits.maxAiCallsPerEpisode) {
-        throw new EngineError("cap_reached", `${scope} used all ${config.limits.maxAiCallsPerEpisode} AI calls allowed`);
+        throw new EngineError("cap_reached", `${scope} used all ${config.limits.maxAiCallsPerEpisode} AI calls allowed in one run`);
       }
-      ledger.data.usage.aiCalls[scope] = calls + 1;
+      callsThisJob[scope] = calls + 1;
+      ledger.data.usage.aiCalls[scope] = (ledger.data.usage.aiCalls[scope] ?? 0) + 1;
 
       try {
-        const result = await aiSlots.run(() => ai.generate({ ...request, timeoutMs: config.limits.aiTimeoutMs }));
+        const result = await aiSlots.run(async () => {
+          request.signal?.throwIfAborted(); // calls still queued when a job is stopped must not start
+          return ai.generate({ ...request, timeoutMs: config.limits.aiTimeoutMs });
+        });
         ledger.data.usage.costUsdEstimate += result.usage?.costUsdEstimate ?? 0;
         return result;
       } catch (err) {

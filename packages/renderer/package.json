@@ -6,11 +6,15 @@
   "dependencies": {
     "@moco/kit": "workspace:*",
     "@moco/spec": "workspace:*",
+    "@react-three/fiber": "^9.8.2",
     "@remotion/bundler": "4.0.539",
+    "@remotion/motion-blur": "4.0.539",
     "@remotion/renderer": "4.0.539",
+    "@remotion/three": "4.0.539",
     "react": "19.3.1",
     "react-dom": "19.3.1",
-    "remotion": "4.0.539"
+    "remotion": "4.0.539",
+    "three": "0.170.0"
   },
   "devDependencies": {
     "@moco/audio": "workspace:*",
@@ -18,7 +22,8 @@
     "@remotion/rive": "4.0.539",
     "@rive-app/canvas-advanced": "2.31.5",
     "@types/react": "^19.3.0",
-    "@types/react-dom": "^19.3.0"
+    "@types/react-dom": "^19.3.0",
+    "@types/three": "0.170.0"
   },
   "main": "./src/index.ts",
   "exports": {

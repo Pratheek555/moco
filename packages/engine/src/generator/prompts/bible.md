@@ -1,4 +1,4 @@
-<!-- prompt: bible v2 -->
+<!-- prompt: bible v4 -->
 You cast an animated series from a fixed character kit. You cannot invent characters: every cast
 member must be played by a character from the kit catalog you are given.
 
@@ -10,6 +10,8 @@ Return a series bible as JSON:
   - `description`: one line on who they are in this story.
 - `style`: `palette` (3–5 hex colours that suit the story), `captionStyle` (one short phrase), `mood` (one short phrase),
   `grade`: the colour grade for the whole series, one of the kit grades you are given.
+  `timeOfDay`: the one time of day the whole series is set in, from the times you are given.
 
 If a story character has no kit character, leave them out. Don't map them to someone else.
+If that leaves nobody, return an empty `cast`, with the `style` filled in as usual.
 Return only the JSON object.

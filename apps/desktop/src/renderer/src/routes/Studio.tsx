@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type { SeriesSummary } from "@/lib/api.ts";
 import { api } from "@/lib/api.ts";
+import { useAsync } from "@/lib/async.ts";
 import { newSeries, report, useApp } from "@/lib/store.ts";
 import { IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -53,9 +54,9 @@ const EPISODE_COUNTS = [1, 2, 3, 5];
 
 // Quick starts under the idea box: a label and the idea it fills in.
 const SPARKS = [
-  ["A lesson from the Gita", IDEAS[9]!],
-  ["Hanuman’s great leap", IDEAS[1]!],
-  ["Little Krishna’s adventures", IDEAS[6]!],
+  ["A lesson from the Gita", IDEAS[0]!],
+  ["Krishna and Arjuna", IDEAS[1]!],
+  ["A last-lap F1 duel", IDEAS[6]!],
 ] as const;
 
 export function Studio() {
@@ -68,6 +69,12 @@ export function Studio() {
   const [episodes, setEpisodes] = useState(settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
+
+  const { data: catalog } = useAsync(() => api.kit.catalog(), []),
+    { data: voices } = useAsync(() => api.voice.list(), []);
+  // An empty list means the voices couldn't be read, not that none exist.
+  const noVoice = (code: string) =>
+    Boolean(voices?.length) && !voices!.some((voice) => voice.locale.split("-")[0] === code);
 
   // Check Claude Code once, so a missing setup shows here instead of failing after "Create series".
   useEffect(() => {
@@ -151,7 +158,7 @@ export function Studio() {
               id="idea"
               maxLength={4000}
               disabled={starting}
-              placeholder="A moment from the Mahabharat. A lesson from Chanakya. A story only you can tell…"
+              placeholder="A moment from the Gita. A rookie’s last-lap duel…"
               className="max-h-72 min-h-28 md:text-base"
               value={idea}
               onChange={(e) => setIdea(e.target.value)}
@@ -181,8 +188,9 @@ export function Studio() {
                 <SelectContent>
                   <SelectGroup>
                     {LANGUAGE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value}>
+                      <SelectItem key={option.value} value={option.value} disabled={noVoice(option.value)}>
                         {option.label}
+                        {noVoice(option.value) ? " (no voice installed)" : ""}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -203,7 +211,10 @@ export function Studio() {
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
-          <FieldDescription>Moco plans the series, then stops so you can review each step.</FieldDescription>
+          <FieldDescription>
+            {catalog && `Stories need ${catalog.characters.map((c) => c.id).join(", ")}: they’re the characters Moco has so far. `}
+            Moco plans the series, then stops so you can review each step.
+          </FieldDescription>
         </Field>
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-sm text-muted-foreground">Need a spark?</span>

@@ -33,11 +33,22 @@ export interface CatalogCharacter {
   anchors: { defaultScale: number };
 }
 
+export interface CatalogStageOption {
+  id: string;
+  hint: string;
+}
+
 export interface Catalog {
   kitVersion: string;
   characters: CatalogCharacter[];
   props: { id: string; attachPoints: string[] }[];
-  backgrounds: { id: string; layers: { id: string; depth: number }[]; timeOfDay: string[] }[]; // depth 0 = far, 1 = near
+  backgrounds: {
+    id: string;
+    hint?: string;
+    layers: { id: string; depth: number }[]; // depth 0 = far, 1 = near
+    timeOfDay: string[];
+    stage?: { cameras: CatalogStageOption[]; places: CatalogStageOption[]; subjects: string[] }; // a 3D world
+  }[];
   fx: { id: string; maxDurationFrames: number }[];
   atmosphere: { id: string; placement: "back" | "front" }[];
   grades: string[]; // series colour grades; "none" = no grade

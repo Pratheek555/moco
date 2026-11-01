@@ -56,7 +56,7 @@ describe("slideshow checks", () => {
     const issue = issuesOf(moving, { cameraPreset: [], shotSize: ["medium"] })[0]!;
     expect(formatIssue(issue)).toBe(
       "actors: this is a medium shot, which would make 3 medium shots in a row. Allowed: wide, close. Change the actors' scale or camera to get one of these. " +
-        "wide = largest actor scale below 0.55 (or no actors); medium = 0.55 to 0.9; close = 0.9 or more, or any focus_on move.",
+        "wide = largest actor scale below 0.55; medium = 0.55 to 0.9; close = 0.9 or more, or any focus_on move.",
     );
   });
 

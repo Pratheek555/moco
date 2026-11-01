@@ -80,7 +80,7 @@ describe("scene loop", () => {
 
   it("stops at the per-episode AI call cap", async () => {
     const { dir, ai } = await setup({ scene: () => "never valid" });
-    const limits = { ...defaultConfig(dir).limits, maxAiCallsPerEpisode: 4 }; // script + shot list + 2 scene attempts
+    const limits = { ...defaultConfig(dir).limits, maxAiCallsPerEpisode: 3 }; // this job: shot list + 2 scene attempts
     const engine = createEngine({ projectsDir: dir, ai, render: new FakeRenderPort(), audio: new FakeAudio(0.4), config: { limits } });
     const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 3; gate += 1) {

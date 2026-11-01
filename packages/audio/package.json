@@ -4,10 +4,13 @@
   "private": true,
   "type": "module",
   "dependencies": {
-    "@moco/spec": "workspace:*"
+    "@moco/spec": "workspace:*",
+    "onnxruntime-common": "1.19.2",
+    "onnxruntime-node": "1.19.2"
   },
   "main": "./src/index.ts",
   "exports": {
-    ".": "./src/index.ts"
+    ".": "./src/index.ts",
+    "./supertonic": "./src/supertonic.ts"
   }
 }

@@ -1,8 +1,8 @@
 // Shared helper for plan-level AI stages: run the fix loop, or fail the stage with the remaining issues.
-import { toAiJsonSchema } from "@moco/spec";
+import { toAiJsonSchema, type ArtifactKind } from "@moco/spec";
 import type * as z from "zod";
 import { EngineError } from "../errors.ts";
-import { loadPrompt, type PromptName } from "../generator/prompts.ts";
+import { jsonSection, loadPrompt, type PromptName } from "../generator/prompts.ts";
 import { formatIssues, type Issue } from "../loop/feedback.ts";
 import { generateValidated } from "../loop/loop.ts";
 import type { StageContext } from "../pipeline/context.ts";
@@ -31,6 +31,12 @@ export async function planWithAi<T>(ctx: StageContext, call: PlanCall<T>): Promi
     throw new EngineError("validation_failed", `The AI couldn't produce a valid ${call.promptName} after ${result.attempts} attempts:\n${formatIssues(result.issues)}`);
   }
   return result.data;
+}
+
+// A redo changes the last version, so the AI has to see it: a note alone can't say "line 3" or "cut 6 words".
+export async function previousSection(ctx: StageContext, file: string, kind: ArtifactKind, feedback: string | undefined): Promise<string> {
+  if (!feedback || !ctx.store.has(file)) return "";
+  return jsonSection("Your previous version — keep what the change below doesn't touch", (await ctx.store.read(file, kind)).data);
 }
 
 // Ids that become folder names or keys must be unique slugs.

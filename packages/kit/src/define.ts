@@ -1,11 +1,12 @@
 // How kit entries are declared. The catalog the engine reads is generated from these definitions,
 // so the AI is only ever offered actions that a component really draws.
 import type { ComponentType } from "react";
+import type { SceneStage } from "@moco/spec";
 import type { CharacterArt } from "./art/load.ts";
 import type { IdleProfile } from "./index.ts";
 import type { RigState } from "./rig.ts";
 
-export const KIT_VERSION = "0.2.0";
+export const KIT_VERSION = "0.4.0";
 
 export interface ActionDef {
   name: string;
@@ -66,7 +67,30 @@ export interface BackgroundLayerDef {
 export interface BackgroundDef {
   id: string;
   timeOfDay: string[]; // the first is the default
-  layers: BackgroundLayerDef[];
+  hint?: string; // what belongs here and where, for the AI
+  layers: BackgroundLayerDef[]; // empty on a 3D stage
+  stage?: StageDef;
+}
+
+// A named choice the AI can make, with what it gives on screen.
+export interface StageOption {
+  id: string;
+  hint: string;
+}
+
+export interface StageProps {
+  stage: SceneStage;
+  frame: number;
+  durationFrames: number;
+  timeOfDay: string;
+}
+
+// A 3D world. `Component` draws inside the renderer's Three canvas; the AI directs it through the options.
+export interface StageDef {
+  cameras: StageOption[];
+  places: StageOption[];
+  subjects: string[];
+  Component: ComponentType<StageProps>;
 }
 
 export interface FxDef {

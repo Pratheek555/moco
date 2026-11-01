@@ -32,9 +32,10 @@ const SAFE_AREA = { minX: 0.08, maxX: 0.92, minY: 0.12, maxY: 0.88 };
 export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
   return [
     ...checkShotIdentity(spec, rules.brief),
-    ...checkCastPresent(spec, rules.brief),
-    ...checkSomethingMoves(spec),
+    ...(spec.stage ? [] : checkCastPresent(spec, rules.brief)), // a 3D stage shows its cast through the world
+    ...(spec.stage ? [] : checkSomethingMoves(spec)), // the cars and rigs are always moving
     ...checkBackground(spec, rules),
+    ...checkStage(spec, rules.catalog),
     ...checkLooks(spec, rules.catalog),
     ...spec.actors.flatMap((actor, index) => checkActor(actor, `actors[${index}]`, spec, rules)),
     ...spec.props.flatMap((prop, index) => checkKnownId(prop.id, `props[${index}].id`, "prop", rules.catalog.props.map((p) => p.id))),
@@ -42,8 +43,8 @@ export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
     ...spec.camera.flatMap((move, index) => checkCamera(move, `camera[${index}]`, spec)),
     ...spec.captions.flatMap((caption, index) => checkFrameRange(caption, `captions[${index}]`, spec.durationFrames)),
     ...checkCaptionText(spec.captions, rules.brief),
-    ...spec.captions.flatMap((caption, index) => checkEmphasis(caption, `captions[${index}]`, spec.camera)),
-    ...checkAvoid(spec, rules.brief.avoid),
+    ...(spec.stage ? [] : spec.captions.flatMap((caption, index) => checkEmphasis(caption, `captions[${index}]`, spec.camera))),
+    ...checkAvoid(spec, rules.brief.avoid, stageOf(spec, rules.catalog)),
   ];
 }
 
@@ -115,6 +116,24 @@ function checkLooks(spec: SceneSpec, catalog: Catalog): Issue[] {
   ];
 }
 
+function stageOf(spec: SceneSpec, catalog: Catalog) {
+  return catalog.backgrounds.find((background) => background.id === spec.background.id)?.stage;
+}
+
+// A shot on a 3D stage must say what the rig shows, and anything else on the shot doesn't apply.
+function checkStage(spec: SceneSpec, catalog: Catalog): Issue[] {
+  const stage = stageOf(spec, catalog);
+  if (!stage) return spec.stage ? [{ path: "stage", problem: `"${spec.background.id}" is not a 3D stage`, fix: "Remove stage." }] : [];
+  if (!spec.stage) return [{ path: "stage", problem: `"${spec.background.id}" is a 3D stage, so the shot needs a stage object`, fix: "Add stage with camera, place, subject, leadStart and leadEnd." }];
+  const unused = spec.actors.length > 0 ? [{ path: "actors", problem: "a 3D stage has no 2D characters", fix: "Leave actors empty." }] : [];
+  return [
+    ...checkKnownId(spec.stage.camera, "stage.camera", "stage camera", stage.cameras.map((camera) => camera.id)),
+    ...checkKnownId(spec.stage.place, "stage.place", "stage place", stage.places.map((place) => place.id)),
+    ...checkKnownId(spec.stage.subject, "stage.subject", "stage subject", stage.subjects),
+    ...unused,
+  ];
+}
+
 // An emphasised caption is the shot's key line: the camera should move in on it.
 const EMPHASIS_MOVES = ["push_in", "focus_on"];
 function checkEmphasis(caption: Caption, path: string, camera: CameraMove[]): Issue[] {
@@ -138,15 +157,20 @@ export const SHOT_SIZES = [
   { size: "medium", belowScale: 0.9 },
   { size: "close", belowScale: Infinity },
 ];
-const SIZE_RULE = "wide = largest actor scale below 0.55 (or no actors); medium = 0.55 to 0.9; close = 0.9 or more, or any focus_on move";
+const SIZE_RULE = "wide = largest actor scale below 0.55; medium = 0.55 to 0.9; close = 0.9 or more, or any focus_on move";
+
+// Shots of only a background and props have no size to compare; a run of them must not count as a repeat.
+const NO_SIZE = "";
 
 // The move that runs longest ("static" when the camera never moves), and the shot size.
 export function shotLook(spec: SceneSpec): { cameraPreset: string; shotSize: string } {
+  if (spec.stage) return { cameraPreset: spec.stage.camera, shotSize: NO_SIZE };
   const moving = spec.camera.filter((move) => move.move !== "static" && move.move !== "shake");
   const longest = [...moving].sort((a, b) => b.endFrame - b.startFrame - (a.endFrame - a.startFrame))[0];
   const largest = Math.max(0, ...spec.actors.map((actor) => actor.position.scale));
   const sized = SHOT_SIZES.find((size) => largest < size.belowScale)!.size;
-  return { cameraPreset: longest?.move ?? "static", shotSize: spec.camera.some((move) => move.move === "focus_on") ? "close" : sized };
+  const shotSize = spec.camera.some((move) => move.move === "focus_on") ? "close" : spec.actors.length > 0 ? sized : NO_SIZE;
+  return { cameraPreset: longest?.move ?? "static", shotSize };
 }
 
 // The first shot (not in `skip`) that makes 3 in a row, and what it must avoid so no run passes through it.
@@ -164,22 +188,29 @@ export function avoidFor(looks: { cameraPreset: string; shotSize: string }[], in
 }
 
 function runEndsAt(values: string[], at: number): boolean {
-  return values[at] === values[at - 1] && values[at] === values[at - 2];
+  return values[at] !== NO_SIZE && values[at] === values[at - 1] && values[at] === values[at - 2];
 }
 
 // Values that would complete a run of 3 at `at`: shared by the two shots before it, the two after it, or the
 // ones either side.
 function avoidAt(values: string[], at: number): string[] {
   const pairs: [number, number][] = [[at - 2, at - 1], [at - 1, at + 1], [at + 1, at + 2]];
-  const repeated = pairs.filter(([a, b]) => values[a] !== undefined && values[a] === values[b]).map(([a]) => values[a]!);
+  const repeated = pairs.filter(([a, b]) => values[a] !== undefined && values[a] !== NO_SIZE && values[a] === values[b]).map(([a]) => values[a]!);
   return [...new Set(repeated)];
 }
 
-function checkAvoid(spec: SceneSpec, avoid: ShotLook | undefined): Issue[] {
+function checkAvoid(spec: SceneSpec, avoid: ShotLook | undefined, stage: Catalog["backgrounds"][number]["stage"]): Issue[] {
   if (!avoid) return [];
   const look = shotLook(spec);
   const issues: Issue[] = [];
-  if (avoid.cameraPreset.includes(look.cameraPreset)) {
+  if (avoid.cameraPreset.includes(look.cameraPreset) && stage) {
+    issues.push({
+      path: "stage.camera",
+      problem: `"${look.cameraPreset}" would make 3 shots in a row from the same camera`,
+      allowed: stage.cameras.map((camera) => camera.id).filter((id) => !avoid.cameraPreset.includes(id)),
+      fix: "Pick one of these.",
+    });
+  } else if (avoid.cameraPreset.includes(look.cameraPreset)) {
     issues.push({
       path: "camera",
       problem: `the main camera move is "${look.cameraPreset}", which would make 3 shots in a row with the same move`,
