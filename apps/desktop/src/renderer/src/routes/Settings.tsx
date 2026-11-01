@@ -16,6 +16,7 @@ import {
 import { api, type AiStatus, type Settings, type Theme, type VoiceInfo } from "@/lib/api.ts";
 import type { VoiceModelStatus } from "../../../shared/api.ts";
 import { VoiceDownloadProgress } from "../components/VoiceDownloadProgress.tsx";
+import { voiceLanguageProblem } from "../../../shared/voice-availability.ts";
 import { report, setNavigationGuard, useApp } from "@/lib/store.ts";
 import { EPISODE_COUNTS, LANGUAGE_OPTIONS } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -104,8 +105,7 @@ export function SettingsPage() {
     const timer = setInterval(() => void refresh(), 1500);
     return () => { disposed = true; clearInterval(timer); };
   }, []);
-  const requiredModel = draft.defaults.language.split(/[-_]/)[0] === "en" ? "english" : "multilingual";
-  const neuralReady = models.some((model) => model.id === requiredModel && model.state === "ready");
+  const neuralReady = !voiceLanguageProblem(draft.defaults.language, { ...draft.voice, backend: "chatterbox" }, null, models);
   const downloadBusy = models.some((model) => model.state === "downloading");
 
   const save = async () => {

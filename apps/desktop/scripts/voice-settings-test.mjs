@@ -61,6 +61,30 @@ try {
   await expect(progress).toHaveAttribute("aria-valuetext", transferText);
   await expect(progress).toHaveAttribute("aria-valuenow", /10\.416/);
   await page.screenshot({ path: path.join(artifacts, "download-bytes.png"), fullPage: true });
+  // The composer must use neural model availability, not Windows' installed languages.
+  await app.evaluate(({ ipcMain }) => {
+    ipcMain.removeHandler("moco:voice.models");
+    ipcMain.handle("moco:voice.models", () => [
+      { id: "english", name: "English", size: "3 GB", state: "not-installed", progress: 0 },
+      { id: "multilingual", name: "Multilingual", size: "3 GB", state: "ready", progress: 1 },
+    ]);
+    ipcMain.removeHandler("moco:voice.list");
+    ipcMain.handle("moco:voice.list", () => [{ id: "zira", name: "Zira", locale: "en-US" }]);
+  });
+  await page.evaluate(() => window.moco.settings.set({ defaults: { language: "hi" } }));
+  await page.getByRole("button", { name: "Studio", exact: true }).click();
+  await page.getByLabel("Story language").click();
+  await expect(page.getByRole("option", { name: /Hindi/ })).toHaveText("हिन्दी Hindi");
+  await expect(page.getByRole("option", { name: /Hindi/ })).not.toHaveAttribute("aria-disabled", "true");
+  await expect(page.getByRole("option", { name: /Tamil/ })).toHaveText(/not supported by Chatterbox/);
+  await expect(page.getByRole("option", { name: /English/ })).toHaveText(/download English voice model/);
+  await page.getByRole("option", { name: /Hindi/ }).click();
+  await page.getByLabel("What story will you tell?").fill("A 45-second reel about Arjuna and Krishna.");
+  await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeEnabled();
+  await page.screenshot({ path: path.join(artifacts, "hindi-composer.png"), fullPage: true });
+  await page.evaluate(() => window.moco.settings.set({ voice: { backend: "system" } }));
+  await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeDisabled();
+  await expect(page.getByText("Narration unavailable: no system voice installed.", { exact: false })).toBeVisible();
   assert.deepEqual(errors, []);
-  console.log("PASS: system default, explicit downloads, readiness gate, selection, save, and accessible shadcn progress with MB downloaded/remaining. No weights downloaded.");
+  console.log("PASS: voice settings, download progress, and composer language choices honor the selected voice engine. No weights downloaded.");
 } finally { await app.close(); }

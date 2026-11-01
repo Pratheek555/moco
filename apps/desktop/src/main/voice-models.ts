@@ -2,6 +2,7 @@ import { spawn } from "node:child_process";
 import { mkdir, readFile, stat, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { VoiceModelId, VoiceModelStatus } from "../shared/api.ts";
+export { modelForLanguage } from "../shared/voice-availability.ts";
 
 export const MODEL_FILES = {
   english: ["ve.safetensors", "t3_cfg.safetensors", "s3gen.safetensors", "tokenizer.json", "conds.pt"],
@@ -15,9 +16,6 @@ export interface VoiceRuntime { python: string; workerDir: string; modelsDir: st
 export function voiceRuntimePaths(userData: string, workerDir: string): VoiceRuntime {
   return { python: join(userData, "voice", "runtime", process.platform === "win32" ? "Scripts/python.exe" : "bin/python"),
     workerDir, modelsDir: join(userData, "voice", "models") };
-}
-export function modelForLanguage(language: string): VoiceModelId {
-  return language.toLowerCase().split(/[-_]/)[0] === "en" ? "english" : "multilingual";
 }
 export async function modelReady(modelsDir: string, id: VoiceModelId): Promise<boolean> {
   try {
