@@ -10,6 +10,7 @@
   },
   "main": "./src/index.ts",
   "exports": {
+    "./chatterbox": "./src/chatterbox.ts",
     ".": "./src/index.ts",
     "./supertonic": "./src/supertonic.ts"
   }

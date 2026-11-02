@@ -68,10 +68,11 @@ export function pickVoice(voices: VoiceInfo[], language: string, chosen: string 
 
 // The lines one after another with a pause between them, and every word's time in the joined audio.
 export function joinLines(lines: Line[], spoken: Pcm[]): { pcm: Pcm; words: TimedWord[] } {
+  if (lines.length !== spoken.length) throw new Error("Every narration line needs exactly one audio clip");
   const sampleRate = spoken[0]?.sampleRate ?? 16_000;
-  const pause = Math.round(PAUSE_SECONDS * sampleRate);
+  const pauseAt = (index: number) => Math.round((lines[index]?.delivery?.pauseAfterMs ?? PAUSE_SECONDS * 1000) * sampleRate / 1000);
   const tail = Math.round(TAIL_SECONDS * sampleRate);
-  const total = spoken.reduce((sum, pcm) => sum + pcm.samples.length + pause, 0) - pause + tail;
+  const total = spoken.reduce((sum, pcm, index) => sum + pcm.samples.length + (index < spoken.length - 1 ? pauseAt(index) : 0), 0) + tail;
   const samples = new Float32Array(Math.max(total, tail));
   const words: TimedWord[] = [];
 
@@ -80,7 +81,7 @@ export function joinLines(lines: Line[], spoken: Pcm[]): { pcm: Pcm; words: Time
     if (pcm.sampleRate !== sampleRate) throw new Error(`line ${index} came back at ${pcm.sampleRate} Hz, the others at ${sampleRate} Hz`);
     samples.set(pcm.samples, offset);
     words.push(...timeWords(lines[index]!, offset / sampleRate, pcm.samples.length / sampleRate));
-    offset += pcm.samples.length + pause;
+    offset += pcm.samples.length + pauseAt(index);
   }
   return { pcm: { sampleRate, samples }, words };
 }

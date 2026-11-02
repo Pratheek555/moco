@@ -11,6 +11,7 @@ export interface HostPort {
 
 export const ENGINE_METHODS = [
   "createSeries",
+  "extendSeries",
   "listSeries",
   "runStage",
   "approve",

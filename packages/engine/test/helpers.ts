@@ -83,6 +83,11 @@ export function validAnswer(request: AiRequest, task: string): unknown {
         episodes: Array.from({ length: episodes }, (_, i) => ({ id: `ep-${String(i + 1).padStart(2, "0")}`, title: `Episode ${i + 1}`, synopsis: "A beat." })),
       };
     }
+    case "series_extend": {
+      const { episodes, firstId } = section<{ episodes: number; firstId: string }>(request.prompt, "Request");
+      const first = Number(firstId.slice(3));
+      return { episodes: Array.from({ length: episodes }, (_, i) => ({ id: `ep-${String(first + i).padStart(2, "0")}`, title: `Episode ${first + i}`, synopsis: "A later beat." })) };
+    }
     case "bible":
       return {
         cast: [

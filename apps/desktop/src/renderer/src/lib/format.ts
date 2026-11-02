@@ -32,6 +32,9 @@ export const seconds = (s?: number) =>
       ? `${Math.round(s)}s`
       : `${Math.floor(s / 60)}:${String(Math.round(s % 60)).padStart(2, "0")}`;
 
+// Episodes a new series can start with. "Add episodes" on a series plans more later.
+export const EPISODE_COUNTS = [1, 2, 3, 5, 10, 20];
+
 export const LANGUAGE_OPTIONS = [
   { value: "en", label: "English" },
   { value: "hi", label: "हिन्दी Hindi" },

@@ -9,7 +9,9 @@ import * as z from "zod";
 //          CameraMove "focus_on" + castId, SeriesBible.style.grade. All additive with defaults: old data parses as-is.
 //   0.3.0: PublishDefaults, PublishKit (new artifact kinds; nothing existing changed).
 //   0.4.0: PublishKit.thumbnail, AiPublishCopy.thumbnail (optional: old kits parse as-is).
-export const SPEC_VERSION = "0.5.0";
+//   0.5.0: Generated world schema and per-series world rendering.
+//   0.6.0: ScriptLine.delivery (optional performance directions; old scripts parse as-is).
+export const SPEC_VERSION = "0.6.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -204,11 +206,20 @@ export type ContinuityUpdate = z.infer<typeof ContinuityUpdate>;
 
 // ---------- Episode level ----------
 
+// Optional on old scripts. Directions are metadata, never spoken or printed in captions.
+export const Delivery = z.object({
+  emotion: z.enum(["neutral", "warm", "tense", "awed", "grieving", "resolute"]).default("neutral"),
+  intensity: z.number().min(0).max(1).default(0.5),
+  pauseAfterMs: z.number().int().min(0).max(2000).default(300),
+});
+export type Delivery = z.infer<typeof Delivery>;
+
 export const ScriptLine = z.object({
   id: z.string().min(1),
   text: z.string().min(1),
   beat: z.string(),
   speaker: z.string().default("narrator"),
+  delivery: Delivery.optional(),
 });
 export type ScriptLine = z.infer<typeof ScriptLine>;
 

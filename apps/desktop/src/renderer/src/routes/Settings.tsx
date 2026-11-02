@@ -14,8 +14,11 @@ import {
   VideoIcon,
 } from "lucide-react";
 import { api, type AiStatus, type Settings, type Theme, type VoiceInfo } from "@/lib/api.ts";
+import type { VoiceModelStatus } from "../../../shared/api.ts";
+import { VoiceDownloadProgress } from "../components/VoiceDownloadProgress.tsx";
+import { voiceLanguageProblem } from "../../../shared/voice-availability.ts";
 import { report, setNavigationGuard, useApp } from "@/lib/store.ts";
-import { LANGUAGE_OPTIONS } from "@/lib/format.ts";
+import { EPISODE_COUNTS, LANGUAGE_OPTIONS } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import {
   AlertDialog,
@@ -53,6 +56,7 @@ import { Page, PageHeader } from "../components/Page.tsx";
 
 const SYSTEM_VOICE = "system"; // Select items can't have an empty value; "" means the system voice.
 const PREVIEW_LINE = "Every story starts with one small, stubborn step into the unknown.";
+const HINDI_PREVIEW_LINE = "हर कहानी एक छोटे से कदम से शुरू होती है। डर के आगे बढ़ो, और अपनी कहानी खुद लिखो।";
 
 export function SettingsPage() {
   const settings = useApp((s) => s.settings)!,
@@ -63,6 +67,8 @@ export function SettingsPage() {
     [saving, setSaving] = useState(false),
     [checking, setChecking] = useState(false),
     [voices, setVoices] = useState<VoiceInfo[]>([]),
+    [models, setModels] = useState<VoiceModelStatus[]>([]),
+    [modelError, setModelError] = useState(""),
     [previewing, setPreviewing] = useState(false),
     [leaving, setLeaving] = useState<(() => void) | null>(null);
   // Appearance applies at once (like the switch in the top bar), so it isn't part of the draft.
@@ -92,6 +98,15 @@ export function SettingsPage() {
     void check();
     api.voice.list().then(setVoices).catch(report);
   }, []);
+  useEffect(() => {
+    let disposed = false;
+    const refresh = () => api.voice.models().then((next) => { if (!disposed) { setModels(next); setModelError(""); } }).catch((error) => { if (!disposed) setModelError(String(error)); });
+    void refresh();
+    const timer = setInterval(() => void refresh(), 1500);
+    return () => { disposed = true; clearInterval(timer); };
+  }, []);
+  const neuralReady = !voiceLanguageProblem(draft.defaults.language, { ...draft.voice, backend: "chatterbox" }, null, models);
+  const downloadBusy = models.some((model) => model.state === "downloading");
 
   const save = async () => {
     setSaving(true);
@@ -111,7 +126,7 @@ export function SettingsPage() {
   const hearVoice = async () => {
     setPreviewing(true);
     try {
-      const result = await api.voice.preview(PREVIEW_LINE);
+      const result = await api.voice.preview(settings.defaults.language.split(/[-_]/)[0] === "hi" ? HINDI_PREVIEW_LINE : PREVIEW_LINE);
       if (result.error) report(result.error);
       else if (result.url) await new Audio(result.url).play();
     } catch (e) {
@@ -178,9 +193,51 @@ export function SettingsPage() {
         <TabsContent value="voice" className="max-w-xl">
           <Section
             title="Narration"
-            description="The voices that come with your computer. Free, offline and always available."
+            description="Use your computer's voices right away, or download an optional expressive neural voice. Models are stored separately from the app."
           >
             <Field>
+              <FieldLabel htmlFor="voice-backend">Voice engine</FieldLabel>
+              <Select value={draft.voice.backend ?? "system"} onValueChange={(backend) => patch("voice", { ...draft.voice, backend: backend as "chatterbox" | "system" })}>
+                <SelectTrigger id="voice-backend" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="chatterbox" disabled={!neuralReady}>Chatterbox · {neuralReady ? "expressive neural voice" : "download a model below"}</SelectItem>
+                  <SelectItem value="system">System speech · basic offline voice</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldDescription>System speech needs no downloads. Chatterbox becomes available after the model for your default story language is installed.</FieldDescription>
+            </Field>
+            <FieldSet>
+              <FieldLegend>Optional voice models</FieldLegend>
+              <FieldDescription>Nothing downloads until you choose Download. Each model needs about 3 GB, plus several GB for the shared voice runtime. Downloading does not change your selected voice.</FieldDescription>
+              {modelError && <p role="alert" className="text-sm text-destructive">Could not check voice models: {modelError}</p>}
+              {!modelError && models.length === 0 && <p role="status" className="text-sm text-muted-foreground">Checking available voice models…</p>}
+              {models.map((model) => <div key={model.id} className="rounded-lg border p-4 space-y-3">
+                <div className="flex items-start justify-between gap-4">
+                  <div><p className="text-sm font-medium">{model.name}</p><p className="text-xs text-muted-foreground mt-1">{model.size}</p></div>
+                  {model.state === "ready" ? <span className="text-sm text-muted-foreground">Installed</span> : model.state === "downloading" ?
+                    <Button variant="outline" size="sm" onClick={() => void api.voice.cancelDownload().catch(report)}>Cancel</Button> :
+                    <Button variant="outline" size="sm" disabled={downloadBusy} onClick={async () => {
+                      try { await api.voice.download(model.id); setModels(await api.voice.models()); } catch (error) { report(error); }
+                    }}>{model.state === "error" ? "Retry download" : "Download"}</Button>}
+                </div>
+                {model.state === "downloading" && <VoiceDownloadProgress model={model} />}
+                {model.message && <p role={model.state === "error" ? "alert" : "status"} className="text-xs text-muted-foreground">{model.message}</p>}
+              </div>)}
+              {models.some((model) => model.state === "error" && model.message?.includes("Install uv")) && <Button variant="link" className="self-start" onClick={() => void api.app.openExternal("https://docs.astral.sh/uv/getting-started/installation/")}>Get the optional voice installer</Button>}
+            </FieldSet>
+            {draft.voice.backend === "chatterbox" && <>
+              <Field>
+                <FieldLabel htmlFor="voice-reference">Performance reference (optional)</FieldLabel>
+                <InputGroup><InputGroupInput id="voice-reference" value={draft.voice.reference ?? ""} placeholder="Path to a clean 6–10 second voice recording" onChange={(event) => patch("voice", { ...draft.voice, reference: event.target.value })} /></InputGroup>
+                <FieldDescription>Use a clean recording of your narrator. Leave empty to use the built-in voice. A reference guides tone, accent and delivery.</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="expressiveness">Expressiveness</FieldLabel>
+                <Slider id="expressiveness" aria-label="Voice expressiveness" min={0} max={1} step={0.05} value={[draft.voice.expressiveness ?? 0.65]} onValueChange={([expressiveness]) => patch("voice", { ...draft.voice, expressiveness: expressiveness ?? 0.65 })} />
+                <FieldDescription>Subtle to dramatic. Each script line also carries its own emotional intensity and pause.</FieldDescription>
+              </Field>
+            </>}
+            {draft.voice.backend !== "chatterbox" && <Field>
               <FieldLabel htmlFor="voice">Voice</FieldLabel>
               <Select
                 value={draft.voice.voice || SYSTEM_VOICE}
@@ -201,7 +258,7 @@ export function SettingsPage() {
                   </SelectGroup>
                 </SelectContent>
               </Select>
-            </Field>
+            </Field>}
             <Field>
               <div className="flex items-center justify-between gap-4">
                 <FieldLabel htmlFor="rate">Speed</FieldLabel>
@@ -218,7 +275,7 @@ export function SettingsPage() {
               />
             </Field>
             <Field orientation="horizontal">
-              <Button variant="outline" disabled={dirty || previewing} onClick={() => void hearVoice()}>
+              <Button variant="outline" disabled={dirty || previewing || (draft.voice.backend === "chatterbox" && !neuralReady)} onClick={() => void hearVoice()}>
                 {previewing ? <Spinner data-icon="inline-start" aria-hidden /> : <PlayIcon data-icon="inline-start" />}
                 Hear it
               </Button>
@@ -288,7 +345,7 @@ export function SettingsPage() {
                   </SelectTrigger>
                   <SelectContent>
                     <SelectGroup>
-                      {[1, 2, 3, 5].map((n) => (
+                      {EPISODE_COUNTS.map((n) => (
                         <SelectItem key={n} value={String(n)}>
                           {n} {n === 1 ? "episode" : "episodes"}
                         </SelectItem>

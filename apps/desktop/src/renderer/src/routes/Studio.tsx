@@ -13,7 +13,7 @@ import type { SeriesSummary } from "@/lib/api.ts";
 import { api } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
 import { newSeries, report, useApp } from "@/lib/store.ts";
-import { IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
+import { EPISODE_COUNTS, IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,8 +49,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CastArt } from "../components/CastArt.tsx";
 import { Page, PageHeader } from "../components/Page.tsx";
 import { SeriesCard } from "../components/SeriesCard.tsx";
-
-const EPISODE_COUNTS = [1, 2, 3, 5];
+import { voiceLanguageProblem } from "../../../shared/voice-availability.ts";
 
 // Quick starts under the idea box: a label and the idea it fills in.
 const SPARKS = [
@@ -71,9 +70,15 @@ export function Studio() {
     [starting, setStarting] = useState(false);
 
   const { data: voices } = useAsync(() => api.voice.list(), []);
-  // An empty list means the voices couldn't be read, not that none exist.
-  const noVoice = (code: string) =>
-    Boolean(voices?.length) && !voices!.some((voice) => voice.locale.split("-")[0] === code);
+  const { data: models, error: modelError, reload: reloadModels } = useAsync(() => api.voice.models(), [settings.voice.backend]);
+  useEffect(() => {
+    if (!models?.some((model) => model.state === "downloading")) return;
+    const timer = setTimeout(reloadModels, 1500);
+    return () => clearTimeout(timer);
+  }, [models]);
+  const voiceProblem = (code: string) => settings.voice.backend === "chatterbox" && modelError
+    ? "could not check voice models" : voiceLanguageProblem(code, settings.voice, voices, models);
+  const selectedVoiceProblem = voiceProblem(language);
 
   // Check Claude Code once, so a missing setup shows here instead of failing after "Create series".
   useEffect(() => {
@@ -82,6 +87,7 @@ export function Studio() {
 
   const submit = async () => {
     if (!idea.trim() || starting) return;
+    if (selectedVoiceProblem) { report(`Narration unavailable: ${selectedVoiceProblem}. Check Voice & narration in Settings.`); return; }
     setStarting(true);
     try {
       const id = await api.series.create({ idea: idea.trim(), episodes, language });
@@ -187,9 +193,9 @@ export function Studio() {
                 <SelectContent>
                   <SelectGroup>
                     {LANGUAGE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value} disabled={noVoice(option.value)}>
+                      <SelectItem key={option.value} value={option.value} disabled={Boolean(voiceProblem(option.value))}>
                         {option.label}
-                        {noVoice(option.value) ? " (no voice installed)" : ""}
+                        {voiceProblem(option.value) ? ` (${voiceProblem(option.value)})` : ""}
                       </SelectItem>
                     ))}
                   </SelectGroup>
@@ -202,7 +208,7 @@ export function Studio() {
               <InputGroupButton
                 variant="default"
                 size="sm"
-                disabled={!idea.trim() || starting}
+                disabled={!idea.trim() || starting || Boolean(selectedVoiceProblem)}
                 onClick={() => void submit()}
               >
                 {starting ? <Spinner data-icon="inline-start" aria-hidden /> : <SparklesIcon data-icon="inline-start" />}
@@ -213,6 +219,10 @@ export function Studio() {
           <FieldDescription>
             Any story works: Moco builds a cast and world for it. It plans the series, then stops so you can review each step.
           </FieldDescription>
+          {selectedVoiceProblem && <FieldDescription>
+            Narration unavailable: {selectedVoiceProblem}.
+            <Button variant="link" size="sm" onClick={() => go({ name: "settings", section: "voice" })}>Open voice settings</Button>
+          </FieldDescription>}
         </Field>
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-sm text-muted-foreground">Need a spark?</span>

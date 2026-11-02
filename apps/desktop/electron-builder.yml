@@ -7,6 +7,12 @@ files:
   - out/**
   - package.json
 extraResources:
+  # Small worker scripts only. Python, dependencies and model weights are opt-in downloads.
+  - from: ../../packages/audio/python
+    to: voice-worker
+    filter:
+      - "*.py"
+      - "!test_*.py"
   - from: resources/icon.png
     to: icon.png
   - from: ../../packages/renderer/build

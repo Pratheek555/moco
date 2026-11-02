@@ -6,12 +6,26 @@ import type { Catalog } from "@moco/kit";
 import type { PublishDefaults, PublishKit } from "@moco/spec";
 
 export type Theme = "light" | "dark" | "system";
+export type VoiceModelId = "english" | "multilingual";
+export interface VoiceModelStatus {
+  id: VoiceModelId;
+  name: string;
+  size: string;
+  state: "not-installed" | "downloading" | "ready" | "error";
+  progress: number;
+  downloadedBytes?: number;
+  totalBytes?: number;
+  message?: string;
+}
 
 export interface Settings {
   onboarded: boolean;
   theme: Theme;
   projectsDir: string;
   voice: {
+    backend?: "chatterbox" | "system";
+    reference?: string; // local performance reference WAV
+    expressiveness?: number;
     voice: string; // an installed OS voice; "" = the system default
     rate: number; // 1 = normal speed
   };
@@ -75,6 +89,9 @@ export interface MocoApi {
   };
   voice: {
     list(): Promise<VoiceInfo[]>;
+    models(): Promise<VoiceModelStatus[]>;
+    download(model: VoiceModelId): Promise<void>;
+    cancelDownload(): Promise<void>;
     preview(text: string): Promise<{ url?: string; error?: string }>;
   };
   kit: {
@@ -83,6 +100,7 @@ export interface MocoApi {
   series: {
     list(): Promise<SeriesSummary[]>;
     create(input: { idea: string; language: string; episodes: number }): Promise<string>; // creates and starts planning
+    extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
     status(id: string): Promise<SeriesStatus>;
     artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;
     remove(id: string): Promise<void>;
