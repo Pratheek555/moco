@@ -3,7 +3,7 @@ import { readFileSync } from "node:fs";
 import type { InputRef } from "@moco/spec";
 import { sha256 } from "../store/hash.ts";
 
-export type PromptName = "series" | "bible" | "script" | "shots" | "scene" | "memory" | "publish";
+export type PromptName = "series" | "series_extend" | "bible" | "world" | "script" | "shots" | "scene" | "memory" | "publish";
 
 export function loadPrompt(name: PromptName): string {
   return readFileSync(new URL(`./prompts/${name}.md`, import.meta.url), "utf8");

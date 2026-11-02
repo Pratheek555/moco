@@ -57,10 +57,15 @@ export function catalogSlice(catalog: Catalog, bible: SeriesBible, shot: Shot) {
 }
 
 // The stage's first option of each kind, so a fallback shot on a 3D stage still renders.
-function stageDefault(location: string, catalog: Catalog) {
-  const stage = catalog.backgrounds.find((background) => background.id === location)?.stage;
+function stageDefault(shot: Shot, catalog: Catalog, bible: SeriesBible) {
+  const stage = catalog.backgrounds.find((background) => background.id === shot.location)?.stage;
   if (!stage) return {};
-  return { stage: { camera: stage.cameras[0]!.id, place: stage.places[0]!.id, subject: stage.subjects[0]!, leadStart: 0, leadEnd: 0 } };
+  // In a generated world nobody is there until the shot puts them there, so stand the shot's cast side by side.
+  const cast = stage.things ? bible.cast.filter((member) => shot.characters.includes(member.id)) : [];
+  const players = cast.map((member, index) => ({ id: member.id, model: member.kitCharacterId, at: [(index - (cast.length - 1) / 2) * 1.6, 0, 0] }));
+  const subject = players[0]?.id ?? stage.subjects[0]!;
+  const camera = stage.cameras.find((option) => option.id === "wide") ?? stage.cameras[0]!; // a generated world opens on a far establishing shot
+  return { stage: { camera: camera.id, place: stage.places[0]!.id, subject, leadStart: 0, leadEnd: 0, players } };
 }
 
 // Continuity facts about the characters and location in this shot.
@@ -71,7 +76,7 @@ export function relevantFacts(memory: SeriesMemory | undefined, shot: Shot) {
 
 // Deterministic safe shot used when the AI can't produce a valid scene: background,
 // captions straight from the voiceover words, a slow push-in. Flagged `fallback: true` for the UI.
-export function fallbackScene(brief: SceneBrief, catalog: Catalog): SceneSpec {
+export function fallbackScene(brief: SceneBrief, catalog: Catalog, bible: SeriesBible): SceneSpec {
   const wordsPerCaption = 3;
   const captions: SceneSpec["captions"] = [];
   for (let start = 0; start < brief.words.length; start += wordsPerCaption) {
@@ -86,7 +91,7 @@ export function fallbackScene(brief: SceneBrief, catalog: Catalog): SceneSpec {
     shotId: brief.shot.id,
     durationFrames: brief.durationFrames,
     background: { id: brief.shot.location, parallax: true },
-    ...stageDefault(brief.shot.location, catalog),
+    ...stageDefault(brief.shot, catalog, bible),
     actors: [],
     props: [],
     camera: [{ move: "push_in", startFrame: 0, endFrame: brief.durationFrames, amount: 0.1 }],

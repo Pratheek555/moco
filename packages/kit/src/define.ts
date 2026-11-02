@@ -1,7 +1,7 @@
 // How kit entries are declared. The catalog the engine reads is generated from these definitions,
 // so the AI is only ever offered actions that a component really draws.
 import type { ComponentType } from "react";
-import type { SceneStage } from "@moco/spec";
+import type { SceneSpec, SceneStage } from "@moco/spec";
 import type { CharacterArt } from "./art/load.ts";
 import type { IdleProfile } from "./index.ts";
 import type { RigState } from "./rig.ts";
@@ -83,6 +83,7 @@ export interface StageProps {
   frame: number;
   durationFrames: number;
   timeOfDay: string;
+  world?: SceneSpec["world"]; // a generated world, on its one generic stage
 }
 
 // A 3D world. `Component` draws inside the renderer's Three canvas; the AI directs it through the options.

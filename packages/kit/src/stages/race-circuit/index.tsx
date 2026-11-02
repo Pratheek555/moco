@@ -21,7 +21,7 @@ function PlacedCar({ colour, car, nod = 0 }: { colour: string; car: { pose: { po
   );
 }
 
-function Lens({ eye, target, fov }: { eye: THREE.Vector3; target: THREE.Vector3; fov: number }) {
+export function Lens({ eye, target, fov }: { eye: THREE.Vector3; target: THREE.Vector3; fov: number }) {
   // Set during render, not in an effect: ThreeCanvas draws its frame before effects run.
   const camera = useThree((state) => state.camera) as THREE.PerspectiveCamera;
   camera.fov = fov;

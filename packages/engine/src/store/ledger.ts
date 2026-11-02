@@ -44,6 +44,9 @@ export interface Decision {
 
 export interface LedgerData {
   episodeIds: string[]; // from the current series plan, in order; empty before it exists
+  // Set by extendSeries until the longer plan is approved: series_plan keeps the first `keep` episodes and plans
+  // the rest, steered by `note`.
+  planExtension?: { keep: number; note?: string };
   artifacts: Record<string, ArtifactRecord>; // key: file path relative to the series folder
   stages: Record<string, StageRecord>; // key: "bible" or "ep-01/script"
   jobs: Record<string, JobRecord>;

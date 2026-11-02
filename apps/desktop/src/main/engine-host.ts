@@ -7,14 +7,17 @@
 // shortcut: works in dev (`pnpm dev`); a packaged build needs the packages shipped outside app.asar/node_modules
 // (Node won't strip types there) and a prebuilt Remotion bundle passed as remotion.serveUrl.
 import { claudeCli } from "@moco/ai";
-import { systemAudio } from "@moco/audio";
+import { narrationAudio } from "./narration.ts";
+import type { VoiceRuntime } from "./voice-models.ts";
+import type { Settings } from "../shared/api.ts";
 import { createEngine } from "@moco/engine";
 import { serveEngine, type HostPort } from "@moco/engine/host";
 import { createRemotionRenderPort } from "@moco/renderer";
 
 export interface EngineHostConfig {
   projectsDir: string;
-  voice: { voice: string; rate: number };
+  voice: Settings["voice"];
+  voiceRuntime: VoiceRuntime;
   concurrency: number | null; // render tabs; null = the renderer's default
   remotion?: {
     serveUrl?: string; // prebuilt bundle (packaged app)
@@ -39,8 +42,8 @@ parentPort.on("message", ({ data, ports }) => {
     projectsDir: data.projectsDir,
     ai: claudeCli(), // the user's own Claude Code session
     render: createRemotionRenderPort({ ...data.remotion, concurrency: data.concurrency }),
-    audio: systemAudio(data.voice),
-    config: { voice: { voiceId: data.voice.voice || "default", backend: "system" } },
+    audio: narrationAudio(data.voice, data.voiceRuntime),
+    config: { voice: { voiceId: data.voice.backend === "chatterbox" ? "narrator" : data.voice.voice || "default", backend: data.voice.backend ?? "system" } },
   });
   serveEngine(engine, port);
   port.start();

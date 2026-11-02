@@ -1,7 +1,7 @@
 // @moco/renderer — RenderPort on Remotion. Spec in, frames out; no AI here.
 // The engine never imports this package: the app wires it in (see apps/desktop/src/engine-host.ts).
 import { createReadStream } from "node:fs";
-import { mkdir, stat } from "node:fs/promises";
+import { mkdir, readFile, stat } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, extname, join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -10,8 +10,11 @@ import { makeCancelSignal, openBrowser, renderMedia, renderStill, selectComposit
 import { catalog } from "@moco/kit";
 import { KIT_ASSETS_DIR } from "@moco/kit/assets";
 import type { EpisodeSpec, SceneSpec } from "@moco/spec";
+import { blankReason, decodePng } from "./pixels.ts";
 
-export const RENDERER_VERSION = "0.1.0";
+// Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
+// (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
+export const RENDERER_VERSION = "0.2.0"; // 0.2.0: generated-world cameras stay on the open side of the set
 
 export interface RemotionRenderOptions {
   stillTimeoutMs?: number; // per still; a hung browser fails the check instead of blocking forever (default 60 s)
@@ -74,6 +77,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
       const inputProps = { scene: spec };
       await mkdir(outDir, { recursive: true });
       const stills: string[] = [];
+      const blank: ReturnType<typeof blankError>[] = [];
       let frame: number | undefined;
       try {
         const [url, puppeteerInstance] = await Promise.all([getServeUrl(), getBrowser()]);
@@ -85,8 +89,11 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
           const output = join(outDir, `${frame}.png`);
           await withTimeout(renderStill({ composition, serveUrl: url, output, frame, inputProps, puppeteerInstance, scale: 0.5, ...shared }), stillTimeoutMs);
           stills.push(output);
+          // A frame that renders fine but shows nothing is as broken as one that throws.
+          const reason = await blankStill(output);
+          if (reason) blank.push(blankError(spec, frame, reason));
         }
-        return { ok: true, stills };
+        return blank.length > 0 ? { ok: false, errors: blank } : { ok: true, stills };
       } catch (err) {
         // Browser trouble isn't the spec's fault: throw so the stage fails visibly, rather than
         // telling the AI to "fix" a spec that was fine.
@@ -194,6 +201,19 @@ function isInfrastructureError(err: unknown): boolean {
   if (err instanceof RenderTimeout) return true;
   const message = err instanceof Error ? err.message : String(err);
   return /Target closed|Session closed|Protocol error|browser has disconnected|Browser closed|ECONNREFUSED|socket hang up/i.test(message);
+}
+
+// A still the check can't read is the check's problem, not the spec's, so it's let through.
+async function blankStill(file: string): Promise<string | undefined> {
+  const image = await readFile(file).then(decodePng).catch(() => undefined);
+  return image && blankReason(image);
+}
+
+// On a 3D stage what the lens can see comes down to the camera, the place and the subject, so that's what to change.
+function blankError(spec: SceneSpec, frame: number, reason: string) {
+  const message = `the picture is ${reason}`;
+  if (!spec.stage) return { shotId: spec.shotId, frame, message };
+  return { shotId: spec.shotId, frame, path: "stage.camera", message: `${message}: the camera can't see anything lit. Pick another camera or place, or a subject who stands somewhere lit.` };
 }
 
 // Kit errors are thrown as "[moco:path=actors[0].actions[1].name] UnknownAction(...)"; pull the path out.

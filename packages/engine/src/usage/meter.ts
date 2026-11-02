@@ -10,7 +10,7 @@ import type { Ledger } from "../store/ledger.ts";
 export interface MeteredAi {
   backendId: string;
   // `scope` is the episode id, or "series" for series-level stages.
-  generate(request: Omit<AiRequest, "timeoutMs">, scope: string): Promise<AiResult>;
+  generate(request: Omit<AiRequest, "timeoutMs"> & { timeoutMs?: number }, scope: string): Promise<AiResult>;
 }
 
 export function meteredAi(
@@ -38,7 +38,7 @@ export function meteredAi(
       try {
         const result = await aiSlots.run(async () => {
           request.signal?.throwIfAborted(); // calls still queued when a job is stopped must not start
-          return ai.generate({ ...request, timeoutMs: config.limits.aiTimeoutMs });
+          return ai.generate({ ...request, timeoutMs: request.timeoutMs ?? config.limits.aiTimeoutMs });
         });
         ledger.data.usage.costUsdEstimate += result.usage?.costUsdEstimate ?? 0;
         return result;

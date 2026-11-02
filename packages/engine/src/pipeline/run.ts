@@ -42,6 +42,8 @@ async function runOne(ctx: StageContext, key: string): Promise<{ status: "done" 
     throw new EngineError("stage_blocked", `${key} can't run until the stages before it are complete`);
   }
   const previousHash = ctx.ledger.stage(key).artifactHash;
+  // Extending the plan only appends episodes: the bible and scripts built on the kept ones still hold.
+  const appending = key === "series_plan" && ctx.ledger.data.planExtension !== undefined;
   const feedback = ctx.ledger.stage(key).feedback;
   ctx.ledger.setStage(key, { status: "running", error: undefined });
   await ctx.ledger.save();
@@ -62,7 +64,7 @@ async function runOne(ctx: StageContext, key: string): Promise<{ status: "done" 
     ctx.ledger.setStage(key, { status, artifactHash: output.hash, feedback: undefined });
 
     // New output → everything built from the old output is stale.
-    if (previousHash && previousHash !== output.hash) {
+    if (previousHash && previousHash !== output.hash && !appending) {
       const stale = markDependantsStale(ctx.ledger, key, ctx.episodeIds());
       if (stale.length > 0) await ctx.bus.emit(ctx.seriesId, "artifact.stale", { because: key, stages: stale });
     }

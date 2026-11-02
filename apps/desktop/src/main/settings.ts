@@ -9,7 +9,7 @@ export function defaultSettings(): Settings {
     onboarded: false,
     theme: "system",
     projectsDir: path.join(app.getPath("documents"), "Moco"),
-    voice: { voice: "", rate: 1 },
+    voice: { voice: "", rate: 1, backend: "system", reference: "", expressiveness: 0.65 },
     defaults: { episodes: 1, language: "en" },
     render: { concurrency: 0 },
   };

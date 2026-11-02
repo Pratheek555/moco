@@ -83,6 +83,11 @@ export function validAnswer(request: AiRequest, task: string): unknown {
         episodes: Array.from({ length: episodes }, (_, i) => ({ id: `ep-${String(i + 1).padStart(2, "0")}`, title: `Episode ${i + 1}`, synopsis: "A beat." })),
       };
     }
+    case "series_extend": {
+      const { episodes, firstId } = section<{ episodes: number; firstId: string }>(request.prompt, "Request");
+      const first = Number(firstId.slice(3));
+      return { episodes: Array.from({ length: episodes }, (_, i) => ({ id: `ep-${String(first + i).padStart(2, "0")}`, title: `Episode ${first + i}`, synopsis: "A later beat." })) };
+    }
     case "bible":
       return {
         cast: [
@@ -140,4 +145,35 @@ export async function approveNext(engine: Engine, seriesId: string) {
   const stage = status.stages.find((candidate) => candidate.key === (status.next as { key: string }).key)!;
   await engine.approve({ seriesId, key: stage.key }, stage.artifactHash!);
   return stage.key;
+}
+
+interface TestPart {
+  id: string;
+  parent?: string | null;
+  shape: string;
+  size: number[];
+  surface: string;
+}
+
+// The smallest sound generated world: a humanoid, a thing with a move of its own, and one location.
+export function testWorld() {
+  const joints = ["hips", "chest", "head", "arm_L", "arm_R", "forearm_L", "forearm_R", "leg_L", "leg_R", "shin_L", "shin_R"];
+  const parentOf: Record<string, string> = { chest: "hips", head: "chest", arm_L: "chest", arm_R: "chest", forearm_L: "arm_L", forearm_R: "arm_R", leg_L: "hips", leg_R: "hips", shin_L: "leg_L", shin_R: "leg_R" };
+  const shape = { shape: "capsule", size: [0.2, 0.5, 0.2], surface: "skin" };
+  const surface = { colour: "#c08060" };
+  return {
+    models: [
+      { id: "hero", rig: "humanoid", height: 1.8, surfaces: { skin: surface } as Record<string, typeof surface>, parts: joints.map((id): TestPart => ({ id, parent: parentOf[id], ...shape })), moves: [] },
+      { id: "crate", height: 1, surfaces: { skin: surface } as Record<string, typeof surface>, parts: [{ id: "box", ...shape }] as TestPart[], moves: [{ name: "rattle", keys: [{ at: 0, turn: { box: [0, 0, 8] } }, { at: 1, turn: {} }] }] },
+    ],
+    locations: [{
+      id: "harbour",
+      hint: "A small stone harbour.",
+      sky: { top: "#203060", middle: "#6080b0", horizon: "#f0c090", sunAzimuth: 60, sunElevation: 20, sunColour: "#ffe0b0", sunStrength: 3, fill: 1, fog: "#f0c090", fogDensity: 0.005 },
+      ground: { kind: "water", surface: { colour: "#204060" } },
+      set: [] as { model: string; at: number[] }[],
+      marks: [{ id: "dock", hint: "The end of the dock.", at: [0, 0, 0] }],
+    }],
+    cast: [{ id: "hero", model: "hero", description: "A young sailor." }],
+  };
 }

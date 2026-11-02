@@ -3,7 +3,8 @@
 // (something moves at least every 3 s, emphasis gets a camera move, no 3 same-looking shots in a row).
 // Each check returns issues phrased for the model (see feedback.ts).
 import type { Catalog, CatalogCharacter } from "@moco/kit";
-import { CameraMove as CameraMoveSchema, type CameraMove, type Caption, type SceneAction, type SceneActor, type SceneSpec, type SeriesBible, type Shot } from "@moco/spec";
+import { CameraMove as CameraMoveSchema, type CameraMove, type Caption, type SceneAction, type SceneActor, type ScenePlayer, type SceneSpec, type SeriesBible, type Shot } from "@moco/spec";
+import { isSubject } from "@moco/kit";
 import type { Issue } from "./feedback.ts";
 
 // Everything a scene is checked against.
@@ -33,6 +34,7 @@ export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
   return [
     ...checkShotIdentity(spec, rules.brief),
     ...(spec.stage ? [] : checkCastPresent(spec, rules.brief)), // a 3D stage shows its cast through the world
+    ...checkPlayers(spec, rules),
     ...(spec.stage ? [] : checkSomethingMoves(spec)), // the cars and rigs are always moving
     ...checkBackground(spec, rules),
     ...checkStage(spec, rules.catalog),
@@ -129,9 +131,40 @@ function checkStage(spec: SceneSpec, catalog: Catalog): Issue[] {
   return [
     ...checkKnownId(spec.stage.camera, "stage.camera", "stage camera", stage.cameras.map((camera) => camera.id)),
     ...checkKnownId(spec.stage.place, "stage.place", "stage place", stage.places.map((place) => place.id)),
-    ...checkKnownId(spec.stage.subject, "stage.subject", "stage subject", stage.subjects),
+    // A generated world's camera can follow anything in the shot (see checkPlayers): a boat, a tower, not just the cast.
+    // Held to the cast, a shot of the boat alone had no right answer, and the AI put the lighthouse keeper on the boat.
+    ...(stage.things ? [] : checkKnownId(spec.stage.subject, "stage.subject", "stage subject", stage.subjects)),
     ...unused,
   ];
+}
+
+// Who is in a shot of a generated world, and whether they can do what it asks of them.
+function checkPlayers(spec: SceneSpec, rules: SceneRules): Issue[] {
+  const things = stageOf(spec, rules.catalog)?.things;
+  if (!things || !spec.stage) return [];
+  const players = spec.stage.players;
+  const ids = players.map((player) => player.id);
+  const missing = rules.brief.shot.characters.filter((castId) => !ids.includes(castId));
+  return [
+    ...(missing.length > 0 ? [{ path: "stage.players", problem: `missing ${missing.join(", ")} (the shot list puts them in this shot)`, fix: "Add them as players." }] : []),
+    // A player's model id is as clear as its own id: nothing is gained by sending the shot back over which was used.
+    ...(players.some((player) => isSubject(player, spec.stage!.subject)) ? [] : [{ path: "stage.subject", problem: `"${spec.stage.subject}" isn't one of the players`, allowed: ids, fix: "Pick one." }]),
+    ...players.flatMap((player, index) => checkPlayer(player, `stage.players[${index}]`, spec, things)),
+  ];
+}
+
+type Things = NonNullable<NonNullable<Catalog["backgrounds"][number]["stage"]>["things"]>;
+
+function checkPlayer(player: ScenePlayer, path: string, spec: SceneSpec, things: Things): Issue[] {
+  const thing = things.find((candidate) => candidate.id === player.model);
+  if (!thing) return checkKnownId(player.model, `${path}.model`, "model", things.map((candidate) => candidate.id));
+  return player.actions.flatMap((action, index) => {
+    const actionPath = `${path}.actions[${index}]`;
+    const move = thing.moves.find((candidate) => candidate.name === action.name);
+    if (!move) return checkKnownId(action.name, `${actionPath}.name`, `${thing.id} move`, thing.moves.map((candidate) => candidate.name));
+    const long = action.endFrame - action.startFrame >= move.minFrames ? [] : [{ path: actionPath, problem: `${move.name} needs at least ${move.minFrames} frames`, fix: "Make it longer, or pick a shorter move." }];
+    return [...long, ...checkFrameRange(action, actionPath, spec.durationFrames)];
+  });
 }
 
 // An emphasised caption is the shot's key line: the camera should move in on it.

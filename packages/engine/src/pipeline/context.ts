@@ -1,5 +1,6 @@
 // Everything a stage needs to run, bundled once per job.
 import type { Catalog } from "@moco/kit";
+import type { World } from "@moco/spec";
 import type { EngineConfig } from "../config.ts";
 import type { EventBus } from "../events/bus.ts";
 import type { Semaphore } from "../jobs/semaphore.ts";
@@ -24,7 +25,9 @@ export interface StageContext {
   series: SeriesInfo;
   dir: string; // absolute series folder
   config: EngineConfig;
-  catalog: Catalog;
+  catalog: Catalog; // the kit, or the series' own world made into a catalog
+  world?: World; // set for a story the kit can't play
+  useWorld: (world: World) => void; // switches this series to its world, for this job and later ones
   store: ArtifactStore;
   ledger: Ledger;
   bus: EventBus;

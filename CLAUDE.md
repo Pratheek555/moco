@@ -4,15 +4,15 @@ A one-time-purchase desktop app that turns an idea (e.g. "a Mahabharat series") 
 How it works
 • The user types a story or series idea.
 • Claude/ChatGPT breaks it into episodes and scenes.
-• The AI writes scene specs (JSON, validated by @moco/spec) that the renderer turns into animation using a pre-built character kit.
+• The AI writes scene specs (JSON, validated by @moco/spec) that the renderer turns into animation, using the pre-built kit if the story fits it and otherwise a 3D world the AI builds as data (World in @moco/spec, drawn by packages/kit/src/stages/world).
 • The app renders it locally to a 9:16 MP4 with voiceover, captions and music.
 • Rendering errors go back to the AI to fix automatically.
 Business model
 • Lifetime licence (pay once). The user brings their own AI subscription.
 • The selling point: everyone else (Mootion, InVideo, Predis, HeyGen, VEED) charges monthly and per video.
 Target customers (MVP)
-• Indian mythology, devotional and history Instagram pages
-• Faceless channel operators running several pages
+• Faceless channel operators running several pages, in any genre
+• Mythology, devotional and history Instagram pages were the first audience, but a story never has to fit the kit: the AI builds a cast and world for it
 The harness (core engine)
 1. Planner: turns the script into a shot list fitted to 30–60s
 2. Character kit / consistency: reusable layered SVG characters, poses and expressions

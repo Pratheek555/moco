@@ -694,7 +694,7 @@ function DefaultsForm({
             aria-invalid={tooMany}
             value={hashtags}
             onChange={(e) => setHashtags(e.target.value)}
-            placeholder="#mahabharat #krishna"
+            placeholder="#shorts #animation"
           />
           {tooMany ? (
             <FieldError>Use at most 5 hashtags.</FieldError>

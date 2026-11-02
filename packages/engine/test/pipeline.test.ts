@@ -5,7 +5,7 @@ import { SchemaRefusal, type AiRequest } from "@moco/ai";
 import { describe, expect, it, vi } from "vitest";
 import { createEngine, defaultConfig } from "../src/index.ts";
 import { FakeAudio, FakeRenderPort } from "../src/testing/fakes.ts";
-import { advance, approveNext, sceneFor, scriptData, setup, validAnswer } from "./helpers.ts";
+import { advance, approveNext, sceneFor, scriptData, setup, testWorld, validAnswer } from "./helpers.ts";
 
 // An AI call that only ends when its job is stopped, like a real call killed by Stop.
 function untilStopped(request: AiRequest) {
@@ -72,6 +72,48 @@ describe("pipeline", () => {
     expect(spec.data.timeOfDay).toBe("dusk");
   });
 
+  it("adds episodes after the approved ones without redoing the episodes already made", async () => {
+    const { engine, dir, ai } = await setup();
+    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    await expect(engine.extendSeries(seriesId, { episodes: 2 })).rejects.toMatchObject({ code: "stage_blocked" });
+    for (let gate = 0; gate < 3; gate += 1) {
+      await advance(engine, seriesId);
+      await approveNext(engine, seriesId); // plan, bible, script
+    }
+    const before = Object.fromEntries((await engine.status(seriesId)).stages.map((stage) => [stage.key, stage]));
+
+    const job = await engine.waitForJob(await engine.extendSeries(seriesId, { episodes: 2, note: "Show the Vishvarupa." }));
+    expect(job.status).toBe("succeeded");
+
+    // The longer plan keeps episode 1 and waits for review; nothing built on episode 1 went stale.
+    const status = await engine.status(seriesId);
+    const byKey = Object.fromEntries(status.stages.map((stage) => [stage.key, stage]));
+    expect(status.series.episodes).toBe(3);
+    expect(status.next).toMatchObject({ kind: "waiting", key: "series_plan" });
+    expect(byKey["bible"]).toEqual(before["bible"]);
+    expect(byKey["ep-01/script"]).toEqual(before["ep-01/script"]);
+    const plan = JSON.parse(await readFile(join(dir, seriesId, "artifacts/series_plan.json"), "utf8")).data;
+    expect(plan.episodes.map((episode: { id: string; synopsis: string }) => [episode.id, episode.synopsis])).toEqual([
+      ["ep-01", "A beat."],
+      ["ep-02", "A later beat."],
+      ["ep-03", "A later beat."],
+    ]);
+    const prompt = ai.requests.at(-1)!.prompt;
+    expect(prompt).toContain("Show the Vishvarupa.");
+    expect(prompt).toContain('"firstId": "ep-02"');
+
+    // A note on the longer plan redoes only the new episodes.
+    await engine.reject({ seriesId, key: "series_plan" }, "Slower pace.");
+    await advance(engine, seriesId);
+    expect(ai.requests.at(-1)!.system).toContain("prompt: series_extend");
+    expect((await engine.status(seriesId)).stages.find((stage) => stage.key === "bible")).toEqual(before["bible"]);
+
+    // Approving it lets the run carry on, and the new episodes queue up after episode 1.
+    await approveNext(engine, seriesId);
+    expect((await engine.status(seriesId)).stages.map((stage) => stage.key)).toContain("ep-03/script");
+    await expect(engine.extendSeries(seriesId, { episodes: 97 })).rejects.toMatchObject({ code: "invalid_id" });
+  });
+
   it("refuses approval with a stale hash", async () => {
     const { engine } = await setup();
     const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
@@ -90,17 +132,19 @@ describe("pipeline", () => {
     expect(ai.requests.at(-1)!.prompt).toContain("Gita Shorts"); // the AI sees the version the note is about
   });
 
-  it("ends the bible after one call, with a clear message, when the kit can't play anyone in the story", async () => {
-    const style = { palette: ["#000000"], captionStyle: "bold", mood: "fast" };
-    const { engine, ai } = await setup({ bible: () => ({ cast: [], style }) });
-    const seriesId = await engine.createSeries({ idea: "F1 racing", language: "en", episodes: 1 });
+  it("builds a world for a story the kit can't play, and casts it", async () => {
+    const style = { palette: ["#000000"], captionStyle: "bold", mood: "fast", timeOfDay: "dusk" };
+    const { engine, ai } = await setup({ bible: () => ({ cast: [], style }), world: () => testWorld() });
+    const seriesId = await engine.createSeries({ idea: "A young sailor", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
 
     const job = await engine.waitForJob(await engine.runStage({ seriesId }));
-    expect(job.error).toMatchObject({ code: "kit_gap" });
-    expect(job.error?.message).toContain("krishna");
-    expect(ai.requests.filter((request) => request.system.includes("prompt: bible"))).toHaveLength(1);
+    expect(job.error).toBeUndefined();
+    expect(ai.requests.filter((request) => request.system.includes("prompt: world"))).toHaveLength(1);
+    const bible = (await engine.readArtifact({ seriesId, file: "artifacts/bible.json" })) as { data: unknown };
+    expect(bible.data).toMatchObject({ cast: [{ id: "hero", kitCharacterId: "hero" }] });
+    expect((bible.data as { style: { timeOfDay?: string } }).style.timeOfDay).toBeUndefined(); // the location's sky decides
   });
 
   it("shows what the AI said when it refuses to answer", async () => {

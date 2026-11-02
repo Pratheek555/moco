@@ -5,7 +5,7 @@
 // so the whole pipeline (shot timing, captions, renders) runs end to end.
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { join } from "node:path";
-import type { TimedWord } from "@moco/spec";
+import type { Delivery, TimedWord } from "@moco/spec";
 import { amplitudeVisemes, parseWav } from "./lipsync.ts";
 
 export { AMPLITUDE_VISEMES, amplitudeVisemes, parseWav, WavError } from "./lipsync.ts";
@@ -14,6 +14,7 @@ export { joinLines, pickVoice, systemAudio, systemVoices, type SystemAudioOption
 export interface Line {
   id: string;
   text: string;
+  delivery?: Delivery;
 }
 
 export interface PlaceholderOptions {
