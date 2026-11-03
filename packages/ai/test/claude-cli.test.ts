@@ -36,6 +36,13 @@ async function fakeClaudeLines(events: object[]) {
 const request = { system: "sys", prompt: "hello", jsonSchema: { type: "object" }, timeoutMs: 10_000 };
 
 describe("claude-cli", () => {
+  it("counts cached prompt tokens as input", async () => {
+    const usage = { input_tokens: 10, cache_creation_input_tokens: 200, cache_read_input_tokens: 3000, output_tokens: 40 };
+    const { bin } = await fakeClaude({ result: "", structured_output: {}, usage });
+    const result = await claudeCli({ bin }).generate(request);
+    expect(result.usage).toMatchObject({ inputTokens: 3210, outputTokens: 40 });
+  });
+
   it("runs isolated with no tools and returns structured output", async () => {
     const { bin, readLog } = await fakeClaude({ result: "", structured_output: { ok: 1 }, session_id: "s", total_cost_usd: 0.01 });
     const result = await claudeCli({ bin }).generate(request);

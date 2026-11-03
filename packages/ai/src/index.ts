@@ -147,7 +147,7 @@ interface ClaudeJson {
   structured_output?: unknown;
   session_id?: string;
   total_cost_usd?: number;
-  usage?: { input_tokens?: number; output_tokens?: number };
+  usage?: { input_tokens?: number; output_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
 }
 
 function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
@@ -170,7 +170,10 @@ function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
     text: out.result ?? "",
     json: out.structured_output,
     usage: {
-      inputTokens: out.usage?.input_tokens,
+      // Cached prompt tokens still count against the user's plan, so they are input too.
+      inputTokens: out.usage
+        ? (out.usage.input_tokens ?? 0) + (out.usage.cache_creation_input_tokens ?? 0) + (out.usage.cache_read_input_tokens ?? 0)
+        : undefined,
       outputTokens: out.usage?.output_tokens,
       costUsdEstimate: out.total_cost_usd,
     },

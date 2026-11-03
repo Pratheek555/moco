@@ -31,6 +31,7 @@ export type { EngineErrorCode } from "./errors.ts";
 export type { EngineEvent, EngineEventType, Unsubscribe } from "./events/bus.ts";
 export type { AudioPort, RenderPort, RenderError, RenderCheck } from "./ports.ts";
 export type { EngineConfig, EngineLimits } from "./config.ts";
+export type { DailyUsage } from "./store/ledger.ts";
 export { defaultConfig } from "./config.ts";
 export { TEMPLATES, findTemplate, type TemplateInfo } from "./templates/index.ts";
 export { allTemplates, learnedTemplates } from "./templates/registry.ts";

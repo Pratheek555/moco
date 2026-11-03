@@ -4,6 +4,7 @@ import { join } from "node:path";
 import { SchemaRefusal, type AiRequest } from "@moco/ai";
 import { describe, expect, it, vi } from "vitest";
 import { createEngine, defaultConfig } from "../src/index.ts";
+import { localDate } from "../src/store/ledger.ts";
 import { FakeAudio, FakeRenderPort } from "../src/testing/fakes.ts";
 import { advance, approveNext, sceneFor, scriptData, setup, testWorld, validAnswer } from "./helpers.ts";
 
@@ -213,6 +214,18 @@ describe("pipeline", () => {
     await engine.reject({ seriesId, key: "series_plan" }, "again");
     await advance(engine, seriesId); // the series scope's second call, in a new job
     expect((await engine.status(seriesId)).usage.aiCalls.series).toBe(2);
+  });
+
+  it("records each AI call under today's date for the usage page", async () => {
+    const { engine } = await setup();
+    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    await advance(engine, seriesId);
+    const { usage } = await engine.status(seriesId);
+    const today = localDate(new Date());
+    expect(Object.keys(usage.daily ?? {})).toEqual([today]);
+    expect(usage.daily?.[today]?.calls).toBe(usage.aiCalls.series);
+    expect(usage.daily?.[today]?.rateLimits).toBe(0);
+    expect(usage.tokens).toEqual({ input: 0, output: 0 });
   });
 
   it("sends the script back when the measured voiceover is off target, then gives up after the cap", async () => {
