@@ -1,0 +1,1324 @@
+{
+  "tool": "learn/measure v1",
+  "ref": {
+    "id": "yt-HxriA2CXhsU",
+    "source": "https://www.youtube.com/shorts/HxriA2CXhsU",
+    "title": "The Basketball Shot That Saved Thousands 😮",
+    "channel": "Zack D. Films",
+    "url": "https://www.youtube.com/watch?v=HxriA2CXhsU",
+    "uploadDate": "20261101",
+    "views": 3322421,
+    "description": "",
+    "width": 1080,
+    "height": 1920,
+    "fps": 29.97002997002997,
+    "duration": 31.137959
+  },
+  "video": {
+    "fps": 29.97002997002997,
+    "frames": 931,
+    "duration": 31.064,
+    "width": 1080,
+    "height": 1920,
+    "transitions": [
+      {
+        "start": 71,
+        "end": 74,
+        "at": 75,
+        "kind": "zoom",
+        "speedIn": 16.165,
+        "speedOut": 6.596,
+        "direction": "in",
+        "directionOut": "in"
+      },
+      {
+        "start": 143,
+        "end": 149,
+        "at": 150,
+        "kind": "blur",
+        "speedIn": null,
+        "speedOut": 2.34,
+        "directionOut": "in"
+      },
+      {
+        "start": 200,
+        "end": 206,
+        "at": 207,
+        "kind": "whip",
+        "speedIn": 2.913,
+        "speedOut": null,
+        "direction": "right"
+      },
+      {
+        "start": 262,
+        "end": 270,
+        "at": 271,
+        "kind": "whip",
+        "speedIn": 8.802,
+        "speedOut": 0.084,
+        "direction": "right"
+      },
+      {
+        "start": 299,
+        "end": 302,
+        "at": 303,
+        "kind": "blur",
+        "speedIn": 0.338,
+        "speedOut": 8.875,
+        "directionOut": "out"
+      },
+      {
+        "start": 340,
+        "end": 345,
+        "at": 346,
+        "kind": "blur",
+        "speedIn": 0.003,
+        "speedOut": 7.436,
+        "directionOut": "up"
+      },
+      {
+        "start": 390,
+        "end": 392,
+        "at": 393,
+        "kind": "zoom",
+        "speedIn": 4.177,
+        "speedOut": 8.937,
+        "direction": "out",
+        "directionOut": "out"
+      },
+      {
+        "start": 487,
+        "end": 493,
+        "at": 494,
+        "kind": "zoom",
+        "speedIn": 1.095,
+        "speedOut": null,
+        "direction": "in"
+      },
+      {
+        "start": 578,
+        "end": 585,
+        "at": 586,
+        "kind": "blur",
+        "speedIn": null,
+        "speedOut": 0.034
+      },
+      {
+        "start": 693,
+        "end": 697,
+        "at": 698,
+        "kind": "blur",
+        "speedIn": 0.003,
+        "speedOut": 0.005
+      },
+      {
+        "start": 738,
+        "end": 743,
+        "at": 744,
+        "kind": "whip",
+        "speedIn": 4.71,
+        "speedOut": 0.034,
+        "direction": "left"
+      },
+      {
+        "start": 791,
+        "end": 792,
+        "at": 791,
+        "kind": "cut",
+        "speedIn": 0.271,
+        "speedOut": 1.897,
+        "directionOut": "in"
+      },
+      {
+        "start": 849,
+        "end": 855,
+        "at": 856,
+        "kind": "zoom",
+        "speedIn": 0.764,
+        "speedOut": 9.687,
+        "direction": "out",
+        "directionOut": "out"
+      }
+    ],
+    "shots": [
+      {
+        "index": 1,
+        "start": 0,
+        "end": 74,
+        "duration": 2.503,
+        "camera": {
+          "measured": 0.93,
+          "zoomTotal": 78.8,
+          "panTotalX": -21.97,
+          "panTotalY": -18.34,
+          "zoomRate": 43.92,
+          "panRate": 18.86,
+          "speedStart": 20.52,
+          "speedMid": 65.86,
+          "speedEnd": 488.33,
+          "moving": 0.99,
+          "shake": 1.0885,
+          "profile": "accelerates_out",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.1981
+      },
+      {
+        "index": 2,
+        "start": 75,
+        "end": 149,
+        "duration": 2.503,
+        "camera": {
+          "measured": 0.83,
+          "zoomTotal": 22,
+          "panTotalX": 8.03,
+          "panTotalY": -5.32,
+          "zoomRate": 14.32,
+          "panRate": 4.52,
+          "speedStart": 236.85,
+          "speedMid": 18.58,
+          "speedEnd": 23.46,
+          "moving": 1,
+          "shake": 0.1202,
+          "profile": "arrives_moving",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.1464
+      },
+      {
+        "index": 3,
+        "start": 150,
+        "end": 206,
+        "duration": 1.902,
+        "camera": {
+          "measured": 0.7,
+          "zoomTotal": 22.4,
+          "panTotalX": 67.05,
+          "panTotalY": 0.62,
+          "zoomRate": 6.83,
+          "panRate": 50.37,
+          "speedStart": 91.6,
+          "speedMid": 56.58,
+          "speedEnd": 94.37,
+          "moving": 1,
+          "shake": 0.396,
+          "profile": "steady_move",
+          "dominant": "pan_right"
+        },
+        "activity": 0.2104
+      },
+      {
+        "index": 4,
+        "start": 207,
+        "end": 270,
+        "duration": 2.135,
+        "camera": {
+          "measured": 0.75,
+          "zoomTotal": 16.6,
+          "panTotalX": 76.85,
+          "panTotalY": 21.17,
+          "zoomRate": 23.38,
+          "panRate": 32.29,
+          "speedStart": 142.34,
+          "speedMid": 51.37,
+          "speedEnd": 272.02,
+          "moving": 1,
+          "shake": 0.2604,
+          "profile": "fast_in_fast_out",
+          "dominant": "pan_right"
+        },
+        "activity": 0.164
+      },
+      {
+        "index": 5,
+        "start": 271,
+        "end": 302,
+        "duration": 1.068,
+        "camera": {
+          "measured": 0.88,
+          "zoomTotal": -4.8,
+          "panTotalX": 5.01,
+          "panTotalY": 1.37,
+          "zoomRate": 0.01,
+          "panRate": 0,
+          "speedStart": 0.07,
+          "speedMid": 0.01,
+          "speedEnd": 13.51,
+          "moving": 0.14,
+          "shake": 0.9018,
+          "profile": "creep",
+          "dominant": "still"
+        },
+        "activity": 0.0691
+      },
+      {
+        "index": 6,
+        "start": 303,
+        "end": 345,
+        "duration": 1.435,
+        "camera": {
+          "measured": 0.56,
+          "zoomTotal": -11.7,
+          "panTotalX": 24.87,
+          "panTotalY": -24.49,
+          "zoomRate": 14.72,
+          "panRate": 50.7,
+          "speedStart": 308.73,
+          "speedMid": 54.39,
+          "speedEnd": 11.64,
+          "moving": 0.96,
+          "shake": 0.4447,
+          "profile": "arrives_moving",
+          "dominant": "mixed"
+        },
+        "activity": 0.2438
+      },
+      {
+        "index": 7,
+        "start": 346,
+        "end": 392,
+        "duration": 1.568,
+        "camera": {
+          "measured": 0.94,
+          "zoomTotal": -5.2,
+          "panTotalX": 1.98,
+          "panTotalY": 27.58,
+          "zoomRate": 9.54,
+          "panRate": 3.14,
+          "speedStart": 261.99,
+          "speedMid": 19.97,
+          "speedEnd": 145.74,
+          "moving": 0.98,
+          "shake": 0.1047,
+          "profile": "fast_in_fast_out",
+          "dominant": "tilt_up"
+        },
+        "activity": 0.1426
+      },
+      {
+        "index": 8,
+        "start": 393,
+        "end": 493,
+        "duration": 3.37,
+        "camera": {
+          "measured": 0.89,
+          "zoomTotal": 84.2,
+          "panTotalX": 25.4,
+          "panTotalY": 29.81,
+          "zoomRate": 27.92,
+          "panRate": 16.55,
+          "speedStart": 269.83,
+          "speedMid": 53.89,
+          "speedEnd": 39.26,
+          "moving": 1,
+          "shake": 0.2516,
+          "profile": "arrives_moving",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.169
+      },
+      {
+        "index": 9,
+        "start": 494,
+        "end": 585,
+        "duration": 3.07,
+        "camera": {
+          "measured": 0.59,
+          "zoomTotal": 19.8,
+          "panTotalX": -26.4,
+          "panTotalY": -5.93,
+          "zoomRate": 13.57,
+          "panRate": 8.42,
+          "speedStart": 75.8,
+          "speedMid": 27.5,
+          "speedEnd": 15.74,
+          "moving": 1,
+          "shake": 0.1495,
+          "profile": "arrives_moving",
+          "dominant": "mixed"
+        },
+        "activity": 0.2248
+      },
+      {
+        "index": 10,
+        "start": 586,
+        "end": 697,
+        "duration": 3.737,
+        "camera": {
+          "measured": 0.84,
+          "zoomTotal": 47.4,
+          "panTotalX": -0.34,
+          "panTotalY": -7.59,
+          "zoomRate": 64.95,
+          "panRate": 11.56,
+          "speedStart": 0.63,
+          "speedMid": 83.44,
+          "speedEnd": 7.32,
+          "moving": 0.93,
+          "shake": 0.4173,
+          "profile": "steady_move",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.1293
+      },
+      {
+        "index": 11,
+        "start": 698,
+        "end": 743,
+        "duration": 1.535,
+        "camera": {
+          "measured": 0.87,
+          "zoomTotal": 7.9,
+          "panTotalX": -13.86,
+          "panTotalY": -2.31,
+          "zoomRate": 0.14,
+          "panRate": 0.13,
+          "speedStart": 0.13,
+          "speedMid": 0.26,
+          "speedEnd": 188,
+          "moving": 0.43,
+          "shake": 1.4858,
+          "profile": "accelerates_out",
+          "dominant": "still"
+        },
+        "activity": 0.1193
+      },
+      {
+        "index": 12,
+        "start": 744,
+        "end": 790,
+        "duration": 1.568,
+        "camera": {
+          "measured": 1,
+          "zoomTotal": 8.9,
+          "panTotalX": -8.65,
+          "panTotalY": -4.41,
+          "zoomRate": 8.1,
+          "panRate": 3.3,
+          "speedStart": 1.37,
+          "speedMid": 11.87,
+          "speedEnd": 8.41,
+          "moving": 0.66,
+          "shake": 0.7638,
+          "profile": "creep",
+          "dominant": "mixed"
+        },
+        "activity": 0.182
+      },
+      {
+        "index": 13,
+        "start": 791,
+        "end": 855,
+        "duration": 2.169,
+        "camera": {
+          "measured": 0.86,
+          "zoomTotal": 46.1,
+          "panTotalX": 12.6,
+          "panTotalY": -0.71,
+          "zoomRate": 21.79,
+          "panRate": 7.06,
+          "speedStart": 60.11,
+          "speedMid": 28.29,
+          "speedEnd": 20.66,
+          "moving": 1,
+          "shake": 0.1523,
+          "profile": "steady_move",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.18
+      },
+      {
+        "index": 14,
+        "start": 856,
+        "end": 930,
+        "duration": 2.503,
+        "camera": {
+          "measured": 0.99,
+          "zoomTotal": -65.9,
+          "panTotalX": 13.49,
+          "panTotalY": -9.05,
+          "zoomRate": 15.22,
+          "panRate": 6.96,
+          "speedStart": 303.71,
+          "speedMid": 21.67,
+          "speedEnd": 1.92,
+          "moving": 1,
+          "shake": 0.0592,
+          "profile": "arrives_moving",
+          "dominant": "zoom_out"
+        },
+        "activity": 0.1654
+      }
+    ],
+    "events": [
+      {
+        "shot": 1,
+        "onset": 10,
+        "peak": 12,
+        "end": 16,
+        "frames": 7,
+        "strength": 0.0482
+      },
+      {
+        "shot": 3,
+        "onset": 157,
+        "peak": 158,
+        "end": 159,
+        "frames": 3,
+        "strength": 0.0253
+      },
+      {
+        "shot": 3,
+        "onset": 198,
+        "peak": 199,
+        "end": 199,
+        "frames": 2,
+        "strength": 0.1392
+      },
+      {
+        "shot": 4,
+        "onset": 241,
+        "peak": 242,
+        "end": 242,
+        "frames": 2,
+        "strength": 0.035
+      },
+      {
+        "shot": 5,
+        "onset": 273,
+        "peak": 273,
+        "end": 275,
+        "frames": 3,
+        "strength": 0.0788
+      },
+      {
+        "shot": 6,
+        "onset": 310,
+        "peak": 311,
+        "end": 314,
+        "frames": 5,
+        "strength": 0.0414
+      },
+      {
+        "shot": 6,
+        "onset": 336,
+        "peak": 339,
+        "end": 339,
+        "frames": 4,
+        "strength": 0.2362
+      },
+      {
+        "shot": 8,
+        "onset": 403,
+        "peak": 404,
+        "end": 408,
+        "frames": 6,
+        "strength": 0.1532
+      },
+      {
+        "shot": 8,
+        "onset": 434,
+        "peak": 437,
+        "end": 439,
+        "frames": 6,
+        "strength": 0.0692
+      },
+      {
+        "shot": 8,
+        "onset": 484,
+        "peak": 486,
+        "end": 486,
+        "frames": 3,
+        "strength": 0.1719
+      },
+      {
+        "shot": 9,
+        "onset": 499,
+        "peak": 502,
+        "end": 504,
+        "frames": 6,
+        "strength": 0.0241
+      },
+      {
+        "shot": 9,
+        "onset": 524,
+        "peak": 525,
+        "end": 525,
+        "frames": 2,
+        "strength": 0.0359
+      },
+      {
+        "shot": 9,
+        "onset": 571,
+        "peak": 572,
+        "end": 577,
+        "frames": 7,
+        "strength": 0.0716
+      },
+      {
+        "shot": 10,
+        "onset": 588,
+        "peak": 588,
+        "end": 594,
+        "frames": 7,
+        "strength": 0.1533
+      },
+      {
+        "shot": 10,
+        "onset": 618,
+        "peak": 620,
+        "end": 622,
+        "frames": 5,
+        "strength": 0.0235
+      },
+      {
+        "shot": 10,
+        "onset": 662,
+        "peak": 666,
+        "end": 667,
+        "frames": 6,
+        "strength": 0.045
+      },
+      {
+        "shot": 10,
+        "onset": 690,
+        "peak": 692,
+        "end": 692,
+        "frames": 3,
+        "strength": 0.1189
+      },
+      {
+        "shot": 11,
+        "onset": 700,
+        "peak": 700,
+        "end": 704,
+        "frames": 5,
+        "strength": 0.278
+      },
+      {
+        "shot": 11,
+        "onset": 731,
+        "peak": 733,
+        "end": 734,
+        "frames": 4,
+        "strength": 0.0932
+      },
+      {
+        "shot": 12,
+        "onset": 746,
+        "peak": 747,
+        "end": 752,
+        "frames": 7,
+        "strength": 0.0885
+      },
+      {
+        "shot": 12,
+        "onset": 760,
+        "peak": 761,
+        "end": 761,
+        "frames": 2,
+        "strength": 0.233
+      },
+      {
+        "shot": 13,
+        "onset": 793,
+        "peak": 793,
+        "end": 796,
+        "frames": 4,
+        "strength": 0.3383
+      },
+      {
+        "shot": 13,
+        "onset": 812,
+        "peak": 813,
+        "end": 814,
+        "frames": 3,
+        "strength": 0.0394
+      },
+      {
+        "shot": 13,
+        "onset": 842,
+        "peak": 848,
+        "end": 848,
+        "frames": 7,
+        "strength": 0.2677
+      }
+    ],
+    "holdStillness": 0.007,
+    "loop": {
+      "histCorrel": 0.48859924781770747,
+      "meanDiff": 68.12648010253906
+    }
+  },
+  "speech": {
+    "language": "en",
+    "words": 88,
+    "wpm": 170,
+    "articulationWpm": 196.3,
+    "speechRatio": 0.866,
+    "pauses": {
+      "sentence": {
+        "median": 0.41,
+        "p10": 0.358,
+        "p90": 0.546,
+        "n": 4
+      },
+      "clause": {
+        "median": 0.31,
+        "p10": 0.08,
+        "p90": 0.41,
+        "n": 6
+      },
+      "word": {
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "n": 77
+      }
+    },
+    "sentences": [
+      {
+        "text": "The tornado ripped towards the stadium with thousands of fans inside.",
+        "start": 0,
+        "end": 4.28,
+        "words": 11
+      },
+      {
+        "text": "But as the game was about to end, one player launched the ball from the 3 -point line, which rolled into the hoop just as the clock ended.",
+        "start": 4.68,
+        "end": 12.82,
+        "words": 28
+      },
+      {
+        "text": "This tied the game, sending it into overtime and making the fans stay in their seats.",
+        "start": 13.16,
+        "end": 18.54,
+        "words": 16
+      },
+      {
+        "text": "Just minutes later, the tornado hit the building, tearing up the roof and whipping shattered glass at anyone outside.",
+        "start": 18.96,
+        "end": 25.84,
+        "words": 19
+      },
+      {
+        "text": "But thanks to that single shot, Watch All The Fans Were Kept Safe Inside",
+        "start": 26.44,
+        "end": 30.26,
+        "words": 14
+      }
+    ],
+    "clauseStarts": [
+      0,
+      4.68,
+      6.7,
+      9.94,
+      13.16,
+      14.5,
+      18.96,
+      19.96,
+      21.78,
+      26.44,
+      27.94
+    ],
+    "pitch": {
+      "medianHz": 165.1,
+      "rangeSemitones": 14.6
+    },
+    "levels": {
+      "speechDb": -12.9,
+      "gapDb": -23.5,
+      "voiceOverBed": 10.6,
+      "bed": "music"
+    },
+    "loudness": {
+      "integrated": -9.7,
+      "range": 2,
+      "truePeak": 1
+    }
+  },
+  "words": [
+    {
+      "w": "The",
+      "start": 0,
+      "end": 0.18,
+      "p": 0.906
+    },
+    {
+      "w": "tornado",
+      "start": 0.18,
+      "end": 0.5,
+      "p": 0.929
+    },
+    {
+      "w": "ripped",
+      "start": 0.5,
+      "end": 0.92,
+      "p": 0.959
+    },
+    {
+      "w": "towards",
+      "start": 0.92,
+      "end": 1.36,
+      "p": 0.944
+    },
+    {
+      "w": "the",
+      "start": 1.36,
+      "end": 1.62,
+      "p": 0.997
+    },
+    {
+      "w": "stadium",
+      "start": 1.62,
+      "end": 2.14,
+      "p": 0.985
+    },
+    {
+      "w": "with",
+      "start": 2.14,
+      "end": 2.58,
+      "p": 0.88
+    },
+    {
+      "w": "thousands",
+      "start": 2.58,
+      "end": 3.06,
+      "p": 0.99
+    },
+    {
+      "w": "of",
+      "start": 3.06,
+      "end": 3.28,
+      "p": 0.999
+    },
+    {
+      "w": "fans",
+      "start": 3.28,
+      "end": 3.66,
+      "p": 0.999
+    },
+    {
+      "w": "inside.",
+      "start": 3.66,
+      "end": 4.28,
+      "p": 0.996
+    },
+    {
+      "w": "But",
+      "start": 4.68,
+      "end": 4.84,
+      "p": 0.992
+    },
+    {
+      "w": "as",
+      "start": 4.84,
+      "end": 5,
+      "p": 0.98
+    },
+    {
+      "w": "the",
+      "start": 5,
+      "end": 5.18,
+      "p": 0.997
+    },
+    {
+      "w": "game",
+      "start": 5.18,
+      "end": 5.36,
+      "p": 0.998
+    },
+    {
+      "w": "was",
+      "start": 5.36,
+      "end": 5.54,
+      "p": 0.995
+    },
+    {
+      "w": "about",
+      "start": 5.54,
+      "end": 5.78,
+      "p": 0.999
+    },
+    {
+      "w": "to",
+      "start": 5.78,
+      "end": 5.94,
+      "p": 0.999
+    },
+    {
+      "w": "end,",
+      "start": 5.94,
+      "end": 6.34,
+      "p": 0.999
+    },
+    {
+      "w": "one",
+      "start": 6.7,
+      "end": 6.86,
+      "p": 0.98
+    },
+    {
+      "w": "player",
+      "start": 6.86,
+      "end": 7.18,
+      "p": 0.998
+    },
+    {
+      "w": "launched",
+      "start": 7.18,
+      "end": 7.66,
+      "p": 0.986
+    },
+    {
+      "w": "the",
+      "start": 7.66,
+      "end": 7.9,
+      "p": 0.994
+    },
+    {
+      "w": "ball",
+      "start": 7.9,
+      "end": 8.22,
+      "p": 0.997
+    },
+    {
+      "w": "from",
+      "start": 8.22,
+      "end": 8.5,
+      "p": 0.997
+    },
+    {
+      "w": "the",
+      "start": 8.5,
+      "end": 8.66,
+      "p": 0.994
+    },
+    {
+      "w": "3",
+      "start": 8.66,
+      "end": 8.92,
+      "p": 0.492
+    },
+    {
+      "w": "-point",
+      "start": 8.92,
+      "end": 9.12,
+      "p": 0.904
+    },
+    {
+      "w": "line,",
+      "start": 9.12,
+      "end": 9.68,
+      "p": 0.995
+    },
+    {
+      "w": "which",
+      "start": 9.94,
+      "end": 10.18,
+      "p": 0.992
+    },
+    {
+      "w": "rolled",
+      "start": 10.18,
+      "end": 10.5,
+      "p": 0.997
+    },
+    {
+      "w": "into",
+      "start": 10.5,
+      "end": 10.74,
+      "p": 0.994
+    },
+    {
+      "w": "the",
+      "start": 10.74,
+      "end": 10.94,
+      "p": 0.994
+    },
+    {
+      "w": "hoop",
+      "start": 10.94,
+      "end": 11.26,
+      "p": 0.995
+    },
+    {
+      "w": "just",
+      "start": 11.26,
+      "end": 11.7,
+      "p": 0.858
+    },
+    {
+      "w": "as",
+      "start": 11.7,
+      "end": 11.96,
+      "p": 0.999
+    },
+    {
+      "w": "the",
+      "start": 11.96,
+      "end": 12.12,
+      "p": 0.997
+    },
+    {
+      "w": "clock",
+      "start": 12.12,
+      "end": 12.38,
+      "p": 0.998
+    },
+    {
+      "w": "ended.",
+      "start": 12.38,
+      "end": 12.82,
+      "p": 0.998
+    },
+    {
+      "w": "This",
+      "start": 13.16,
+      "end": 13.32,
+      "p": 0.997
+    },
+    {
+      "w": "tied",
+      "start": 13.32,
+      "end": 13.6,
+      "p": 0.981
+    },
+    {
+      "w": "the",
+      "start": 13.6,
+      "end": 13.76,
+      "p": 0.998
+    },
+    {
+      "w": "game,",
+      "start": 13.76,
+      "end": 14.08,
+      "p": 1
+    },
+    {
+      "w": "sending",
+      "start": 14.5,
+      "end": 14.72,
+      "p": 0.998
+    },
+    {
+      "w": "it",
+      "start": 14.72,
+      "end": 14.96,
+      "p": 0.996
+    },
+    {
+      "w": "into",
+      "start": 14.96,
+      "end": 15.2,
+      "p": 0.981
+    },
+    {
+      "w": "overtime",
+      "start": 15.2,
+      "end": 15.8,
+      "p": 0.991
+    },
+    {
+      "w": "and",
+      "start": 15.8,
+      "end": 16.42,
+      "p": 0.797
+    },
+    {
+      "w": "making",
+      "start": 16.42,
+      "end": 16.72,
+      "p": 0.997
+    },
+    {
+      "w": "the",
+      "start": 16.72,
+      "end": 16.96,
+      "p": 0.992
+    },
+    {
+      "w": "fans",
+      "start": 16.96,
+      "end": 17.32,
+      "p": 0.967
+    },
+    {
+      "w": "stay",
+      "start": 17.32,
+      "end": 17.7,
+      "p": 0.993
+    },
+    {
+      "w": "in",
+      "start": 17.7,
+      "end": 17.98,
+      "p": 0.998
+    },
+    {
+      "w": "their",
+      "start": 17.98,
+      "end": 18.14,
+      "p": 0.997
+    },
+    {
+      "w": "seats.",
+      "start": 18.14,
+      "end": 18.54,
+      "p": 0.999
+    },
+    {
+      "w": "Just",
+      "start": 18.96,
+      "end": 19.14,
+      "p": 0.998
+    },
+    {
+      "w": "minutes",
+      "start": 19.14,
+      "end": 19.4,
+      "p": 0.991
+    },
+    {
+      "w": "later,",
+      "start": 19.4,
+      "end": 19.8,
+      "p": 0.998
+    },
+    {
+      "w": "the",
+      "start": 19.96,
+      "end": 20.06,
+      "p": 0.996
+    },
+    {
+      "w": "tornado",
+      "start": 20.06,
+      "end": 20.44,
+      "p": 0.999
+    },
+    {
+      "w": "hit",
+      "start": 20.44,
+      "end": 20.84,
+      "p": 0.997
+    },
+    {
+      "w": "the",
+      "start": 20.84,
+      "end": 21.04,
+      "p": 0.997
+    },
+    {
+      "w": "building,",
+      "start": 21.04,
+      "end": 21.38,
+      "p": 0.998
+    },
+    {
+      "w": "tearing",
+      "start": 21.78,
+      "end": 22.02,
+      "p": 0.998
+    },
+    {
+      "w": "up",
+      "start": 22.02,
+      "end": 22.26,
+      "p": 0.996
+    },
+    {
+      "w": "the",
+      "start": 22.26,
+      "end": 22.4,
+      "p": 0.997
+    },
+    {
+      "w": "roof",
+      "start": 22.4,
+      "end": 22.8,
+      "p": 0.999
+    },
+    {
+      "w": "and",
+      "start": 22.8,
+      "end": 23.32,
+      "p": 0.752
+    },
+    {
+      "w": "whipping",
+      "start": 23.32,
+      "end": 23.6,
+      "p": 0.961
+    },
+    {
+      "w": "shattered",
+      "start": 23.6,
+      "end": 24.04,
+      "p": 0.98
+    },
+    {
+      "w": "glass",
+      "start": 24.04,
+      "end": 24.52,
+      "p": 0.998
+    },
+    {
+      "w": "at",
+      "start": 24.52,
+      "end": 24.74,
+      "p": 0.998
+    },
+    {
+      "w": "anyone",
+      "start": 24.74,
+      "end": 25.24,
+      "p": 0.966
+    },
+    {
+      "w": "outside.",
+      "start": 25.24,
+      "end": 25.84,
+      "p": 0.995
+    },
+    {
+      "w": "But",
+      "start": 26.44,
+      "end": 26.6,
+      "p": 0.974
+    },
+    {
+      "w": "thanks",
+      "start": 26.6,
+      "end": 26.82,
+      "p": 0.977
+    },
+    {
+      "w": "to",
+      "start": 26.82,
+      "end": 27.02,
+      "p": 0.999
+    },
+    {
+      "w": "that",
+      "start": 27.02,
+      "end": 27.22,
+      "p": 0.995
+    },
+    {
+      "w": "single",
+      "start": 27.22,
+      "end": 27.48,
+      "p": 0.998
+    },
+    {
+      "w": "shot,",
+      "start": 27.48,
+      "end": 27.94,
+      "p": 0.986
+    },
+    {
+      "w": "Watch",
+      "start": 27.94,
+      "end": 28.08,
+      "p": 0.255
+    },
+    {
+      "w": "All",
+      "start": 28.08,
+      "end": 28.44,
+      "p": 0.634
+    },
+    {
+      "w": "The",
+      "start": 28.44,
+      "end": 28.58,
+      "p": 0.69
+    },
+    {
+      "w": "Fans",
+      "start": 28.58,
+      "end": 28.84,
+      "p": 0.988
+    },
+    {
+      "w": "Were",
+      "start": 28.84,
+      "end": 29.08,
+      "p": 0.953
+    },
+    {
+      "w": "Kept",
+      "start": 29.08,
+      "end": 29.36,
+      "p": 0.983
+    },
+    {
+      "w": "Safe",
+      "start": 29.36,
+      "end": 29.66,
+      "p": 0.992
+    },
+    {
+      "w": "Inside",
+      "start": 29.66,
+      "end": 30.26,
+      "p": 0.986
+    }
+  ],
+  "shotWords": [
+    "The tornado ripped towards the stadium with",
+    "thousands of fans inside. But as",
+    "the game was about to end, one",
+    "player launched the ball from the 3 -point",
+    "line, which",
+    "rolled into the hoop just",
+    "as the clock ended.",
+    "This tied the game, sending it into overtime and",
+    "making the fans stay in their seats. Just minutes",
+    "later, the tornado hit the building, tearing up the roof and",
+    "whipping shattered glass at",
+    "anyone outside.",
+    "But thanks to that single shot, Watch All The",
+    "Fans Were Kept Safe Inside"
+  ],
+  "pace": {
+    "pictureEvery": 2.22,
+    "shotSeconds": {
+      "median": 2.15,
+      "p10": 1.47,
+      "p90": 3.28,
+      "n": 14
+    },
+    "wordsPerShot": {
+      "median": 6.5,
+      "p10": 2.6,
+      "p90": 9,
+      "n": 14
+    },
+    "firstChange": 2.5,
+    "hook": {
+      "text": "The tornado ripped towards the stadium with thousands of fans inside.",
+      "end": 4.28
+    },
+    "ending": {
+      "text": "But thanks to that single shot, Watch All The Fans Were Kept Safe Inside",
+      "start": 26.44
+    },
+    "loopFrameSimilarity": 0.489
+  },
+  "sync": {
+    "cutsOnWord": 0.538,
+    "cutsOnWordChance": 0.376,
+    "cutsOnClause": 0.154,
+    "cutsOnClauseChance": 0.091,
+    "motionLead": {
+      "median": 23.4,
+      "p10": -4.3,
+      "p90": 41.6,
+      "n": 13
+    },
+    "motionBursts": 24
+  }
+}

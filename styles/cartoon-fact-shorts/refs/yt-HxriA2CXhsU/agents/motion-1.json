@@ -1,0 +1,97 @@
+{
+  "inputHash": "f919b3209835221d4f9692271a3bc3455710b41b9cb51607c493bb261af463f0",
+  "role": "motion",
+  "seconds": 67,
+  "usage": {
+    "inputTokens": 4,
+    "outputTokens": 6654,
+    "costUsdEstimate": 0.2861585
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "acting",
+        "observation": "Characters barely act. Of 6 flagged bursts, only M21 (S12) shows a body gesture. The rest are object motion (ball, debris), camera whips or blur transitions. Actor activity per shot stays between 0.069 and 0.244. Story beats are carried by camera moves and props, not performances.",
+        "rule": "Put the motion budget into the camera and the props. Characters hold one readable pose per shot, and at most one body action per shot, on the climax beat only.",
+        "measured": "actor activity 0.069–0.244 across 14 shots; 1 of 6 bursts is character acting",
+        "evidence": "M7, M10, M14, M18, M22 sheets show no acting; M21 f756–769",
+        "confidence": "high"
+      },
+      {
+        "area": "gestures",
+        "observation": "In M21 a lone figure braces against flying glass. His arms start low and bent (f759), spread out sideways (f764) and end raised and wide (f768–769). The torso leans back a little. The move is smooth and continuous, with no snap and no visible overshoot. It runs about 10 frames with no clear anticipation pose. It is a whole-body move: arms plus a lean. The face is too small to read.",
+        "rule": "For a reaction gesture, use one smooth, large, whole-body move: arms go from the sides to a wide raised pose over 9–11 frames with ease-in-out, then hold. Skip the anticipation and the overshoot.",
+        "measured": "f759 arms low → f764 arms spread → f768 arms raised; ~10 frames",
+        "evidence": "M21 sheet f756–769",
+        "confidence": "medium"
+      },
+      {
+        "area": "gestures",
+        "observation": "In the next shot (M22, f789–791) the same figure is already in a crouched, knees-bent dodge pose that holds still. The shot then dissolves away. The action pose arrives at a cut, already struck, and is not animated into.",
+        "rule": "Start the second shot of an action already in its key pose (e.g. a crouch or dodge). Hold it for 2–3 frames, then transition out. Don't animate the in-between on screen.",
+        "measured": "pose held f789–791, dissolve f791–796",
+        "evidence": "M22 sheet",
+        "confidence": "medium"
+      },
+      {
+        "area": "gestures",
+        "observation": "The one gesture lands after its word. The arms start to spread about 3 frames after 'outside' starts (f756) and reach the full pose about 12 frames after. So it reacts to the line rather than leading it.",
+        "rule": "Time reaction gestures to start 3 frames after the onset of the word they illustrate and to reach the key pose 8–12 frames after it.",
+        "measured": "'outside' at f756; spread starts ~f759, full pose f768 → +3 to +12 frames",
+        "evidence": "M21 sheet",
+        "confidence": "medium"
+      },
+      {
+        "area": "faces",
+        "observation": "No face is readable on any sheet. Figures are small in a wide shot or seen from behind. There is no lip sync, no blinks and no expression change. Crowd figures sit still or slump.",
+        "rule": "Don't rely on facial animation. Keep figures at wide-shot scale with neutral, fixed faces and no lip sync. Let posture and setting carry the emotion.",
+        "measured": "",
+        "evidence": "M21, M22 crowd f797–804",
+        "confidence": "high"
+      },
+      {
+        "area": "acting",
+        "observation": "Inside a shot, characters and the set freeze. Leftover motion is 0.007 px/frame once the camera move is removed. The camera, though, moves almost all the time: 93–100% of frames in 10 of 14 shots. Holds come from the camera easing out, as in S8 f412–424, where the board barely drifts after landing.",
+        "rule": "Between actions, freeze the subjects completely. Keep life in the shot with a slow camera drift (about 20–50%/s mid-shot) that eases toward a stop. Don't add breathing or idle motion.",
+        "measured": "leftover 0.007 px/frame; moving 93–100% in 10 of 14 shots; S8 mid speed 53.9%/s, end 39.3%/s",
+        "evidence": "S8 30-frame sheet f412–424",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "Whip and blur transitions last about 6 frames and land the new picture on a word onset. In M10 the whip blur runs f486–491 and the clear crowd shot lands at f492, '>making'. In S8 the tilt whip runs f401–406 and lands at f407, '>the'. In M18 the whip clears at f698, '>whipping'. In M22 the dissolve runs f791–796 and clears at f797, '>thanks'.",
+        "rule": "Run each whip or blur transition for 5–6 frames. Have the incoming shot resolve sharp on the first frame of a word (0 frames off).",
+        "measured": "M10 6f → f492 = word; S8 6f → f407 = word; M18 → f698 = word; M22 6f → f797 = word; 54% of transitions within ±2f of a word onset vs 38% chance",
+        "evidence": "M10, M18, M22, S8 sheets",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "Prop motion is the 'acting'. The ball drops through the net at f332–337 and crosses the rim around '>just' (f337). A tilt whip then starts at f339–340 and settles on the clock at f344–347, about 4–7 frames before 'as' at f351. In S8 the scoreboard digit swaps instantly from 56 to 59 at f422. That is 23 frames after 'tied' (f399) and 10 frames after 'game,' (f412), a delayed payoff after the camera settles.",
+        "rule": "Show the key prop event on its word (within ±1 frame). Whip to the consequence prop and settle 4–7 frames before the next phrase. Make graphic changes (numbers, readouts) as instant 1-frame swaps, 8–12 frames after the camera settles.",
+        "measured": "ball through rim f336–337 vs 'just' f337; whip f339–344; digit swap f421→f422",
+        "evidence": "M7 sheet; S8 sheet f419–424",
+        "confidence": "medium"
+      },
+      {
+        "area": "camera",
+        "observation": "Reveal shots open defocused and moving, then rack into focus as they settle. In M14 the dome is blurred at f584 and sharp by about f592–595. That is 11 frames, with 3 frames of hold before 'the' (f598) and the threat named at 'tornado' (f601).",
+        "rule": "Open a reveal shot blurred and drifting. Pull focus sharp over about 10 frames and finish 3–6 frames before the narration names the subject.",
+        "measured": "blur f584 → sharp ~f595; 'the' f598, 'tornado' f601",
+        "evidence": "M14 sheet",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "basketball game, last-second three-point shot that rolls into the hoop",
+      "game clock reading 0:01 / 00:00, scoreboard 56-59 becoming 59-59, PERIOD OT, T.O.L., FOUL",
+      "tornado hitting a domed stadium, roof torn, shattered glass",
+      "Georgia Dome signage, ATLANTA court lettering",
+      "man in red t-shirt and jeans outside glass facade dodging flying glass",
+      "crowd kept safe inside arena",
+      "title 'The Basketball Shot That Saved Thousands'",
+      "phrases: 'sending it into overtime', 'Just minutes later', 'whipping shattered glass at anyone outside', 'thanks to that single shot'"
+    ],
+    "notes": "I could read only one character gesture (M21), so the gesture rules rest on one example and are medium confidence. M18's burst sits on a flat grey sky with tiny debris specks. Tracking there is probably unreliable and the burst is likely noise, not real motion. M7, M10 and M22 are mostly camera whips or dissolves picked up as motion, not acting. No faces are readable anywhere, so I could not judge expressions, blinks or lip sync. Frame numbers are at 29.97 fps, which I treated as 30."
+  }
+}

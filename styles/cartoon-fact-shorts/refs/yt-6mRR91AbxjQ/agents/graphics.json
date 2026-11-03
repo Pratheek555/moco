@@ -1,0 +1,75 @@
+{
+  "inputHash": "95da26eebbe1bbd3794fbdff036e6467b646462ab551dba379cbfcaeab06cdf2",
+  "role": "graphics",
+  "seconds": 28,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 2421,
+    "costUsdEstimate": 0.1193711
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "captions",
+        "observation": "There is one caption line, centred horizontally, with its baseline about 78% down the frame. It sits in the same spot in every shot, whatever the background. The top ~70% is left clear for the picture and the bottom ~20% for platform UI.",
+        "rule": "Put captions on a single centred line at about 75–80% of frame height. Never move them between shots. Keep the top area and the bottom ~20% free of text.",
+        "measured": "Caption y ≈ 242/310 px of tile height (≈78%) on overview tiles S1–S18 and every S11 burst frame",
+        "evidence": "Overview S1–S18; S11 f266–f281; S12 f284–f313",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions are small white bold sans-serif in plain sentence case, as spoken. There is no box or outline, only a soft dark drop shadow. Line width changes with the words and never fills the frame. A 2-word chunk is about 30% of frame width; a 4-word chunk is about 70%. Letter height is about 3% of frame height.",
+        "rule": "Use a small white bold sans with a soft dark drop shadow and no background box. Keep the type small enough that a 4-word line covers no more than ~70% of the frame width.",
+        "measured": "'bites you' ≈56/176 px tile width (32%); 'six needle like tools' ≈122/176 (69%)",
+        "evidence": "Overview S2, S4",
+        "confidence": "medium"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions show a short phrase of 2–4 words, about 3 on average. Punctuation and hyphens are removed ('needle like', 'Next a hollow blade'). Compound words are split into normal spellings ('horse fly'). There are no colour or scale changes for emphasis.",
+        "rule": "Break the narration into 2–4 word phrases. Remove punctuation and hyphens. Give every word the same colour and size, with no highlight words.",
+        "measured": "Chunks seen: 4,2,2,4,3,3,3,3,4,2,4,3 words",
+        "evidence": "Overview S1–S18",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "Chunks hard-swap with no pop, fade or scale animation. A chunk can show up about 1 frame before its first word starts or a few frames after. One chunk stays up across several fast cuts: 'six needle like tools' lasts through S4–S8, about 1.8 s and 5 shots. 'open like scissors' carries across the S10→S11 cut.",
+        "rule": "Swap caption chunks with a hard cut, within 0–3 frames of the first word of the phrase. Don't animate them. Let a chunk stay up across picture cuts so the text stays calm while the images change fast.",
+        "measured": "'while two more' visible f284, 'while' starts f285; 'have tiny teeth' appears f306, 'have' starts f303 (+3 f)",
+        "evidence": "S12 f284–f313; S11 f266–f281; overview S4–S8",
+        "confidence": "high"
+      },
+      {
+        "area": "graphics",
+        "observation": "There are no explainer graphics: no labels, arrows, icons, highlight boxes or maps. Every fact is shown by the 3D render itself, for example a macro close-up of the part being named. The only overlay is the caption.",
+        "rule": "Show each fact with the animated scene: cut or push in to the object as it is named. Don't use labels or diagram overlays. Captions are the only layer drawn on top.",
+        "measured": "",
+        "evidence": "All 18 overview tiles; S11, S12 bursts",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "White text stays readable on bright cyan sky, peach skin and saturated red tissue, using only the drop shadow. The text colour never changes with the background.",
+        "rule": "Use one caption colour for the whole video. Rely on the shadow for contrast rather than changing the colour or adding a box for each scene.",
+        "measured": "",
+        "evidence": "Overview S1, S9, S11, S13",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "horsefly / horse fly",
+      "six needle-like tools (mouthparts)",
+      "scissors and saw analogies",
+      "blood vessels bursting",
+      "hollow blade pumping spit",
+      "spongy tip lapping blood",
+      "man in blue shirt with a fly on his arm",
+      "Zack D. Films",
+      "How Horseflies Bite You",
+      "caption texts: 'When a horse fly', 'six needle like tools', 'open like scissors', 'like a saw', 'until they burst', 'Next a hollow blade', 'laps it up'"
+    ],
+    "notes": "I measured caption size and position by eye from the tile pixels, so treat those numbers as approximate (±3%). Only two bursts were available, so I could only check chunk swap timing at one swap that happened inside a shot (S12 f306). I saw no caption animation at any frame."
+  }
+}

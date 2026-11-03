@@ -1,0 +1,100 @@
+{
+  "inputHash": "f57f5ee83d706c3d7e8b66f81e95760e81aa30c2f772d0acaae4e5d0a1286b21",
+  "role": "camera",
+  "seconds": 67,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 5454,
+    "costUsdEstimate": 0.2606592
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "camera",
+        "observation": "The camera is almost never still. It moves above 1.5 %/s in 91% of measured frames. Only 2 of 14 shots are near-holds: S5 moves in 14% of frames and S11 in 43%. The default move is a push-in. 9 of 14 shots have a positive zoom total, from +7.9% to +84.2% per shot. The other moves are pans (S3, S4) and one tilt up (S7). Mid-shot speeds range from 0 to 83.4 %/s, with a median of about 28 %/s. Each shot keeps one main axis. The chart shows the zoom sign flipping at most once inside a shot, usually only around a transition.",
+        "rule": "Give every shot one continuous move on one axis. Make it a push-in by default (about 60% of shots); use a lateral pan or tilt for the rest. Cruise at 20–55 %/s mid-shot and never reverse direction inside a shot. Keep the camera moving about 90% of the time. Allow at most 1 in 7 shots to be a near-hold.",
+        "measured": "moving 91% of frames; zoom total >0 in 9/14 shots; mid speeds 0, 0.3, 11.9, 18.6, 20, 21.7, 27.5, 28.3, 51.4, 53.9, 54.4, 56.6, 65.9, 83.4 %/s (median ≈28)",
+        "evidence": "shot table S1–S14; camera chart zoom lane",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "Shots usually start fast, carrying the speed of the transition, then ease down to cruise. In the 5 'arrives_moving' shots, start speed is 2.8–14× the mid speed. S14 decelerates all the way to 1.9 %/s and ends almost stopped. In the S8 burst, the zoom-out from the transition and a fast tilt up to the hanging board (blurred, f401–406) settle by about f412. That is roughly 18 frames from the end of the blur.",
+        "rule": "Start a shot at 5–10 %/fr (150–300 %/s), the transition's exit speed. Ease out (cubic) to cruise speed over 12–18 frames, then glide. The final shot can settle to near zero.",
+        "measured": "start/mid: S2 236.9/18.6 = 12.7; S6 308.7/54.4 = 5.7; S8 269.8/53.9 = 5.0; S9 75.8/27.5 = 2.8; S14 303.7/21.7 = 14.0; S14 end 1.9 %/s",
+        "evidence": "shot table; S8 burst f395–424",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "Shots that hand off with a motion transition speed up into the cut. End speed is 5–7× mid speed (S1, S4, S7). Even the near-hold S11 snaps from 0.3 to 188 %/s in its last frames. In S1 the zoom climbs steadily over about 1 s before T1 and peaks around 16 %/fr at the change.",
+        "rule": "In the last 8–20 frames of a shot, speed up (ease-in, quadratic or steeper) to 5–16 %/fr so the camera is already moving fast when the blur starts. Use the same axis and direction the shot was already moving in.",
+        "measured": "end/mid: S1 488.3/65.9 = 7.4; S4 272/51.4 = 5.3; S7 145.7/20 = 7.3; S11 188/0.3; T1 in-speed 16.17 %/fr",
+        "evidence": "shot table; chart zoom spike before 2.5 s; T1 sheet f65–72",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "12 of 13 changes are motion transitions; only 1 is a near-hard cut. By the tool's labels: 5 blur (38%), 4 zoom (31%), 3 whip (23%) and 1 cut (8%), which still had 2 blur frames. Blur lasts 3–9 frames, median 6. Changes come every 2.22 s on average, 1.47–3.28 s (p10–p90).",
+        "rule": "Join shots with motion blur, not hard cuts. Split them roughly 40% directional blur, 30% zoom-through, 25% whip. Allow at most 1 near-hard cut per 30 s. Blur for 6 frames by default, between 3 and 9. Change the picture every 1.5–3.3 s.",
+        "measured": "blur frames 4, 7, 7, 9, 4, 6, 3, 7, 8, 5, 6, 2, 7 (median 6)",
+        "evidence": "transition table",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "In zoom-throughs the direction carries across the change. T1 is in→in (16.2→6.6 %/fr). T7 is out→out (4.2→8.9). T13 is out→out (0.8→9.7). T1 pushes into the roof until the frame goes nearly black (f73), then the interior wide comes out of the dark at f74 with radial blur. T13 overlaps the two shots: the interior ghosts over the exterior for about 6 frames (f846–853) while the zoom-out runs.",
+        "rule": "For a zoom-through, keep the zoom sign on both sides. Push in until a surface or dark area fills the frame (1–2 nearly black frames), then reveal the next shot still pushing in. For a pull-out, cross-dissolve the two shots over about 6 frames while both zoom out. Use radial blur on 3–7 frames and make the exit 1–2× faster than the entry.",
+        "measured": "T1 16.17→6.6 in; T7 4.18→8.94 out; T13 0.76→9.69 out",
+        "evidence": "T1 sheet f69–76; T7 sheet f390–398; T13 sheet f846–856",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "Whips and blur transitions are fast tilts or pans with directional streak blur. In T3 the subject leaves the top of frame as the camera tilts down and right onto the floor (f200–206), and the new subject is in place by about f210. T6 is a continuous tilt up from one object to another in the same space: the hoop is blurred over f340–345 and the shot clock is in focus by f348. The tool reports n/a or near-zero speed at the blurred change itself (T2, T8, T9, T10). Tracking is lost there, so those numbers are not real stops.",
+        "rule": "For a whip, tilt or pan at 5–9 %/fr in one direction with linear motion blur along that axis for 5–9 frames. Land the new subject within 4 frames after the blur. Where the story allows, whip between two objects in the same space so it reads as one continuous camera move.",
+        "measured": "T3 7 fr (in 2.91 %/fr right); T4 9 fr (in 8.8 right); T11 6 fr (in 4.71 left); T6 6 fr (out 7.44 up)",
+        "evidence": "T3 sheet f194–212; T6 sheet f334–351",
+        "confidence": "medium"
+      },
+      {
+        "area": "transitions",
+        "observation": "Changes fall on words only a little more often than chance and do not follow clause boundaries. 54% are within ±2 frames of a word onset against 38% chance. 15% are within ±4 frames of a clause start against 9% chance. Most changes land 3–11 frames into a word and split phrases mid-clause ('with | thousands', 'one | player', 'and | making'). The new picture usually settles just before the next content word. In T1 the interior is clear at f75, two frames before 'thousands' at f77. In T3, 'player' starts at f205 and the player is in frame by f207. Motion bursts finish about 23 frames before the next clause starts.",
+        "rule": "Do not cut on sentence boundaries. Start the blur on a function word ('with', 'and', 'the') and have the new shot clear 0–4 frames before the next noun, so the picture names the word as it is spoken. Let a camera burst settle about 20–25 frames before the next clause.",
+        "measured": "word sync 54% vs 38% chance; clause sync 15% vs 9% chance; word onset at change -20 to +1 frames (median -5); burst finish 23.4 fr before clause start",
+        "evidence": "transition table word column; T1 f75/f77; T3 f205–207",
+        "confidence": "medium"
+      },
+      {
+        "area": "framing",
+        "observation": "Shot scale jumps a lot at each change, and the transition move bridges the jump. Exterior aerial wide becomes a high-angle interior wide (T1). A close-up of the board pulls out to a court wide (T7). A close-up of a scoreboard digit whips to a medium shot of a figure (T8). A medium group shot pulls out through to an exterior street (T13). Several cuts link through a shared object, such as a scoreboard or clock face, seen at a new scale.",
+        "rule": "Change scale by at least one step (close ↔ medium ↔ wide) on every change, and let the zoom or whip cover the jump. Push-ins lead from outside to inside or from wide to close. Pull-outs lead from close to wide or from inside to outside. Reuse one object across 2–3 shots as a visual link.",
+        "measured": "",
+        "evidence": "T1, T7, T8, T13 sheets; S8 burst",
+        "confidence": "medium"
+      },
+      {
+        "area": "camera",
+        "observation": "Moves are smooth, render-perfect paths. Median frame-to-frame jerk is 0.328 % of frame. When the camera holds, tracked points drift only 0.01 px/frame, so holds are dead still. The higher shake numbers come from shots full of flying debris and particles (S1 1.089, S11 1.486, S5 0.902), not from camera wobble. Clean shots measure 0.06–0.15.",
+        "rule": "Use smooth spline camera paths with no handheld noise: keep jerk under about 0.3 %/fr and hold perfectly still when holding. Let particles and debris carry the chaos, not the camera.",
+        "measured": "median shake 0.328; hold residual 0.01 px/fr; S14 0.059, S7 0.105, S2 0.12 vs S11 1.486, S1 1.089",
+        "evidence": "shot table shake column; chart S1 pan jitter",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "tornado hitting a domed stadium",
+      "basketball game, buzzer-beater three-point shot",
+      "overtime keeps fans in their seats",
+      "Georgia Dome lettering on the roof",
+      "ATLANTA court lettering",
+      "scoreboard showing 56–59, period 4, OT, 00:06 and 0:00",
+      "shot clock 0:01",
+      "fans in red shirts with popcorn",
+      "shattered glass and debris outside the building",
+      "title 'The Basketball Shot That Saved Thousands'",
+      "Zack D. Films"
+    ],
+    "notes": "1. Speeds at blurred changes often read n/a or about 0 (T2, T8, T9, T10, T11 exit). Tracking is lost in the blur, so those numbers do not mean the camera stopped.\n2. The tool labels 'blur' and 'zoom' overlap. T8's sheet looks like a diagonal whip that follows a push-in.\n3. The single-frame pan-x spike near 24.5 s and the y spikes near 24.5–25.5 s are probably tracking glitches from flashes or debris, not real camera moves.\n4. High shake in S1, S5 and S11 comes from particles in frame, not camera wobble.\n5. Fps is 29.97, so frame counts are effectively the same at 30."
+  }
+}

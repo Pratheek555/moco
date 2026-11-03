@@ -1,0 +1,133 @@
+{
+  "inputHash": "0dc3b0fb3d44b45a42be4beca9a5a91a04a5bd4feb75006c0d3735f30803383e",
+  "role": "overview",
+  "seconds": 40,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 3493,
+    "costUsdEstimate": 0.13346509999999998
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "render",
+        "observation": "The render is semi-realistic and polished, not toon. There are no outlines. Surfaces are glossy and specular: wet blood, shiny chitin, metallic serrated blades. Skin and flesh have a fine bump texture. Background depth of field is mostly soft. There is no grain and no stylised shading.",
+        "rule": "Render the subject as a clean, glossy, semi-realistic 3D model with strong specular highlights and fine surface bump. Skip outlines and toon ramps. Make wet or organic materials look shiny so they read as real at macro scale.",
+        "measured": "",
+        "evidence": "S3–S8 chitin and blades, S12 metal saw teeth, S13/S17 glossy blood, S1/S18 skin bump",
+        "confidence": "high"
+      },
+      {
+        "area": "sets",
+        "observation": "Every set is just the subject sitting on a curved skin surface against a flat cyan sky gradient. There are no other props. The surface curves away like a horizon, so a body part reads as a landscape.",
+        "rule": "Use a single curved surface as the ground with a plain bright gradient sky behind it. Keep zero clutter, so the only things in frame are the subject and the surface it acts on. Treat the body as terrain.",
+        "measured": "cyan sky #45afcc–#6eb3c9 takes 21–42% of the frame in exterior shots S1, S3–S9, S14, S18",
+        "evidence": "S1, S2, S3–S9, S14, S16, S18",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "Each spoken claim gets its own isolated macro shot of the matching part. 'Six needle-like tools' becomes a low-angle view of six blades. 'Like scissors' shows two blades opening. 'Like a saw' shows two serrated silver blades. 'Burst' shows a blood bubble. 'Keeps flowing' shows a red cut that won't close. The inside of the body is shown as a cut-away slice through layered tissue.",
+        "rule": "Turn each mechanism in the script into its own extreme close-up of the part doing it. When the narration uses a comparison ('like scissors'), make the part look and move like that object. Show what happens inside the body as a cross-section slice with visible layers.",
+        "measured": "",
+        "evidence": "S4–S8, S10–S13, S15, S17",
+        "confidence": "high"
+      },
+      {
+        "area": "framing",
+        "observation": "The camera sits low, at surface level, and looks up at the insect so it looks huge. Mouthparts fill the frame top to bottom. Wide shots go only at the start and end (S1, S18), with the insect small and centred on the skin. S2 adds one human for scale, with the insect tiny on the shoulder.",
+        "rule": "Bookend the video with a centred wide shot of the subject. In between, stay at a low, ground-level macro angle with the key part filling most of the 9:16 frame. Use one shot with a human to set the scale early.",
+        "measured": "",
+        "evidence": "S1, S2, S3–S9 low angle, S18 bookend",
+        "confidence": "high"
+      },
+      {
+        "area": "colour",
+        "observation": "Two palettes. Exterior shots are warm peach skin (#b97353–#ea9871) against cyan sky (#45afcc), a complementary pair. Interior shots switch to saturated reds and pinks (#e76472, #98232b, #8a1825). Gold-yellow highlights on the blades (#f2c16e) pop against both.",
+        "rule": "Set warm skin tones against a cyan sky for exterior shots. Switch to a saturated all-red-and-pink palette once the camera goes inside. Give the active tool a bright gold or metal colour so it stands out from either background.",
+        "measured": "exterior skin #b97353 30–47%, sky #45afcc–#6eb3c9 21–42%; interior S11 #e76472 35%, S13 #98232b 27%",
+        "evidence": "S1–S9 vs S10–S13, S15, S17",
+        "confidence": "high"
+      },
+      {
+        "area": "lighting",
+        "observation": "The lighting is bright and even, like soft daylight from the top or front. Highlights are strong and shadows are mild, and nothing is dark or moody.",
+        "rule": "Light with a bright soft key plus a sky fill. Keep the contrast moderate and the highlights crisp. Never let the subject go dark.",
+        "measured": "",
+        "evidence": "all shots",
+        "confidence": "medium"
+      },
+      {
+        "area": "characters",
+        "observation": "The only person is a realistic-stylised bald man with a beard, seen in profile, in a blue shirt that matches the sky. He appears once, as a scale and 'you' stand-in. The insect is a detailed semi-real model and stays the same model throughout.",
+        "rule": "If you need a human, make one neutral, semi-realistic stand-in for 'you' and use them briefly to show scale. Then stay on the subject. Reuse one subject model in every shot.",
+        "measured": "",
+        "evidence": "S2; insect S1, S3–S8, S14, S18",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions are white sans-serif in bold or semibold, small to medium size, with a soft dark shadow. They sit centred horizontally at about 72% of the frame height, so they land on the skin or tissue, not the sky. Each chunk is 2–4 words and is a key phrase, not the full transcript ('six needle like tools', 'like a saw', 'laps it up'). The text stays in place across consecutive shots.",
+        "rule": "Put short 2–4 word key-phrase captions in white bold sans with a soft drop shadow, centred around 70–75% of the frame height. Hold a phrase across fast cuts instead of re-timing it to every word.",
+        "measured": "caption at ~72% height in all 18 frames; 'six needle like tools' held across S4–S8 (2.44–4.0 s)",
+        "evidence": "S1–S18",
+        "confidence": "high"
+      },
+      {
+        "area": "pace",
+        "observation": "The narration is fast and nearly continuous. The cuts are uneven: a burst of 0.2–0.4 s cuts on the 'six tools' reveal (S4–S8), then long 3–5 s moving shots for the explanation (S9, S12, S13, S15).",
+        "rule": "Use a rapid burst of 0.2–0.4 s cuts to show off a list or a multi-part object. Then slow down to 3–5 s continuous camera moves while you explain the mechanism.",
+        "measured": "174 wpm overall, 196 wpm while speaking, 89% speech coverage; shots p10–p90 0.31–3.89 s; S4–S8 0.2–0.4 s each; S9 3.7 s, S12 4.84 s, S15 4.34 s",
+        "evidence": "S4–S8, S9, S12, S13, S15",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "Long shots are big push-ins or tilts into the tissue. S9 zooms 172% and S12 zooms 129% while tilting down, carrying the viewer from outside to inside. Shots open with whip pans, and transitions mix zooms, whips and blurs.",
+        "rule": "Move from the outside to the inside of the body with one long, continuous push-in or tilt that passes the surface. Link scenes with whip or zoom transitions rather than plain cuts where you can.",
+        "measured": "S9 zoom +172%, S12 zoom +129% pan -132%, S13 tilt pan +123%; S2/S14 start speeds ~305–329 %/s; transitions 3 zoom, 7 cut, 4 whip, 3 blur",
+        "evidence": "S2, S9, S12, S13, S14",
+        "confidence": "medium"
+      },
+      {
+        "area": "loop",
+        "observation": "The last shot (S18) mirrors the first: the same wide view of the insect on skin against cyan sky. That makes it easy to loop.",
+        "rule": "End on the same wide framing as the opening shot, so the last frame flows straight back into the first.",
+        "measured": "S1 and S18 palettes nearly the same (cyan ~40%, skin ~35–45%)",
+        "evidence": "S1, S18",
+        "confidence": "high"
+      },
+      {
+        "area": "hook",
+        "observation": "It opens straight on second-person danger: 'When a [creature] bites you'. The subject is on screen in frame 1 and the human/scale shot comes by 0.93 s.",
+        "rule": "Open with a 'When X does Y to you' line over an immediate shot of the subject, and cut to show the viewer's stake inside 1 s.",
+        "measured": "first cut 0.93 s",
+        "evidence": "S1, S2",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "horsefly",
+      "horse fly bite",
+      "six needle-like mouthparts",
+      "blades that open like scissors",
+      "saw-toothed blades",
+      "blood vessels bursting",
+      "hollow blade pumping in spit",
+      "cut that won't seal",
+      "spongy tip lapping up blood",
+      "bald bearded man in a blue shirt",
+      "skin cross-section",
+      "caption text: 'six needle like tools', 'open like scissors', 'like a saw', 'until they burst', 'laps it up'",
+      "title: How Horseflies Bite You",
+      "Zack D. Films"
+    ],
+    "notes": "I couldn't measure the camera on S1, S3 and S16 (only 11–48% of frames tracked). The shake values on S10 and S14 are probably from motion blur during whip transitions, not real handheld shake. Caption height is judged by eye from the middle frames. I picked category 3d_cartoon because it's rendered 3D, but the look is semi-realistic, not toon.",
+    "category": "3d_cartoon",
+    "label": "3D macro anatomy explainer short (Zack D. Films style)",
+    "why": "Every shot is a rendered 3D scene: a semi-realistic insect, a stylised human, and close-ups of tissue cut-aways. A fast voice-over carries the whole thing, with burned-in captions centred low in the frame. It's 3D rendered, not filmed, so it fits 3d_cartoon better than live_action. The look is semi-real, not toon.",
+    "hasCharacters": true,
+    "hasOnScreenText": true,
+    "hasNarrator": true
+  }
+}

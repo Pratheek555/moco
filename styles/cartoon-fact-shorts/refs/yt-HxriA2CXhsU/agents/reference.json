@@ -1,0 +1,329 @@
+{
+  "inputHash": "3eb1fcdff5419348f538507d3407ec5cf7e5408e940ee9cff0199365b252df65",
+  "role": "reference",
+  "seconds": 67,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 7818,
+    "costUsdEstimate": 0.3418099
+  },
+  "output": {
+    "category": "3d_cartoon",
+    "label": "Semi-real 3D 'true story' short: constant camera motion, frozen tableaux, blur-linked shots, fast deadpan VO",
+    "summary": "The short is a fast, deadpan, past-tense true story told as a five-sentence cause-and-effect chain. A semi-real game-engine render makes it feel documentary. Characters and sets stay frozen like dioramas. All the energy comes from a camera that moves about 90% of the time and hands off through 6-frame blur, zoom and whip transitions every 1.5–3.3 s. Each fact becomes a readable in-world object, such as a clock or a scoreboard, and appears just before its noun is spoken. Small, plain lowercase captions sit at 78% of frame height and leave the picture as the star.",
+    "rules": [
+      {
+        "area": "format",
+        "rule": "Tell the story in five sentences, one beat each: the threat, a small unrelated action, what that action caused, the threat strikes, the cause pays off. Make the setup sentence the longest and spread it over the most shots. Hold back the answer to the hook until the final word.",
+        "value": "5 sentences; 11/28/16/19/14 words; ~31 s",
+        "evidence": "Sentence spans 0–4.28 / 4.68–12.82 / 13.16–18.54 / 18.96–25.84 / 26.44–30.26 s. The setup runs over S3–S7. The hook is answered at 29.66 s of 31.1 s.",
+        "confidence": "high"
+      },
+      {
+        "area": "hook",
+        "rule": "Open with the danger already happening. In one sentence of 10–12 words, name the threat and how many people are at stake. Don't ask a question and don't use 'did you know'. Put the threat and the place in the same first frame. Cut to the people at risk on the word that counts them.",
+        "value": "11 words, ends 4.28 s; cut 0.08 s before the count word",
+        "evidence": "S1 is an aerial of the building with the storm behind, zooming 78.8%. The cut comes at 2.5 s and 'thousands' at 2.58 s.",
+        "confidence": "high"
+      },
+      {
+        "area": "script",
+        "rule": "Write in plain third-person past tense, with no opinion words, jokes or 'you'. Start each sentence with a link word that shows cause or time. Use 'But' only for the twist and the payoff. Chain two results per sentence with -ing clauses so the pace never stops.",
+        "value": "mean 17.6 words per sentence",
+        "evidence": "The links are 'But as…', 'This tied…', 'Just minutes later…', 'But thanks to…'. The -ing chains are 'sending it… and making…' and 'tearing up… and whipping…'.",
+        "confidence": "high"
+      },
+      {
+        "area": "script",
+        "rule": "End on one sentence that states the outcome. No outro and no call to action. The audio fades right after the last word.",
+        "value": "last word at ~30.3 s of 31.1 s",
+        "evidence": "The payoff sentence starts at 26.44 s and the fade begins around 30.5 s.",
+        "confidence": "high"
+      },
+      {
+        "area": "loop",
+        "rule": "Make a soft loop: end the last sentence on the same key word that ends the first sentence. For a stronger loop, bring the final shot back to the opening place or angle. The reference does not do this.",
+        "value": "frame similarity 0.49",
+        "evidence": "The first and last sentences both end on 'inside'. The opening aerial and the closing figure in front of the facade do not match.",
+        "confidence": "medium"
+      },
+      {
+        "area": "pace",
+        "rule": "Show a new picture every 1.5–3.3 s, about 6–7 spoken words per shot. Use 1–1.6 s shots for the decisive moment. Give results and the impact 3–3.7 s.",
+        "value": "median 2.15 s (p10–p90 1.47–3.28 s); 6.5 words/shot",
+        "evidence": "S5–S7 run 1.07–1.57 s. S8–S10 run about 3–3.74 s. There are 14 shots in 31.1 s.",
+        "confidence": "high"
+      },
+      {
+        "area": "pace",
+        "rule": "Don't cut on sentence ends. Start the transition on a function word ('with', 'and', 'the'). The new shot should be clear 0–4 frames before the noun it shows. Let shots end on a dangling connective.",
+        "value": "54% of changes within ±2 fr of a word onset (chance 38%); clause sync 15% (chance 9%)",
+        "evidence": "In T1 the interior is clear at f75 and 'thousands' starts at f77. In T3 the player is in frame by f207 and 'player' starts at f205. Shots end on 'But as', 'one', 'which' and 'just'.",
+        "confidence": "high"
+      },
+      {
+        "area": "voice",
+        "rule": "Use one fast narrator at 190–200 wpm while speaking, with no gaps between words. Pause about 0.3 s at clauses and 0.4 s at sentences. Leave the longest pause, about 0.6 s, just before the payoff sentence. Keep the delivery deadpan and news-like, and push pitch up on the hook, the twist word and the impact verb.",
+        "value": "196.3 wpm speaking, 170 wall to wall; speech covers 87%; median pitch 165 Hz",
+        "evidence": "The pauses measured 0.31 s and 0.41 s. The gap before the payoff runs 25.84→26.44 s. The 14.6-semitone pitch range may be inflated by the music.",
+        "confidence": "medium"
+      },
+      {
+        "area": "music",
+        "rule": "Run one steady music bed about 10–11 dB under the voice, with no ducking. Master loud (about -10 LUFS) with little dynamic range, but keep true peak at or below -1 dBFS. The reference clips. Fade out on the last word.",
+        "value": "voice -12.9 dB vs bed -23.5 dB; -9.7 LUFS; LRA 2 LU",
+        "evidence": "Measured audio. The +1 dBFS true peak is clipping, so don't copy it.",
+        "confidence": "medium"
+      },
+      {
+        "area": "sound",
+        "rule": "Give each key object one sound hit timed to its shot, mixed under the voice: wind on the threat, a buzzer when a clock hits zero, a shatter on breaking glass, crowd murmur on the crowd.",
+        "value": "",
+        "evidence": "Inferred from the pictures in S1, S6, S7, S11 and S14. The measurements can't confirm these sounds are in the mix.",
+        "confidence": "low"
+      },
+      {
+        "area": "render",
+        "rule": "Render in a semi-real game-engine style: physically real materials (wood, glass, fabric), soft depth of field on backgrounds, slight haze. No outlines and no toon bands.",
+        "value": "",
+        "evidence": "S1, S2, S4, S6, S10, S14",
+        "confidence": "medium"
+      },
+      {
+        "area": "colour",
+        "rule": "Keep the grade dark and muted: near-black interiors and flat grey threat scenes. Save saturated accents (red, orange, blue) for the key objects and the protagonists' clothes.",
+        "value": "dark shots 41–96% near-black; storm shots 52–86% grey #4d–#52; accents #b7333c, #892809, #2b3e6a",
+        "evidence": "S2, S3, S5, S7–S11",
+        "confidence": "high"
+      },
+      {
+        "area": "lighting",
+        "rule": "Light interiors from directly overhead: a bright pool on the subject, with the surroundings falling into darkness. Use flat, overcast light for threat exteriors. Make displays self-lit and glowing.",
+        "value": "",
+        "evidence": "S3, S4, S6, S10, S12",
+        "confidence": "medium"
+      },
+      {
+        "area": "characters",
+        "rule": "Use stand-in people with realistic proportions (about 7 heads tall) and simple faces. Dress them all in one repeated outfit in a single bright colour, and reuse the same model across shots, so viewers read them as the same people.",
+        "value": "",
+        "evidence": "Every fan wears the same red shirt and jeans, and the same male model recurs in S9, S12, S13 and S14.",
+        "confidence": "high"
+      },
+      {
+        "area": "acting",
+        "rule": "Treat character shots as frozen dioramas. Set each figure in one pose that tells the emotion (slumped means despair, upright means waiting, crouched means danger) and hold it at 0 px/frame. No idle or breathing motion. The camera supplies all the movement.",
+        "value": "leftover motion 0.007 px/frame; actor activity 0.069–0.244",
+        "evidence": "In M24 the poses don't change over f838–846. Only 1 of 6 bursts is acting, and S13's camera moves in 100% of the shot.",
+        "confidence": "high"
+      },
+      {
+        "area": "gestures",
+        "rule": "Allow at most one body action per shot, and only on the climax beat. Make it one smooth whole-body move, arms going from the sides to raised and wide over 9–11 frames with ease-in-out, then hold. No anticipation and no overshoot. Start it 3 frames after its word and reach the key pose 8–12 frames after.",
+        "value": "~10 frames; +3 to +12 fr after the word",
+        "evidence": "M21: 'outside' starts at f756, the arms start at f759, spread by f764 and are raised by f768. This is the only gesture in the short.",
+        "confidence": "medium"
+      },
+      {
+        "area": "gestures",
+        "rule": "When an action continues into a second shot, open that shot already in the key pose, such as a crouch or dodge. Hold it 2–3 frames, then transition out. Don't animate the in-between on screen.",
+        "value": "pose held 3 fr",
+        "evidence": "M22: the crouch holds f789–791, then the dissolve runs f791–796.",
+        "confidence": "medium"
+      },
+      {
+        "area": "faces",
+        "rule": "Keep faces small (about 1/15 of frame height), neutral and fixed, or hidden. No lip sync, no blinks, no expression changes. Put the emotion into posture.",
+        "value": "0 face changes",
+        "evidence": "No face is readable on any sheet (M21, M22, M24).",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "rule": "Turn every time, score, count or rule into one readable in-world object (clock, scoreboard, counter) filmed close up, in its own shot, and timed to the word that names it. Turn claims about a crowd into two or three recurring figures doing the action.",
+        "value": "",
+        "evidence": "'about to end' is shown as a clock at 00:06 (S3), 'clock ended' as 0:00 (S7), 'tied' as a level score (S8) and 'stay in their seats' as two seated fans (S9).",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "rule": "At the hinge beat, isolate the key object alone on a pure black background in a short, near-still shot.",
+        "value": "black covers 96% of frame; camera moving in 14% of frames; ~1.1 s",
+        "evidence": "S5: the ball alone on black.",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "rule": "Show the key prop event on its word (within ±1 frame). Whip to the consequence prop and have it settled 4–7 frames before the next phrase. Change a displayed value as an instant 1-frame swap, about 10 frames after the narration names it and after the camera has settled.",
+        "value": "digit swap f421→f422, 10 fr after 'game' (f412)",
+        "evidence": "M7: the ball crosses the rim at f336–337, with 'just' at f337, and the whip settles on the clock at f344–347. S8 shows the score swap.",
+        "confidence": "medium"
+      },
+      {
+        "area": "props",
+        "rule": "Put fast motion into particles and debris (glass, flakes) crossing at 10–20% of frame height per frame, over a static set. Before impact, keep threat elements slow and hazy.",
+        "value": "10–20% of frame/frame (eyeballed)",
+        "evidence": "Debris in f852–856. The funnel in S10 is almost still.",
+        "confidence": "medium"
+      },
+      {
+        "area": "sets",
+        "rule": "Build dense, full-scale places for the scale shots: packed crowds, aerial city views. Add one minimalist object-on-black set for the hinge beat.",
+        "value": "",
+        "evidence": "S2, S4, S9 and S14 are the dense sets. S5 is the object on black.",
+        "confidence": "high"
+      },
+      {
+        "area": "framing",
+        "rule": "Keep the subject in the centre column, upper-centre to centre. Keep the caption band at about 75–80% of frame height clear and mid-to-dark in tone.",
+        "value": "",
+        "evidence": "S1, S5, S8, S12, S14. The caption weakens over the bright floor in S4 and S14.",
+        "confidence": "medium"
+      },
+      {
+        "area": "framing",
+        "rule": "Change shot scale by at least one step at every transition (wide↔medium↔close) and let the move cover the jump. Swing between extreme wides and extreme close-ups. Push-ins go outside→inside or wide→close; pull-outs go the other way. Reuse one object across 2–3 shots as a visual link.",
+        "value": "",
+        "evidence": "T1 goes aerial→interior wide, T7 board close-up→court wide, T13 group medium→exterior street. The scoreboard recurs in S3, S7 and S8.",
+        "confidence": "medium"
+      },
+      {
+        "area": "camera",
+        "rule": "Keep the camera moving about 90% of the time. Give every shot one continuous move on one axis and never reverse it within the shot. Default to a push-in (about 60% of shots) and use pans or tilts for the rest. Cruise at 20–55 %/s mid-shot.",
+        "value": "moving 91% of frames; zoom positive in 9/14 shots; median mid speed ≈28 %/s",
+        "evidence": "Shot table: per-shot zoom from +7.9% to +84.2%, mid speeds 0–83.4 %/s.",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "rule": "Enter each shot at the speed the transition left off, 150–300 %/s. Ease out (cubic) to cruise over 12–18 frames, then glide.",
+        "value": "start speed 2.8–14× mid speed",
+        "evidence": "Start/mid speeds in %/s: S2 236.9/18.6, S6 308.7/54.4, S8 269.8/53.9, S14 303.7/21.7. The S8 burst settles about 18 frames after the blur.",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "rule": "In the last 8–20 frames of a shot, speed up (ease-in) on the same axis and direction to 5–16 %/frame, so the move is already fast when the transition starts.",
+        "value": "end speed 5–7× mid",
+        "evidence": "End/mid speeds in %/s: S1 488/65.9, S4 272/51.4, S7 145.7/20. S11 snaps from 0.3 to 188 %/s. T1 enters at 16.2 %/frame.",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "rule": "Use smooth spline paths with no handheld noise. Holds are dead still. Allow at most 1 near-hold shot in 7, for the hinge object or the aftermath. The final shot can pull out and settle to almost zero.",
+        "value": "clean-shot jerk 0.06–0.15 %/fr; hold residual 0.01 px/fr; S14 end 1.9 %/s",
+        "evidence": "Shake column. The higher values in S1, S5 and S11 come from debris particles, not camera shake.",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "rule": "For a large establishing or threat shot, run one steady zoom of 40–50% over 3–4 s on an almost static scene.",
+        "value": "S10 zoom 47.4% over 3.74 s",
+        "evidence": "S10 sheet f588–617.",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "rule": "Open a reveal shot defocused and drifting. Rack it sharp over about 10 frames, finishing 3–6 frames before the narration names the subject.",
+        "value": "~11 fr rack",
+        "evidence": "M14: blurred at f584, sharp by about f595; 'the' at f598, 'tornado' at f601.",
+        "confidence": "medium"
+      },
+      {
+        "area": "transitions",
+        "rule": "Join shots with motion transitions, not hard cuts. Use roughly 40% directional blur, 30% zoom-through and 25% whip, with at most one near-hard cut per 30 s. Default to 6 blur frames, within a range of 3–9.",
+        "value": "13 changes: 5 blur, 4 zoom, 3 whip, 1 cut; blur median 6 fr",
+        "evidence": "Transition table. Blur frames were 4, 7, 7, 9, 4, 6, 3, 7, 8, 5, 6, 2, 7.",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "rule": "For a zoom-through, keep the zoom direction on both sides. Push in until a dark surface fills the frame (1–2 nearly black frames), then reveal the next shot still pushing in, with radial blur on 3–7 frames. For a pull-out, cross-dissolve both shots over about 6 frames while both zoom out. Make the exit 1–2× faster than the entry.",
+        "value": "T1 16.2→6.6 %/fr in; T7 4.2→8.9 out; T13 0.8→9.7 out",
+        "evidence": "T1 goes nearly black at f73 and reveals at f74. In T13 the shots overlap over f846–853.",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "rule": "For a whip, pan or tilt at 5–9 %/frame in one direction, with linear streak blur along that axis for 5–6 frames. Land the new subject sharp within 4 frames, ideally on the first frame of a word. Where possible, whip between two objects in the same space so it reads as one continuous move.",
+        "value": "5–9 fr blur; lands 0 fr off a word onset",
+        "evidence": "M10: blur f486–491, clear at f492 on 'making'. S8: blur f401–406, clear at f407 on 'the'. T6 tilts from hoop to clock over f340–348.",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "rule": "For a blur dissolve, crossfade over 3–4 frames with directional blur on both shots, peaking in the middle two frames. The clean incoming frame should land exactly on a word onset.",
+        "value": "4 fr dissolve",
+        "evidence": "M24: starts at f848, double image f849–850, clean at f852, the same frame 'The' starts.",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "rule": "Use one caption style throughout: small white bold rounded sans, lowercase, centred, baseline at about 78% of frame height, soft dark drop shadow. No box, no heavy outline.",
+        "value": "y ≈ 78%; letter height 3–4% of frame; width ≤ ~55%",
+        "evidence": "Caption y ≈ 182/234 px on burst tiles, 244/312 on overview tiles. 'the tornado' is about 38% of frame width.",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "rule": "Show 2–3 word phrase chunks with hard 1-frame swaps: no pop, fade or scale, and no emphasis colour. Start each chunk within ±3 frames of its first word. Hold the previous chunk through pauses.",
+        "value": "offsets -2 to +3 fr",
+        "evidence": "'the game' appears at f408, the same frame as its word. 'the tornado' appears at f596 against its word at f598. 'hit the building' appears at f615 against 'hit' at f612.",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "rule": "Composite captions above the transition layer so they stay sharp and fixed while the picture blurs, whips or zooms. Keep the top 15%, bottom 18% and right 12% of the frame free of text.",
+        "value": "",
+        "evidence": "The caption stays sharp over f401–405 while the scoreboard streaks.",
+        "confidence": "high"
+      },
+      {
+        "area": "graphics",
+        "rule": "No overlay graphics: no maps, icons, arrows, lower thirds or titles. Every number lives on a high-contrast in-world display (glowing digits on dark) that fills 60–70% of frame width.",
+        "value": "",
+        "evidence": "S3, S7, S8. No overlays appear anywhere.",
+        "confidence": "high"
+      }
+    ],
+    "avoid": [
+      "hard cuts as the default join (at most 1 per 30 s)",
+      "handheld shake or camera wobble",
+      "a camera hold over about 1 s outside the hinge or aftermath shot",
+      "reversing camera direction inside a shot",
+      "toon shading, outlines or flat cartoon colours",
+      "lip sync, blinks or facial expression changes",
+      "idle breathing or fidget animation",
+      "gestures on background or crowd characters",
+      "overlay graphics, maps, icons, arrows or lower thirds",
+      "big kinetic captions, word-by-word pop-ins, emphasis colours or caption boxes",
+      "questions or 'did you know' openers",
+      "jokes, opinion words or addressing the viewer as 'you'",
+      "outros or calls to action",
+      "bright, saturated grades across the whole frame",
+      "cutting on sentence boundaries",
+      "pauses between words inside a clause",
+      "true peak above -1 dBFS (the reference clips)"
+    ],
+    "contentSpecifics": [
+      "tornado hitting a domed stadium with fans inside",
+      "basketball game",
+      "last-second three-point buzzer-beater that rolls into the hoop",
+      "overtime keeping fans in their seats",
+      "scoreboard reading 00:06, 00:00, 0:00; shot clock 0:01",
+      "score 56–59 becoming 59–59; PERIOD 4 / OT, T.O.L., FOUL",
+      "team names Alabama and Mississippi State",
+      "Georgia Dome roof lettering",
+      "ATLANTA court lettering",
+      "fans in red t-shirts and jeans with a popcorn bucket",
+      "man in a red t-shirt outside a glass facade dodging flying glass",
+      "roof torn off, shattered glass and debris",
+      "title 'The Basketball Shot That Saved Thousands 😮'",
+      "line 'The tornado ripped towards the stadium with thousands of fans inside'",
+      "line 'Fans Were Kept Safe Inside'",
+      "phrases 'sending it into overtime', 'Just minutes later', 'whipping shattered glass at anyone outside', 'thanks to that single shot'",
+      "caption lines: 'ripped towards', 'of fans inside', 'was about to end', 'launched the ball', 'three point line', 'into the hoop', 'just as the clock', 'sending it', 'their seats', 'This tied', 'the game', 'Just minutes later', 'the tornado', 'hit the building', 'shattered glass', 'outside', 'single shot', 'all the fans were', 'kept safe inside'",
+      "Zack D. Films"
+    ]
+  }
+}

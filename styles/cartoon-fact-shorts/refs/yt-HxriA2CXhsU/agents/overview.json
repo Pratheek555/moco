@@ -1,0 +1,131 @@
+{
+  "inputHash": "4d8905b81d7861542caaafe359dcfcf95ca54b99d0bf7f6d43ff2f51dd0e812c",
+  "role": "overview",
+  "seconds": 35,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 3119,
+    "costUsdEstimate": 0.122727
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "render",
+        "observation": "The render is semi-real game-engine CG. Materials look physically real (wood floor, glass, a fabric roof) and the background crowd gets soft depth of field. There are no outlines or toon bands. The image is soft and slightly hazy, close to a cinematic grade.",
+        "rule": "Render in a semi-real game-engine style: real-looking materials, soft depth of field on the background, no outlines. Keep it believable rather than cartoony so a 'this really happened' story feels documentary.",
+        "measured": "",
+        "evidence": "S1, S2, S4, S6, S10, S14",
+        "confidence": "medium"
+      },
+      {
+        "area": "characters",
+        "observation": "The figures are adult-proportioned, about 7 heads tall, with simple but realistic faces and plain clothes. The fans all wear the same red t-shirt and blue jeans, and the same male model is reused across shots. Characters show emotion through whole-body poses: leaning forward on seats, arms spread wide, ducking with hands on the head.",
+        "rule": "Use realistic-proportioned stand-in people with one simple, repeated outfit in a single bright colour, so viewers read the cast as 'the same people' from shot to shot. Show emotion with big body poses, not facial detail.",
+        "measured": "",
+        "evidence": "S9, S12, S13, S14",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "Each spoken fact gets its own literal object shot. 'Game about to end' becomes the scoreboard reading 00:06. 'Three point line' becomes a lone ball on black. 'Clock ended' becomes 0:00. 'Tied the game' becomes a close-up of the 59–59 score. The danger is shown as a funnel cloud over the building.",
+        "rule": "Turn every number or abstract claim into one physical object that shows it (a clock, a score, a counter). Give it its own shot, timed to the word that names it.",
+        "measured": "",
+        "evidence": "S3, S5, S7, S8, S1, S10",
+        "confidence": "high"
+      },
+      {
+        "area": "sets",
+        "observation": "Sets are dense, full-scale places: an arena packed with crowd instances, plus an aerial city with a domed stadium. The disaster shots fill the air with flying glass and debris particles. The isolation shot (S5) is the opposite: a single object on pure black.",
+        "rule": "Build packed, full-scale settings for scale shots. Add one minimalist object-on-black shot at the beat where the story hinges.",
+        "measured": "S5 #03060a covers 96% of the frame",
+        "evidence": "S2, S4, S5, S9, S14",
+        "confidence": "high"
+      },
+      {
+        "area": "colour",
+        "observation": "The palette is dark and low in saturation: near-black arena shadows and grey storm skies. The few colour accents are the red shirts, the red scoreboard digits, the orange ball and the blue court paint. Disaster shots go flat grey.",
+        "rule": "Keep the grade dark and muted (mostly near-black and grey). Save saturated colour for the story's key objects and the protagonists' clothing so the eye goes straight to them.",
+        "measured": "Dark shots are 41–96% near-black (#03–#13). Storm shots are 52–86% grey #4d–#52. Accents: #b7333c red, #892809 orange, #2b3e6a blue",
+        "evidence": "S2, S3, S5, S7, S8, S9, S10, S11",
+        "confidence": "high"
+      },
+      {
+        "area": "lighting",
+        "observation": "Interiors are lit by overhead arena lights from above, with a bright floor and dark stands. Exteriors use overcast, flat storm light. The scoreboard and court give off a self-lit glow.",
+        "rule": "Light interiors from directly above with a strong pool on the subject and the surroundings falling off into darkness. Use flat overcast light for threat scenes.",
+        "measured": "",
+        "evidence": "S3, S4, S6, S10, S12",
+        "confidence": "medium"
+      },
+      {
+        "area": "framing",
+        "observation": "The subject sits in the centre column of the 9:16 frame, usually upper-centre to centre. The lower third is kept fairly clear for the caption. Shot sizes swing between extreme wides (aerials) and extreme close-ups (the ball, the scoreboard digits).",
+        "rule": "Centre the subject vertically in the middle band and leave the area around 70–75% of frame height free for captions. Alternate extreme wides with extreme close-ups.",
+        "measured": "",
+        "evidence": "S1, S5, S8, S12, S14",
+        "confidence": "medium"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions are white, bold sans-serif, small to medium, with a thin dark shadow. They sit at about 75% of frame height, centred, and show 2–3 key words of the line, lowercase. There is no box behind them.",
+        "rule": "Caption 2–3 key words at a time in white bold sans with a soft dark shadow, centred at about three-quarters down the frame, with no background box.",
+        "measured": "",
+        "evidence": "All shots",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "The camera is almost always moving: big push-ins on the reveals and fast pans and tilts. A transition burst starts each move fast, it settles in the middle, and sometimes it speeds up again into the next transition. The only near-still shots are the isolated ball and the debris aftermath.",
+        "rule": "Keep the camera moving in nearly every shot. Enter fast out of the transition, ease to a slow drift in the middle, and speed up into the next cut. Hold still only for the hinge object or the aftermath.",
+        "measured": "Moving 93–100% of the time in 11/14 shots. Zoom +78.8% (S1), +84.2% (S8), −65.9% (S14). Start speeds 236–308 %/s in S2, S6, S7, S8, S14. S5 moving 14%",
+        "evidence": "S1, S2, S5, S6, S8, S14",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "Shots are joined with motion transitions instead of hard cuts: zooms, blurs and whips. There is only one plain cut in 13 changes.",
+        "rule": "Link shots with zoom, blur or whip transitions that carry the camera's momentum. Use hard cuts rarely.",
+        "measured": "13 transitions: 4 zoom, 5 blur, 3 whip, 1 cut",
+        "evidence": "Whole video",
+        "confidence": "high"
+      },
+      {
+        "area": "pace",
+        "observation": "A new picture arrives about every 2.2 s. Narration is fast and almost wall to wall. The shortest shots land on the climax beat (the ball, the hoop, the clock).",
+        "rule": "Cut every 1.5–3 s with near-continuous fast narration. Shorten shots to about 1–1.5 s at the climax.",
+        "measured": "Median shot 2.15 s (p10–p90 1.47–3.28 s). 196 wpm while speaking. Speech covers 87%. S5–S7 are 1.07–1.57 s",
+        "evidence": "S5, S6, S7",
+        "confidence": "high"
+      },
+      {
+        "area": "script",
+        "observation": "The script opens with the threat already happening. It then cuts to an unrelated detail that turns out to save everyone, and ends on the payoff line. The last shot slows down (a zoom-out settling to almost no motion).",
+        "rule": "Open on the danger, then follow a small side event and reveal how it causes the outcome. End on a settling shot under the payoff line.",
+        "measured": "S14 end speed 1.9 %/s",
+        "evidence": "S1, S3–S8, S13–S14",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "tornado hitting a domed stadium",
+      "basketball game",
+      "three-point buzzer-beater",
+      "scoreboard 00:06 and 00:00",
+      "score 56–59 and 59–59",
+      "Alabama vs Mississippi State",
+      "overtime",
+      "fans in red shirts and jeans",
+      "shattered glass",
+      "Georgia Dome style roof",
+      "'Fans Were Kept Safe Inside'",
+      "Zack D. Films"
+    ],
+    "notes": "The S1 end speed (488 %/s) and S11 end speed (188 %/s) are probably transition blur, not real camera motion. The high shake values in S1 and S11 are likely from storm debris and particles, not handheld camera. In S14 the narration capitalises words ('Watch All The Fans Were Kept Safe Inside'), but the captions themselves are lowercase.",
+    "category": "3d_cartoon",
+    "label": "Zack D.-style semi-real 3D 'true story' short",
+    "why": "Every shot is a rendered 3D scene: a stadium, a crowd, a scoreboard and stylised figures with simple faces, all lit like a real place. A fast voice-over carries the story, and short captions sit on the lower middle of the picture. The look is semi-real CG (Unreal-style), not toon shading, but it is still rendered 3D characters and sets.",
+    "hasCharacters": true,
+    "hasOnScreenText": true,
+    "hasNarrator": true
+  }
+}

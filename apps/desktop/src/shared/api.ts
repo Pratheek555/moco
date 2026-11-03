@@ -1,7 +1,7 @@
 // The contract between the Electron main process and the UI.
 // The UI never talks to the engine directly: main forwards these calls to the engine host (main/engine-host.ts).
 import type { VoiceInfo } from "@moco/audio";
-import type { EngineEvent, SeriesStatus } from "@moco/engine";
+import type { DailyUsage, EngineEvent, SeriesStatus } from "@moco/engine";
 import type { Catalog } from "@moco/kit";
 import type { PublishDefaults, PublishKit } from "@moco/spec";
 
@@ -50,6 +50,7 @@ export interface SeriesSummary {
   finals: number; // episodes with a final render
   next: SeriesStatus["next"];
   running: boolean;
+  usage: SeriesStatus["usage"]; // AI calls, tokens and daily totals, for the usage page
 }
 
 // What the episode page shows: rendered videos and each shot's stills, as moco-asset:// URLs.
@@ -130,7 +131,7 @@ export type DeepPartial<T> = {
   [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
 };
 
-export type { Catalog, EngineEvent, PublishDefaults, PublishKit, SeriesStatus, VoiceInfo };
+export type { Catalog, DailyUsage, EngineEvent, PublishDefaults, PublishKit, SeriesStatus, VoiceInfo };
 
 /** moco-asset:// URL for a file under the projects folder. */
 export const assetUrl = (relativeToProjects: string) =>

@@ -14,6 +14,7 @@ export type Route =
   | { name: "series"; id: string }
   | { name: "episode"; seriesId: string; episodeId: string }
   | { name: "renders" }
+  | { name: "usage" }
   | { name: "kit"; tab?: KitTab }
   | { name: "settings"; section?: string };
 

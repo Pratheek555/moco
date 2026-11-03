@@ -1,0 +1,96 @@
+{
+  "inputHash": "7f1f357c07a7a2b5025c5ccfd32d0a94dc8d0dddbd1e9c0bc4b3255e1488d508",
+  "role": "motion",
+  "seconds": 57,
+  "usage": {
+    "inputTokens": 4,
+    "outputTokens": 5516,
+    "costUsdEstimate": 0.1989707
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "gestures",
+        "observation": "Burst M24 (f842–848) is not acting. The three seated figures hold the same pose from f838 to f846: one slumped forward with his head down on his knees, one sitting upright with her hands in her lap, one leaning back behind them. No limb visibly moves. The measured motion is the blur-dissolve into the next shot, which starts at f848.",
+        "rule": "Do not animate gestures on background or crowd characters. Pose each one once, in a body shape that tells the emotion (slumped means despair or exhaustion, upright means waiting), and hold that pose for the whole shot.",
+        "measured": "Pose unchanged over f838–846 (9 frames). Burst peak f848 matches the first dissolve frame.",
+        "evidence": "M24 sheet, f838–848",
+        "confidence": "high"
+      },
+      {
+        "area": "acting",
+        "observation": "The acting is a frozen tableau. Emotion comes from the posture the character is set in, not from movement or face changes. The camera's steady zoom (S13: 46% zoom, 28%/s mid speed) provides all the movement in the shot.",
+        "rule": "Think of a character shot as a diorama: one strong static pose per character plus a slow camera push-in of about 20–30%/s. Put zero frames into body animation.",
+        "measured": "S13 actor activity 0.18 while the camera moves 100% of the shot. Leftover motion during camera holds is 0.007 px/frame.",
+        "evidence": "M24 sheet; S13 shot table",
+        "confidence": "high"
+      },
+      {
+        "area": "faces",
+        "observation": "I saw no expression change, blink or mouth movement on any visible face. Faces are small in frame (each about 1/15 of frame height) and stay neutral or hidden, like the slumped man's. The narration is voice-over, so there is no lip sync.",
+        "rule": "Keep faces fixed and small. Never lip-sync. If a face has to show emotion, sculpt it into the held pose rather than changing it on a word.",
+        "measured": "0 face changes counted over f838–847",
+        "evidence": "M24 sheet",
+        "confidence": "medium"
+      },
+      {
+        "area": "transitions",
+        "observation": "Nothing in the characters moves on a word. Timing lives in the edit instead. The blur-dissolve starts at f848, 6 frames after >All (f842). The dissolve lasts 4 frames (f848–851), and the new shot is fully in at f852, exactly on >The.",
+        "rule": "Land the clean first frame of the incoming shot on the first frame of a word (0-frame offset). Start a 4-frame blur dissolve so it finishes there, 4 frames before that word.",
+        "measured": "Dissolve f848–851. New shot fully in at f852, where >The is also f852. That is 6 frames after >All (f842).",
+        "evidence": "M24 sheet, f846–852",
+        "confidence": "high"
+      },
+      {
+        "area": "characters",
+        "observation": "Between actions the characters are completely still: no breathing and no drift. The only motion is the camera push and grain or light flicker.",
+        "rule": "Hold characters at 0 px/frame. Never add idle breathing cycles. Let a continuous camera move (zoom or pan) keep the frame alive instead.",
+        "measured": "Hold leftover motion 0.007 px/frame",
+        "evidence": "M24 f838–846; measured hold stillness",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "The blur dissolve blends the two shots with heavy motion blur. In f849–850 both images show at once, the outgoing interior at about 50% opacity over the blurred incoming exterior. By f851 the incoming shot dominates, though still blurred.",
+        "rule": "For a blur transition, crossfade over 3–4 frames while adding directional blur to both shots. Peak the blur in the two middle frames, then sharpen by the next word onset.",
+        "measured": "f848 starts, f849–850 double image, f851 mostly new shot, f852 clean",
+        "evidence": "M24 sheet, f848–852",
+        "confidence": "high"
+      },
+      {
+        "area": "props",
+        "observation": "In the incoming exterior shot, dark debris flakes cross the frame fast, travelling about 10–20% of frame height per frame (f852–856), while the building and camera barely move. In S10 the storm is a slow, almost still funnel, with only a few specks drifting near the dome (f606–611).",
+        "rule": "Put the fast motion into props and particles (debris, glass, paper) at about 10–20% of the frame per frame. Keep the set and the characters static. Before impact, keep threat elements slow and hazy.",
+        "measured": "Flakes travel about 10–20% of frame height per frame, judged by eye on f852–856",
+        "evidence": "M24 f852–856; S10 f606–611",
+        "confidence": "medium"
+      },
+      {
+        "area": "camera",
+        "observation": "S10 is one uninterrupted zoom-in on a static building under a static, dark sky, held for 3.74 s. Nothing in the scene animates. The picture changes only through scale, and the building shrinks into the lower frame as the framing shifts.",
+        "rule": "For an establishing or threat shot, run a steady zoom of 40–50% over 3–4 s on an almost static scene. Let narration and captions carry the change.",
+        "measured": "S10 zoom 47.4%, mid speed 83.4%/s, activity 0.129",
+        "evidence": "S10 30-frame sheet, f588–617",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions are white bold 2–3 word chunks placed at the lower centre. They swap on phrase changes, slightly off the voice: 'the tornado' appears at f596, 2 frames before >the (f598), and 'hit the building' appears at f615, 3 frames after >hit (f612).",
+        "rule": "Show captions in 2–3 word chunks. Swap each chunk within ±3 frames of its first word's onset.",
+        "measured": "Offsets -2 and +3 frames",
+        "evidence": "S10 sheet, f595–615",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "tornado hitting a stadium",
+      "domed stadium with red lettering on the roof (Georgia Dome)",
+      "basketball game, three-point buzzer shot, overtime",
+      "fans kept safe inside",
+      "seated spectators in red shirts with a popcorn bucket",
+      "flying debris and shattered glass outside",
+      "caption lines: 'Just minutes later', 'the tornado', 'hit the building', 'single shot', 'all the fans were'"
+    ],
+    "notes": "I had only one motion burst (M24), and it is the blur transition, not character acting. The S10 sheet has no characters. So the gesture and face findings rest on just 9 frames of held pose. They mean \"no gestures and no expression changes in what I could see\"; they are not a measured gesture timing. Faces are too small to rule out tiny micro-movements, and the face-size figure is an eyeball estimate. The debris speed is also judged by eye."
+  }
+}

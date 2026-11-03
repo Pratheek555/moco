@@ -1,0 +1,75 @@
+{
+  "id": "cartoon-fact-shorts",
+  "name": "Cartoon Fact Shorts",
+  "tagline": "One fact, one fast chain of causes, read by a deadpan narrator over a moving 3D camera.",
+  "description": "30-second 9:16 explainers for one fact, process or true event. A flat, fast narrator runs a single cause-and-effect chain from the danger already happening to the final outcome. The world holds still like a diorama, the camera never stops gliding, each fact gets its own literal picture on the word that names it, and small white captions are the only text.",
+  "tags": [
+    "explainer",
+    "facts",
+    "science",
+    "true events",
+    "deadpan",
+    "3D",
+    "fast-paced",
+    "loop"
+  ],
+  "story": [
+    "Opens on the threat or action already happening, with a concrete count, in one 11–14 word sentence",
+    "3–5 sentences, about 80–90 words, with the longest sentence second and the answer held back to the end",
+    "Every sentence links to the last one (so, while, until, as, next, just then); 'But' only for the twist and the payoff",
+    "Plain deadpan facts: no jokes, no opinion words, no moral, no outro",
+    "Second person present for processes in the viewer's own body or life, third person past for true events",
+    "Ends on the final physical outcome, worded so it loops back to the opening"
+  ],
+  "look": [
+    "Rendered with moco's 'film' look, the nearest it has to the reference's semi-real game-engine render: lit and finished like a 3D animated film, with no outlines",
+    "Uncluttered one-surface sets with the hero centred and one saturated accent colour kept for the key object",
+    "Bright, warm-subject-on-cool-sky grade for processes; dark, muted grade with overhead pools of light for dangerous events",
+    "The camera moves in nearly every shot: one eased move per shot, mostly push-ins, and the shot scale changes at every cut",
+    "People and props hold still apart from one short action timed to its word; faces stay neutral",
+    "A new picture about every 1.9 s, hard cuts placed mid-sentence, and small white 2–4 word captions"
+  ],
+  "missing": [
+    "Semi-real render with physically real materials: moco draws a stylised animated-film look instead",
+    "Realistic human stand-ins about 7 heads tall: drawn as stylised film characters",
+    "Arriving fast and easing to a cruise (speed profiles): each move is eased evenly from start to end",
+    "Blur, zoom-through and whip transitions: shots join with hard cuts",
+    "Material morph into a compared object (3-frame in-shot dissolve): shown as a cut to the familiar object instead",
+    "Surface going translucent to show the inside: shown as a cut to a cross-section location",
+    "Rack-focus reveals: focus stays on the subject",
+    "Hot emissive colour tint on a consequence: shown with a glowing object or a cut instead",
+    "Music bed 11–15 dB under the voice, -10 LUFS master and sound effects: not produced",
+    "Exact caption placement at 78% of frame height and the caption's drop-shadow styling: moco's caption layout is used"
+  ],
+  "palette": {
+    "sky": [
+      "#3f8fd8",
+      "#bcdcf2"
+    ],
+    "ground": "#d6cec4",
+    "accents": [
+      "#ff6a13",
+      "#ffd23f",
+      "#1c2733",
+      "#e9eef2"
+    ]
+  },
+  "world": "world",
+  "ideas": [
+    {
+      "label": "Lightning in a tree",
+      "idea": "What happens inside an old oak in the half second after lightning hits it, from the sap boiling to the bark blowing off in strips."
+    },
+    {
+      "label": "Swallowing a pill",
+      "idea": "The 9 seconds it takes your body to move one pill from your tongue to your stomach, and the 3 muscles that make sure it doesn't go the wrong way."
+    },
+    {
+      "label": "The frozen harbour",
+      "idea": "How one winter night of falling temperature trapped a fishing fleet in harbour ice, and the one small boat whose engine broke them out."
+    }
+  ],
+  "defaults": {
+    "episodes": 3
+  }
+}

@@ -1,0 +1,98 @@
+{
+  "inputHash": "bf1bdc9bb3ed9ed82efab8be7b6044a84177bfde5a0fb83ef3d171e7793fdc15",
+  "role": "story",
+  "seconds": 51,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 4847,
+    "costUsdEstimate": 0.1763905
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "format",
+        "observation": "Five sentences, five beats. Hook/threat 0–4.28 s (11 words). Setup, the unlikely action: 4.68–12.82 s (28 words, the longest sentence, told across 5 shots S3–S7). Consequence: 13.16–18.54 s (16 words, S8–S9). Turn, the threat hits: 18.96–25.84 s (19 words, S10–S12). Payoff: 26.44–30.26 s (14 words, S13–S14). The hook's open question (what happens to the people inside?) is answered by the last word 'Inside' at 29.66 s, 95% of the way through. The ending is a single sentence that states the outcome. There is no outro and no call to action. The audio fades from about 30.5 s.",
+        "rule": "Build a five-step cause-and-effect chain: threat, small unrelated action, what that action caused, threat strikes, the cause pays off. Give each step one sentence. Make the setup sentence the longest and split it over the most shots. Hold back the answer to the hook until the final word.",
+        "measured": "sentence spans 0–4.28 / 4.68–12.82 / 13.16–18.54 / 18.96–25.84 / 26.44–30.26 s; words 11/28/16/19/14; hook payoff at 29.66 s of 31.1 s",
+        "evidence": "transcript sentences; shots S1–S14",
+        "confidence": "high"
+      },
+      {
+        "area": "hook",
+        "observation": "The first line opens on the threat already moving, in past tense: a disaster heading toward a place, plus a count of the people at risk ('thousands'). It is 11 words and 4.28 s long. While it is spoken, the picture is a wide aerial of the building with the storm towering behind it, and the camera accelerates in (zoom 78.8%, end speed 488 %/s). It cuts at 2.5 s to the packed stands just as the word 'thousands' starts (2.58 s).",
+        "rule": "Open with a consequence-first statement: name the danger and the number of people at stake in one sentence of about 10–12 words, with no question and no 'did you know'. Show the threat and the place in the same first frame. Cut to the people at risk on the word that counts them.",
+        "measured": "11 words, 0–4.28 s; S1 zoom 78.8%, speed 20.5→488.3 %/s; cut at 2.5 s vs 'thousands' at 2.58 s",
+        "evidence": "S1, S2",
+        "confidence": "high"
+      },
+      {
+        "area": "loop",
+        "observation": "The loop is weak. Read together, last into first gives '...Kept Safe Inside. The tornado ripped towards the stadium...', which runs on as a re-telling, and both the first and last sentences end on the same word, 'inside'. The pictures do not match: frame similarity is 0.49. It opens on an aerial of the building and closes on a single figure standing in front of a shattered glass facade. The ending zooms out and slows to a stop (end speed 1.9 %/s), which feels final rather than circular.",
+        "rule": "For a soft loop, end the last sentence on the same key word that ends the first sentence. Then the replay sounds like the story starting over. For a stronger loop, also return the final shot to the opening location or angle.",
+        "measured": "loopFrameSimilarity 0.49; S14 speed 303.7→1.9 %/s",
+        "evidence": "S1 vs S14; first and last sentences",
+        "confidence": "medium"
+      },
+      {
+        "area": "script",
+        "observation": "Sentence lengths are 11, 28, 16, 19 and 14 words (mean 17.6). The narration is deadpan, third person, past tense and news-like. There are no jokes and no 'you'. Each sentence opens with a link word that drives the chain: 'But as…', 'This tied…', 'Just minutes later…', 'But thanks to…'. 'But' appears twice: once to bring in the twist and once to bring in the payoff. Facts are plain and concrete: a time ('as the clock ended'), a place on the court, and a result ('stay in their seats'). Clauses are stacked with participles ('sending it… and making…', 'tearing up… and whipping…') so the pace never stops.",
+        "rule": "Write in plain past tense with no opinion words. Start every sentence with a link word that shows cause or time (But, This, minutes later, thanks to). Chain two results per sentence with -ing clauses. Use 'But' only at the twist and at the payoff.",
+        "measured": "sentence words 11/28/16/19/14",
+        "evidence": "transcript",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "Each abstract idea becomes one object that can be read on sight. 'About to end' is a hanging scoreboard reading 00:06 (S3). 'From the 3-point line' is the ball alone on black (S5). 'As the clock ended' is a clock reading 0:00 (S7). 'Tied the game, overtime' is a scoreboard close-up with the score level and the period number (S8). 'Stay in their seats' shows two seated fans with popcorn (S9). 'Glass at anyone outside' is flying shards on grey, then a lone figure outside with arms out (S11–S12). 'Kept safe inside' shows fans ducking in their seats while the storm shows beyond the stand (S13).",
+        "rule": "Turn every time, score or rule into a readable display (clock, scoreboard, counter) filmed close up. Turn every claim about a crowd into two or three recurring figures doing the action. Isolate the key object on a plain background when the words name it.",
+        "measured": "",
+        "evidence": "S3, S5, S7, S8, S9, S11, S12, S13",
+        "confidence": "high"
+      },
+      {
+        "area": "pace",
+        "observation": "There are 6.5 words per shot (p10–p90 2.6–9). Cuts often land mid-clause, a word or two before the noun they show: S4 starts at 6.91 s and 'player' at 6.86 s; S5 starts at 9.04 s and 'line' at 9.12 s; S6 starts at 10.11 s and 'rolled' at 10.18 s; S7 starts at 11.54 s and 'clock' at 12.12 s. Shots end on dangling words ('But as', 'one', 'which', 'just'). Long shots of 3–3.7 s carry the consequence and the impact (S8–S10). Short shots of 1–1.6 s carry the moment of the shot (S5–S7) and the glass (S11–S12).",
+        "rule": "Cut on the word just before the noun, so the picture of a thing is already up when its name is spoken. Let shots end on a dangling connective rather than at the sentence end. Keep the decisive moment in 1–1.5 s shots and give results 3+ s.",
+        "measured": "words/shot 6.5; transitions within ±2 frames of a word onset 54% (chance 38%); shot lengths 1.07–3.74 s",
+        "evidence": "S4–S7 cut times vs word onsets",
+        "confidence": "high"
+      },
+      {
+        "area": "voice",
+        "observation": "One fast narrator: 196 wpm while speaking (170 wpm wall to wall), with speech covering 87% of the runtime. There are no gaps between words inside a clause (0 s). Pauses are 0.31 s after clauses and 0.41 s after sentences. The longest pause, about 0.6 s, comes before the payoff 'But thanks…' (25.84→26.44 s). Pitch median is 165 Hz with a 14.6-semitone range. Pitch spikes cluster at the hook (2.5 s), the 'But as' twist (4.8 s) and the impact clause (21–23 s). The level stays flat (LRA 2 LU).",
+        "rule": "Read at about 190–200 wpm with no gaps between words. Pause about 0.3 s at commas and 0.4 s at full stops. Leave the longest pause, about 0.6 s, just before the payoff sentence. Push pitch up on the hook, the twist word and the impact verb, and keep the volume level throughout.",
+        "measured": "196.3 wpm speaking; pauses 0.31/0.41 s; pre-payoff gap 0.60 s; 165 Hz median, 14.6 st",
+        "evidence": "voice/pitch chart; word timings",
+        "confidence": "medium"
+      },
+      {
+        "area": "music",
+        "observation": "A constant music bed sits about 10.6 dB under the voice (voice -12.9 dB, pauses -23.5 dB). The bed does not clearly duck: the level in the pauses is the bed itself. The mix is loud and compressed: -9.7 LUFS integrated, LRA 2 LU, true peak +1 dBFS. Everything fades out after the last word (around 30.3–31 s).",
+        "rule": "Keep one music bed about 10–11 dB under the narration at a steady level, and master loud (around -10 LUFS) with little dynamic range. Fade out on the last word.",
+        "measured": "voice-to-music 10.6 dB; -9.7 LUFS; LRA 2 LU; TP +1 dBFS",
+        "evidence": "audio numbers; level chart tail",
+        "confidence": "medium"
+      },
+      {
+        "area": "sound",
+        "observation": "The pictures imply sound effects: wind on the storm aerial (S1), a crowd murmur (S2, S9), the ball on the rim (S6), a buzzer at 0:00 (S7), and glass shattering and wind (S11, S14). The measurements cannot confirm whether these effects are in the mix.",
+        "rule": "Give each key object one matching sound hit timed to its shot (buzzer on the clock reaching zero, shatter on glass, wind on the storm), mixed under the voice.",
+        "measured": "",
+        "evidence": "S1, S6, S7, S11, S14",
+        "confidence": "low"
+      }
+    ],
+    "contentSpecifics": [
+      "tornado hitting a stadium with fans inside",
+      "basketball game, three-point shot rolling in at the buzzer",
+      "scoreboard 00:06, then 0:00, score tied 59-59, period 4, team names ALABAMA and MISSISSIPPI",
+      "overtime kept fans in their seats",
+      "roof torn off, shattered glass at people outside",
+      "recurring man in a red t-shirt and jeans, fans with popcorn",
+      "dome-roofed arena seen from above",
+      "title 'The Basketball Shot That Saved Thousands'",
+      "line 'Fans Were Kept Safe Inside'"
+    ],
+    "notes": "The last sentence's transcript ('Watch All The Fans Were Kept Safe Inside') is in title case and includes 'Watch'. It may be partly a transcription of on-screen text, or a slip. Treat its wording as unreliable. True peak of +1 dBFS means clipping, so don't copy that. The pitch range may be inflated by the music: spikes near 400 Hz at 2.5, 4.8 and 21–23 s may be music or effects rather than voice. Sound effects are inferred from the pictures only."
+  }
+}

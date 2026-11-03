@@ -1,0 +1,3833 @@
+{
+ "source": "Poly Haven (polyhaven.com), CC0",
+ "models": [
+  {
+   "id": "sofa_02",
+   "name": "Sofa 02",
+   "size": [
+    1.807,
+    0.709,
+    0.818
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "wood",
+    "chair",
+    "prop",
+    "couch",
+    "leather",
+    "fabric"
+   ],
+   "about": "Free 4K model of a tufted leather sofa with carved wood frame - elegant vintage couch/prop with realistic leather and fabric cushions."
+  },
+  {
+   "id": "wooden_table_02",
+   "name": "Wooden Table 02",
+   "size": [
+    1.134,
+    0.8,
+    0.706
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "wooden",
+    "worn",
+    "village",
+    "rural",
+    "natural",
+    "simple"
+   ],
+   "about": "Simple wooden table with warm brown grain, worn edges, light scuffs and varnished sheen - rectangular top on four straight legs."
+  },
+  {
+   "id": "sofa_03",
+   "name": "Sofa 03",
+   "size": [
+    2.731,
+    1.118,
+    0.925
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "vintage",
+    "chair",
+    "couch",
+    "seat",
+    "fancy",
+    "mansion",
+    "manor",
+    "victorian"
+   ],
+   "about": "Free 8K model of a vintage Victorian leather sofa with carved wooden frame, scrolled arms, patterned fringe cushions and rich antique brown "
+  },
+  {
+   "id": "modern_arm_chair_01",
+   "name": "Modern Arm Chair 01",
+   "size": [
+    0.82,
+    1.023,
+    0.987
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "office",
+    "wood",
+    "leather",
+    "fancy",
+    "modern",
+    "chair",
+    "contemporary",
+    "wooden"
+   ],
+   "about": "Free 8K model, modern wooden armchair with warm oak frame and plush black leather cushions - contemporary lounge styling with clean lines an"
+  },
+  {
+   "id": "Sofa_01",
+   "name": "Sofa 01",
+   "size": [
+    1.571,
+    0.797,
+    0.658
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "wood",
+    "prop",
+    "vintage",
+    "gothic",
+    "chair",
+    "couch",
+    "victorian",
+    "decorative"
+   ],
+   "about": "Free 4K vintage Victorian wooden sofa - decorative gothic-style upholstered couch with carved frame, elegant seating prop for period interio"
+  },
+  {
+   "id": "round_wooden_table_01",
+   "name": "Round Wooden Table 01",
+   "size": [
+    1.399,
+    1.005,
+    1.399
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "vintage",
+    "wooden",
+    "wood",
+    "polish",
+    "circle",
+    "dark",
+    "old"
+   ],
+   "about": "Free 8K model of a vintage round wooden table with a turned pedestal, splayed legs, dark polished finish and subtle surface wear."
+  },
+  {
+   "id": "GothicCabinet_01",
+   "name": "Gothic Cabinet 01",
+   "size": [
+    1.719,
+    2.361,
+    1.129
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "vintage",
+    "wood",
+    "gothic",
+    "table",
+    "shelf",
+    "decorative"
+   ],
+   "about": "Free 4K model: vintage Gothic wooden cabinet with ornate carved panels, iron hinges and stacked shelving - characterful furniture for period"
+  },
+  {
+   "id": "CoffeeCart_01",
+   "name": "Coffee Cart 01",
+   "size": [
+    2.168,
+    1.718,
+    1.073
+   ],
+   "tags": [
+    "appliances",
+    "props",
+    "furniture",
+    "office",
+    "table",
+    "metal",
+    "shelf",
+    "plastic",
+    "cart",
+    "coffee"
+   ],
+   "about": "Free 4K model - industrial metal coffee cart with commercial brewer, glass carafes, storage cabinet, lower shelf bin, power cord and red cas"
+  },
+  {
+   "id": "outdoor_table_chair_set_01",
+   "name": "Outdoor Table Chair Set 01",
+   "size": [
+    0.776,
+    0.859,
+    1.831
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "outdoor",
+    "foldable",
+    "folding",
+    "coffee",
+    "diner",
+    "street",
+    "urban",
+    "deli"
+   ],
+   "about": "Free 4K model: compact outdoor foldable table & two chairs with wood slats and metal frame; perfect for city cafes, diners, patios and stree"
+  },
+  {
+   "id": "GreenChair_01",
+   "name": "Green Chair 01",
+   "size": [
+    0.673,
+    1.059,
+    0.664
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "vintage",
+    "wood",
+    "gothic",
+    "chair",
+    "fabric",
+    "decorative"
+   ],
+   "about": "Free 4K model of a vintage Gothic wooden armchair with carved decorative details, green fabric upholstery and elegant curved legs; ideal for"
+  },
+  {
+   "id": "ClassicConsole_01",
+   "name": "Classic Console 01",
+   "size": [
+    1.543,
+    0.949,
+    0.589
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "wood",
+    "vintage",
+    "gothic",
+    "victorian",
+    "decorative"
+   ],
+   "about": "Free 4K model: a carved Victorian Gothic wooden console table with ornate decorative scrollwork, cabriole legs and aged finish - ideal for v"
+  },
+  {
+   "id": "GothicCommode_01",
+   "name": "Gothic Commode 01",
+   "size": [
+    1.201,
+    1.212,
+    0.581
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "vintage",
+    "wood",
+    "table",
+    "gothic",
+    "shelf",
+    "decorative"
+   ],
+   "about": "Free 4K model: vintage Gothic wooden commode with carved arches, three drawers and decorative trim."
+  },
+  {
+   "id": "GothicBed_01",
+   "name": "Gothic Bed 01",
+   "size": [
+    1.494,
+    1.534,
+    2.04
+   ],
+   "tags": [
+    "furniture",
+    "bed",
+    "vintage",
+    "gothic",
+    "wood",
+    "decorative"
+   ],
+   "about": "Free 4K model of a vintage Gothic wooden four-poster bed with ornate carved headboard/footboard, rich dark finish and decorative medieval-in"
+  },
+  {
+   "id": "Ottoman_01",
+   "name": "Ottoman 01",
+   "size": [
+    0.885,
+    0.624,
+    0.621
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "leather",
+    "chair",
+    "fabric",
+    "ottoman",
+    "upholstery",
+    "interior design",
+    "living room",
+    "lounge"
+   ],
+   "about": "Free 4K model: dark brown leather ottoman with stacked, cushioned tiers, visible stitching, subtle creases and short black feet."
+  },
+  {
+   "id": "WoodenTable_01",
+   "name": "Wooden Table 01",
+   "size": [
+    1.8,
+    0.549,
+    0.657
+   ],
+   "tags": [
+    "furniture",
+    "vintage",
+    "wood",
+    "prop",
+    "table",
+    "school",
+    "desk",
+    "old",
+    "worn"
+   ],
+   "about": "Free 4K model: vintage wooden coffee table with warm worn patina, visible grain, rounded corners, stretcher base and scuffed edges."
+  },
+  {
+   "id": "ornate_mirror_01",
+   "name": "Ornate Mirror 01",
+   "size": [
+    0.486,
+    0.744,
+    0.026
+   ],
+   "tags": [
+    "decorative",
+    "wall decoration",
+    "furniture",
+    "decor",
+    "decoration",
+    "ornate",
+    "fancy",
+    "wealthy",
+    "mansion",
+    "manor"
+   ],
+   "about": "Free 8K model - Victorian-style arched mirror with gilded floral crest, carved rope trim and aged, speckled glass showing subtle patina."
+  },
+  {
+   "id": "plastic_monobloc_chair_01",
+   "name": "Plastic Monobloc Chair 01",
+   "size": [
+    0.642,
+    0.88,
+    0.628
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "plastic",
+    "dirty",
+    "old",
+    "monobloc",
+    "outdoor",
+    "cheap",
+    "shed"
+   ],
+   "about": "Free 4K model: weathered white plastic monobloc chair with scuffs, dirt and faded finish, classic cheap outdoor stacking design showing age "
+  },
+  {
+   "id": "steel_frame_shelves_01",
+   "name": "Steel Frame Shelves 01",
+   "size": [
+    1.097,
+    2.141,
+    0.502
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "industrial",
+    "commercial",
+    "modern",
+    "shelf",
+    "bookshelf",
+    "metal",
+    "wood"
+   ],
+   "about": "Free 8K model of a modern industrial steel-frame shelf with five wooden planks, sturdy metal frame and clean lines, ideal for commercial or "
+  },
+  {
+   "id": "ArmChair_01",
+   "name": "Arm Chair 01",
+   "size": [
+    0.848,
+    1.065,
+    0.766
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "gothic",
+    "vintage",
+    "chair",
+    "victorian",
+    "couch",
+    "wood",
+    "varnished",
+    "classic"
+   ],
+   "about": "Free (CC0) vintage Victorian armchair 3D model - varnished carved wood frame, upholstered seat; gothic/classic styling ideal for interiors, "
+  },
+  {
+   "id": "Rockingchair_01",
+   "name": "Rockingchair 01",
+   "size": [
+    0.708,
+    0.995,
+    0.833
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "chair",
+    "vintage",
+    "prop",
+    "wood",
+    "rocking chair",
+    "rocking",
+    "decorative",
+    "curved legs"
+   ],
+   "about": "Free 4K model, solid wood vintage rocking chair with slatted back, curved legs, armrests, turned spindles and an antique worn finish."
+  },
+  {
+   "id": "wooden_picnic_table",
+   "name": "Wooden Picnic Table",
+   "size": [
+    2.241,
+    0.746,
+    3.022
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "table",
+    "vintage",
+    "old",
+    "worn",
+    "park",
+    "bench",
+    "outdoor",
+    "weathered"
+   ],
+   "about": "Free 4K model of a weathered wooden picnic table with attached benches, vintage worn planks, visible nail heads and rustic countryside patin"
+  },
+  {
+   "id": "SchoolChair_01",
+   "name": "School Chair 01",
+   "size": [
+    0.566,
+    1.006,
+    0.675
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "prop",
+    "metal",
+    "plastic",
+    "chair",
+    "school"
+   ],
+   "about": "Free 4K model of a classic navy plastic school chair with tubular black metal legs, three-slot molded back, visible scuffs, and realistic pa"
+  },
+  {
+   "id": "mid_century_lounge_chair",
+   "name": "Mid Century Lounge Chair",
+   "size": [
+    1.009,
+    1.169,
+    1.19
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "wooden",
+    "leather",
+    "couch",
+    "lounge",
+    "architecture",
+    "modern",
+    "interior design",
+    "home decor"
+   ],
+   "about": "Free 8K mid-century lounge chair: wooden shell, worn brown leather cushions, swivel recliner base - stylish, comfy retro seating for modern "
+  },
+  {
+   "id": "BarberShopChair_01",
+   "name": "Barber Shop Chair 01",
+   "size": [
+    0.757,
+    1.489,
+    1.328
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "chair",
+    "vintage",
+    "wood",
+    "leather",
+    "fancy",
+    "upholstery",
+    "barber",
+    "salon"
+   ],
+   "about": "Free (CC0) vintage barber shop chair model with detailed wood, tufted leather upholstery and brass fittings - perfect for salon scenes, inte"
+  },
+  {
+   "id": "WoodenChair_01",
+   "name": "Wooden Chair 01",
+   "size": [
+    0.688,
+    2.274,
+    0.658
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "wood",
+    "prop",
+    "vintage",
+    "chair",
+    "gothic",
+    "victorian",
+    "decorative"
+   ],
+   "about": "Free 4K model: ornate Victorian Gothic wooden chair with pointed tracery back, carved floral motif, turned legs, armrests and worn dark-stai"
+  },
+  {
+   "id": "painted_wooden_chair_01",
+   "name": "Painted Wooden Chair 01",
+   "size": [
+    0.432,
+    0.956,
+    0.54
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "chair",
+    "wood",
+    "painted",
+    "farmhouse",
+    "dining",
+    "diner",
+    "american",
+    "kitchen"
+   ],
+   "about": "Free 8K painted wooden chair, distressed white farmhouse piece with slatted seat, decorative back splat, square legs and simple stretchers."
+  },
+  {
+   "id": "wooden_stool_02",
+   "name": "Wooden Stool 02",
+   "size": [
+    0.265,
+    0.182,
+    0.183
+   ],
+   "tags": [
+    "seating",
+    "furniture",
+    "old",
+    "wooden",
+    "vintage",
+    "antique",
+    "wood",
+    "farmhouse",
+    "carpentry",
+    "handcrafted"
+   ],
+   "about": "Free 8K model - antique handcrafted wooden footstool with worn patina, rugged timber legs, visible tool marks and rustic farmhouse character"
+  },
+  {
+   "id": "dining_chair_02",
+   "name": "Dining Chair 02",
+   "size": [
+    0.434,
+    0.973,
+    0.576
+   ],
+   "tags": [
+    "furniture",
+    "seating",
+    "modern",
+    "chair",
+    "seat",
+    "dining",
+    "fancy",
+    "leather"
+   ],
+   "about": "Free 8K model: modern dining chair with tufted brown leather, high cushioned back and seat, dark wooden legs - fancy, comfy and ideal for el"
+  },
+  {
+   "id": "coffee_table_round_01",
+   "name": "Coffee Table Round 01",
+   "size": [
+    1.301,
+    0.491,
+    1.301
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "modern",
+    "marble",
+    "tea",
+    "coffee",
+    "metal",
+    "sleek",
+    "contemporary",
+    "cocktail"
+   ],
+   "about": "Free 8K model - round coffee table with white marble top and looping metal legs; sleek contemporary silhouette with subtle veining and matte"
+  },
+  {
+   "id": "vintage_wooden_drawer_01",
+   "name": "Vintage Wooden Drawer 01",
+   "size": [
+    1.715,
+    1.091,
+    1.007
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "table",
+    "vintage",
+    "old",
+    "filing",
+    "drawer",
+    "office",
+    "wooden",
+    "worn"
+   ],
+   "about": "Free 8K model of a vintage wooden six-drawer filing cabinet with worn patina and brass label handles - ideal for period office, study, or fu"
+  },
+  {
+   "id": "WoodenTable_02",
+   "name": "Wooden Table 02",
+   "size": [
+    0.301,
+    0.418,
+    0.301
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "vintage",
+    "wood",
+    "prop",
+    "old",
+    "worn",
+    "small"
+   ],
+   "about": "Free 4K model: small vintage wooden side table with a dark, worn finish, scalloped apron and curved legs showing scratches, chips, and aged "
+  },
+  {
+   "id": "CoffeeTable_01",
+   "name": "Coffee Table 01",
+   "size": [
+    1.54,
+    0.523,
+    0.973
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "wood",
+    "vintage",
+    "painted",
+    "old",
+    "worn",
+    "decorative"
+   ],
+   "about": "Free 4K model of a vintage wooden coffee table with turquoise distressed paint, ornate carved legs and trim, a center drawer and worn antiqu"
+  },
+  {
+   "id": "side_table_01",
+   "name": "Side Table 01",
+   "size": [
+    0.55,
+    0.551,
+    0.45
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "wood",
+    "minimalist",
+    "modern",
+    "decor",
+    "living room",
+    "bedroom",
+    "shelf",
+    "contemporary"
+   ],
+   "about": "Free 8K model of a minimalist wooden side table with two shelves, clean lines and warm oak finish - perfect for modern living room or bedroo"
+  },
+  {
+   "id": "ClassicNightstand_01",
+   "name": "Classic Nightstand 01",
+   "size": [
+    0.568,
+    0.7,
+    0.424
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "wood",
+    "vintage",
+    "gothic",
+    "victorian",
+    "decorative"
+   ],
+   "about": "Free 4K model of a vintage Victorian Gothic wooden nightstand - ornate carved details, cabriole legs and open shelf; perfect decorative tabl"
+  },
+  {
+   "id": "modern_coffee_table_01",
+   "name": "Modern Coffee Table 01",
+   "size": [
+    1.202,
+    0.39,
+    0.6
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "contemporary",
+    "modern",
+    "rectangular",
+    "stone",
+    "wood",
+    "deco",
+    "clean"
+   ],
+   "about": "Free 8K model of a contemporary rectangular coffee table with textured stone top, warm wooden frame and angular wood inlays."
+  },
+  {
+   "id": "gallinera_table",
+   "name": "Gallinera Table",
+   "size": [
+    0.83,
+    0.488,
+    0.518
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "vintage",
+    "antique",
+    "philippines",
+    "traditional",
+    "old",
+    "wooden"
+   ],
+   "about": "Free 4K model: antique Filipino wooden gallinera table with carved floral medallion, vertical slats, turned spindle corner posts and a worn "
+  },
+  {
+   "id": "wooden_display_shelves_01",
+   "name": "Wooden Display Shelves 01",
+   "size": [
+    1.078,
+    1.556,
+    0.372
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "modern",
+    "wood",
+    "pine",
+    "square",
+    "display",
+    "shelf",
+    "bookshelf"
+   ],
+   "about": "Free 8K model - modern pine display shelf with nine square cubbies and three lower bins; clean, minimalist bookshelf for home or retail disp"
+  },
+  {
+   "id": "vintage_cabinet_01",
+   "name": "Vintage Cabinet 01",
+   "size": [
+    2.022,
+    2.235,
+    0.67
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "vintage",
+    "farmhouse",
+    "old",
+    "antique",
+    "fancy",
+    "wooden",
+    "varnished",
+    "cupboard"
+   ],
+   "about": "Free 8K model: varnished dark-wood vintage cabinet with carved detailing, glass-front upper doors, paneled lower cupboards and brass knobs."
+  },
+  {
+   "id": "Shelf_01",
+   "name": "Shelf 01",
+   "size": [
+    1.003,
+    2.08,
+    0.257
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "wood",
+    "shelf",
+    "storage",
+    "home",
+    "organization",
+    "display",
+    "wooden",
+    "bookcase"
+   ],
+   "about": "Free 4K wooden shelf model with weathered, distressed paint and aged, dirty finish; a simple tall bookcase with multiple shallow display she"
+  },
+  {
+   "id": "painted_wooden_cabinet",
+   "name": "Painted Wooden Cabinet",
+   "size": [
+    1.195,
+    1.182,
+    0.617
+   ],
+   "tags": [
+    "furniture",
+    "shelves",
+    "old",
+    "worn",
+    "antique",
+    "wooden",
+    "vintage",
+    "colonial",
+    "farmhouse",
+    "storage"
+   ],
+   "about": "Free 4K model: a weathered painted wooden cabinet with chipped farmhouse paint, colonial details, two drawers and double-door storage - rust"
+  },
+  {
+   "id": "steel_frame_shelves_02",
+   "name": "Steel Frame Shelves 02",
+   "size": [
+    0.593,
+    2.142,
+    0.502
+   ],
+   "tags": [
+    "furniture",
+    "industrial",
+    "shelves",
+    "commercial",
+    "modern",
+    "shelf",
+    "bookshelf",
+    "metal",
+    "wood"
+   ],
+   "about": "Free 8K model of a modern industrial five-tier steel-frame shelf with wooden planks; clean, sturdy design for commercial spaces, bookshelves"
+  },
+  {
+   "id": "steel_frame_shelves_03",
+   "name": "Steel Frame Shelves 03",
+   "size": [
+    2.351,
+    2.312,
+    0.721
+   ],
+   "tags": [
+    "shelves",
+    "furniture",
+    "storage",
+    "home decor",
+    "contemporary",
+    "minimalist",
+    "display",
+    "frame"
+   ],
+   "about": "Free 4K steel-frame shelves with black metal frame, warm wood shelves and three drawers - contemporary, minimalist display with industrial c"
+  },
+  {
+   "id": "vintage_day_bed",
+   "name": "Vintage Day Bed",
+   "size": [
+    1.973,
+    1.127,
+    0.855
+   ],
+   "tags": [
+    "furniture",
+    "bed",
+    "seating",
+    "old",
+    "vintage",
+    "antique",
+    "wooden",
+    "couch",
+    "bench",
+    "sofa-bed"
+   ],
+   "about": "Free 8K model of a vintage day bed with worn carved wood, sagging cushion, laced pillow, and a draped floral quilt, rich in aged textures an"
+  },
+  {
+   "id": "old_bed_frame",
+   "name": "Old Bed Frame",
+   "size": [
+    0.905,
+    1.201,
+    2.002
+   ],
+   "tags": [
+    "bed",
+    "furniture",
+    "rusty",
+    "metal",
+    "bedroom",
+    "vintage",
+    "antique",
+    "hospital",
+    "traditional"
+   ],
+   "about": "Free 8K old metal bed frame with tubular rails, wire mesh base, chipped white paint and rust stains."
+  },
+  {
+   "id": "wine_bottles_01",
+   "name": "Wine Bottles 01",
+   "size": [
+    0.676,
+    0.331,
+    0.081
+   ],
+   "tags": [
+    "props",
+    "containers",
+    "dishes",
+    "wine",
+    "drink",
+    "bottle",
+    "champagne",
+    "grape",
+    "farmhouse",
+    "vineyard"
+   ],
+   "about": "Free 8K model of four wine and champagne bottles with realistic glass, varied labels, foil/wax tops and subtle wear, evoking a rustic vineya"
+  },
+  {
+   "id": "Barrel_01",
+   "name": "Barrel_01",
+   "size": [
+    0.563,
+    0.88,
+    0.563
+   ],
+   "tags": [
+    "industrial",
+    "containers",
+    "barrel",
+    "oil",
+    "explosive",
+    "radioactive",
+    "metal",
+    "red barrel",
+    "oil barrel",
+    "drums"
+   ],
+   "about": "Free worn red metal oil drum with explosive hazard marking - realistic, scratched, rusty industrial barrel ideal for games, VFX, and environ"
+  },
+  {
+   "id": "cardboard_box_01",
+   "name": "Cardboard Box 01",
+   "size": [
+    0.387,
+    0.342,
+    0.516
+   ],
+   "tags": [
+    "industrial",
+    "containers",
+    "warehouse",
+    "shed",
+    "storage",
+    "box",
+    "paper",
+    "worn",
+    "old",
+    "broken"
+   ],
+   "about": "Free 4K model of a worn, creased cardboard box with torn flaps, taped seams and a weathered strap - aged, dented paper texture and realistic"
+  },
+  {
+   "id": "brass_vase_03",
+   "name": "Brass Vase 03",
+   "size": [
+    0.083,
+    0.2,
+    0.083
+   ],
+   "tags": [
+    "containers",
+    "props",
+    "decorative",
+    "vases",
+    "metal",
+    "prop",
+    "brass",
+    "ornate",
+    "vase",
+    "gold"
+   ],
+   "about": "Free 8K brass vase model: ornate engraved swirls, warm aged copper-gold patina, polished highlights and pedestal base with subtle tool marks"
+  },
+  {
+   "id": "Barrel_02",
+   "name": "Barrel 02",
+   "size": [
+    0.488,
+    0.88,
+    0.485
+   ],
+   "tags": [
+    "industrial",
+    "containers",
+    "barrel",
+    "water",
+    "plastic",
+    "garage",
+    "warehouse",
+    "storage",
+    "drums",
+    "cylindrical"
+   ],
+   "about": "Free plastic barrel model: realistic blue industrial drum with subtle wear and detailed lid."
+  },
+  {
+   "id": "metal_trash_can",
+   "name": "Metal Trash Can",
+   "size": [
+    1.847,
+    0.906,
+    0.556
+   ],
+   "tags": [
+    "industrial",
+    "containers",
+    "bin",
+    "rubbish",
+    "garbage",
+    "disposal",
+    "litter",
+    "dumpster",
+    "outdoor trash can",
+    " urban"
+   ],
+   "about": "Free 8K model of a weathered metal trash can with removable lid, ribbed cylindrical body, dents, heavy rust, grime and realistic industrial "
+  },
+  {
+   "id": "brass_goblets",
+   "name": "Brass Goblets",
+   "size": [
+    0.453,
+    0.273,
+    0.298
+   ],
+   "tags": [
+    "props",
+    "dishes",
+    "decorative",
+    "containers",
+    "vintage",
+    "old",
+    "antique",
+    "fancy",
+    "brass",
+    "cup"
+   ],
+   "about": "Free 4K model of three ornate vintage brass goblets, engraved rims and bases, warm aged patina and polished golden interiors."
+  },
+  {
+   "id": "wooden_crate_01",
+   "name": "Wooden Crate 01",
+   "size": [
+    0.825,
+    0.35,
+    0.409
+   ],
+   "tags": [
+    "containers",
+    "vintage",
+    "wood",
+    "old",
+    "wooden",
+    "fancy",
+    "colonial",
+    "chest",
+    "box",
+    "prop"
+   ],
+   "about": "Free 8K model of a vintage wooden crate - weathered colonial chest with rope handles, metal rivets and latch; ideal as maritime, farmhouse o"
+  },
+  {
+   "id": "wine_barrel_01",
+   "name": "Wine Barrel 01",
+   "size": [
+    0.742,
+    0.871,
+    0.756
+   ],
+   "tags": [
+    "containers",
+    "barrel",
+    "wine",
+    "celler",
+    "old",
+    "worn",
+    "grape",
+    "farmhouse",
+    "farm"
+   ],
+   "about": "Free 8K wine barrel model with worn oak staves, weathered metal hoops and bung hole - high-detail farmhouse/cellar prop perfect for rustic f"
+  },
+  {
+   "id": "antique_ceramic_vase_01",
+   "name": "Antique Ceramic Vase 01",
+   "size": [
+    0.255,
+    0.44,
+    0.255
+   ],
+   "tags": [
+    "decorative",
+    "containers",
+    "vases",
+    "vintage",
+    "antique",
+    "pot",
+    "fancy",
+    "pattern",
+    "vase"
+   ],
+   "about": "Free 8K model - antique ceramic vase with blue floral transferware pattern, crackle glaze and subtle wear; perfect vintage decorative pot."
+  },
+  {
+   "id": "barrel_03",
+   "name": "Barrel 03",
+   "size": [
+    0.634,
+    0.93,
+    0.639
+   ],
+   "tags": [
+    "industrial",
+    "containers",
+    "barrel",
+    "oil",
+    "fuel",
+    "truck",
+    "painted",
+    "blue"
+   ],
+   "about": "Free 4K model: weathered blue painted steel barrel with subtle rust, dents, scuffs and detailed surface imperfections; industrial oil/fuel c"
+  },
+  {
+   "id": "ceramic_vase_02",
+   "name": "Ceramic Vase 02",
+   "size": [
+    0.22,
+    0.309,
+    0.221
+   ],
+   "tags": [
+    "decorative",
+    "containers",
+    "vases",
+    "fancy",
+    "modern",
+    "vase",
+    "decor",
+    "clay",
+    "pot",
+    "painted"
+   ],
+   "about": "Free 8K model: modern painted ceramic vase with tactile clay texture, worn rim detail and classic pot silhouette - perfect for decorative in"
+  },
+  {
+   "id": "Camera_01",
+   "name": "Camera 01",
+   "size": [
+    0.214,
+    0.078,
+    0.263
+   ],
+   "tags": [
+    "props",
+    "electronics",
+    "vintage",
+    "camera",
+    "antique",
+    "ornate",
+    "photography",
+    "retro",
+    "lens",
+    "classic"
+   ],
+   "about": "Free vintage rangefinder camera model with ornate wear, leather strap and detailed lens - high-res prop for retro scenes, stills, animations"
+  },
+  {
+   "id": "Television_01",
+   "name": "Television 01",
+   "size": [
+    0.6,
+    0.457,
+    0.471
+   ],
+   "tags": [
+    "props",
+    "electronics",
+    "vintage",
+    "prop",
+    "furniture",
+    "metal",
+    "wood",
+    "tv",
+    "television",
+    "video"
+   ],
+   "about": "Free 4K model of a vintage tabletop CRT TV with wood casing, scratched metal bezel, worn knobs and speaker grille, smudged glass and realist"
+  },
+  {
+   "id": "Lantern_01",
+   "name": "Lantern 01",
+   "size": [
+    0.122,
+    0.294,
+    0.097
+   ],
+   "tags": [
+    "props",
+    "lighting",
+    "prop",
+    "metal",
+    "glass",
+    "lantern",
+    "antique",
+    "vintage",
+    "hurricane",
+    "lamp"
+   ],
+   "about": "Free 4K model of an antique brass/bronze hurricane lantern with textured glass globe, worn patina, metal handle and detailed rivets for vint"
+  },
+  {
+   "id": "chess_set",
+   "name": "Chess Set",
+   "size": [
+    0.553,
+    0.112,
+    0.553
+   ],
+   "tags": [
+    "decorative",
+    "props",
+    "boardgame",
+    "game",
+    "old",
+    "decor",
+    "home",
+    "vintage",
+    "antique",
+    "tabletop"
+   ],
+   "about": "Free 8K model: elegant vintage marble chess set with polished black and white pieces on a beveled, high-gloss checkered board."
+  },
+  {
+   "id": "horse_statue_01",
+   "name": "Horse Statue 01",
+   "size": [
+    0.164,
+    0.22,
+    0.108
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "horse",
+    "statue",
+    "figurine",
+    "porcelain",
+    "animal",
+    "sculpture",
+    "white",
+    "fancy"
+   ],
+   "about": "Free 8K model - glossy white porcelain horse figurine rearing on a round wooden base, with detailed mane, musculature and an elegant sculptu"
+  },
+  {
+   "id": "tea_set_01",
+   "name": "Tea Set 01",
+   "size": [
+    0.918,
+    0.165,
+    0.484
+   ],
+   "tags": [
+    "props",
+    "dishes",
+    "antique",
+    "tea",
+    "cup",
+    "english",
+    "ornate",
+    "vintage",
+    "floral",
+    "decorative"
+   ],
+   "about": "Free 8K model of an antique Victorian English ceramic tea set with ornate floral decals, gold trim, teapot, cups, saucers, perfect as decora"
+  },
+  {
+   "id": "rubber_duck_toy",
+   "name": "Rubber Duck Toy",
+   "size": [
+    0.214,
+    0.286,
+    0.3
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "shed",
+    "toy",
+    "bathroom",
+    "child",
+    "home",
+    "fun",
+    "kids",
+    "play"
+   ],
+   "about": "Free 4K model: cute yellow rubber duck with glossy plastic, bright red beak, simple cartoon eyes and light scuffs/grime for a slightly worn,"
+  },
+  {
+   "id": "dry_branches_medium_01",
+   "name": "Dry Branches Medium 01",
+   "size": [
+    1.059,
+    0.341,
+    1.299
+   ],
+   "tags": [
+    "props",
+    "nature",
+    "plants",
+    "ground cover",
+    "branches",
+    "dead",
+    "dry",
+    "natural",
+    "plant",
+    "outdoor"
+   ],
+   "about": "Free 8K photoscanned set of medium dry branches - gnarled, cracked bark, weathered texture, natural twists, knots and subtle moss."
+  },
+  {
+   "id": "alarm_clock_01",
+   "name": "Alarm Clock 01",
+   "size": [
+    0.228,
+    0.174,
+    0.168
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "rigged",
+    "clock",
+    "time",
+    "alarm",
+    "bedside",
+    "old",
+    "90s",
+    "watch"
+   ],
+   "about": "Free 8K rigged model of a retro aqua twin-bell bedside alarm clock with worn metal, Roman numerals, and animatable parts."
+  },
+  {
+   "id": "book_encyclopedia_set_01",
+   "name": "Book Encyclopedia Set 01",
+   "size": [
+    0.551,
+    0.237,
+    0.163
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "books",
+    "bookshelf",
+    "library",
+    "reading",
+    "encyclopedia",
+    "set"
+   ],
+   "about": "Free 8K set of vintage leather-bound encyclopedia volumes with gold-embossed spines, alphabetic labels and realistic wear, warm brown tones."
+  },
+  {
+   "id": "power_box_01",
+   "name": "Power Box 01",
+   "size": [
+    0.377,
+    0.503,
+    0.418
+   ],
+   "tags": [
+    "industrial",
+    "props",
+    "electronics",
+    "tools",
+    "rigged",
+    "box",
+    "electrical",
+    "power",
+    "wiring",
+    "db board"
+   ],
+   "about": "Free 8K model of a modern, slightly damaged industrial power box with breakers, switches and exposed wiring - rugged, rigged prop ready for "
+  },
+  {
+   "id": "Ukulele_01",
+   "name": "Ukulele 01",
+   "size": [
+    0.178,
+    0.527,
+    0.051
+   ],
+   "tags": [
+    "props",
+    "instrument",
+    "wood",
+    "prop",
+    "guitar",
+    "ukulele",
+    "music"
+   ],
+   "about": "Free 4K model of a worn wooden ukulele with scuffed varnish, detailed fretboard, metal tuners and visible wood grain."
+  },
+  {
+   "id": "covered_car",
+   "name": "Covered Car",
+   "size": [
+    1.789,
+    1.411,
+    4.38
+   ],
+   "tags": [
+    "props",
+    "industrial",
+    "garage",
+    "stored",
+    "vehicle",
+    "car",
+    "workshop",
+    "mechanic",
+    "automotive",
+    "repair shop"
+   ],
+   "about": "Free 8K model of a car under a worn, dusty fabric cover with natural folds and visible wheels- aged garage/industrial character."
+  },
+  {
+   "id": "cannon_01",
+   "name": "Cannon 01",
+   "size": [
+    1.233,
+    0.787,
+    2.302
+   ],
+   "tags": [
+    "props",
+    "rigged",
+    "cannon",
+    "gun",
+    "gunpowder",
+    "pirates",
+    "cove",
+    "barrel",
+    "old",
+    "wooden"
+   ],
+   "about": "Free rigged, high-detail colonial ship cannon with cast-iron barrel and weathered wooden carriage, ideal for maritime/pirate scenes, games, "
+  },
+  {
+   "id": "WetFloorSign_01",
+   "name": "Wet Floor Sign 01",
+   "size": [
+    0.3,
+    0.63,
+    0.359
+   ],
+   "tags": [
+    "props",
+    "industrial",
+    "office",
+    "prop",
+    "plastic",
+    "sign",
+    "safety",
+    "caution",
+    "warning",
+    "yellow"
+   ],
+   "about": "Free 4K model of a yellow plastic A-frame wet floor sign with molded handle, bold \"CAUTION / WET FLOOR\" icon and worn scuffs and grime for r"
+  },
+  {
+   "id": "cassette_player",
+   "name": "Cassette Player",
+   "size": [
+    0.129,
+    0.237,
+    0.049
+   ],
+   "tags": [
+    "props",
+    "electronics",
+    "walkman",
+    "vintage",
+    "device",
+    "audio",
+    "retro",
+    "music",
+    "gadget",
+    "nostalgia"
+   ],
+   "about": "Free 4K model of a vintage cassette player, with brushed metal case, front speaker grille, tactile transport buttons, built-in mic and label"
+  },
+  {
+   "id": "baseball_01",
+   "name": "Baseball 01",
+   "size": [
+    0.074,
+    0.076,
+    0.075
+   ],
+   "tags": [
+    "props",
+    "ball",
+    "baseball",
+    "toy",
+    "kids",
+    "child",
+    "sport",
+    "stitches",
+    "round"
+   ],
+   "about": "Free 8K model: realistic baseball with red stitching, worn white leather, subtle scuffs and visible grain for a high-resolution prop."
+  },
+  {
+   "id": "Drill_01",
+   "name": "Drill 01",
+   "size": [
+    0.183,
+    0.185,
+    0.052
+   ],
+   "tags": [
+    "props",
+    "tools",
+    "electronics",
+    "metal",
+    "plastic",
+    "tool",
+    "drill",
+    "prop"
+   ],
+   "about": "Free 4K model of a cordless drill with lime plastic body, black rubber grip, metal chuck and 18V lithium-ion battery details."
+  },
+  {
+   "id": "antique_katana_01",
+   "name": "Antique Katana 01",
+   "size": [
+    0.093,
+    1.003,
+    0.093
+   ],
+   "tags": [
+    "props",
+    "antique",
+    "ninja",
+    "katana",
+    "sword",
+    "sharp",
+    "blade",
+    "japanese",
+    "weapon"
+   ],
+   "about": "Free 8K model of an antique Japanese katana with a dark, worn blade, ornate tsuba, brown tsuka wrap and aged brass fittings."
+  },
+  {
+   "id": "old_tyre",
+   "name": "Old Tyre",
+   "size": [
+    0.6,
+    0.6,
+    0.165
+   ],
+   "tags": [
+    "industrial",
+    "props",
+    "wheels",
+    "wheel",
+    "trash",
+    "garbage",
+    "garage",
+    "scrapyard",
+    "junkyard",
+    "abandoned"
+   ],
+   "about": "Free 4K model of an old tyre with worn tread, scuffs, dirt and realistic rubber sidewall detail, stamped markings and gritty, abandoned-junk"
+  },
+  {
+   "id": "carved_wooden_elephant",
+   "name": "Carved Wooden Elephant",
+   "size": [
+    0.109,
+    0.096,
+    0.058
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "wood",
+    "wooden",
+    "woodwork",
+    "statue",
+    "carved",
+    "animal"
+   ],
+   "about": "Free 4K carved wooden elephant model with warm hand-carved grain, stylized form, smooth worn edges and subtle surface wear."
+  },
+  {
+   "id": "croissant",
+   "name": "Croissant",
+   "size": [
+    0.2,
+    0.062,
+    0.076
+   ],
+   "tags": [
+    "props",
+    "food",
+    "pastry",
+    "baked goods",
+    "french",
+    "breakfast",
+    "bakery",
+    "savory"
+   ],
+   "about": "Free 8K croissant model with realistic golden-brown crust, flaky layered dough, subtle sheen and high-detail baked texture."
+  },
+  {
+   "id": "Chandelier_03",
+   "name": "Chandelier 03",
+   "size": [
+    0.78,
+    1.041,
+    0.785
+   ],
+   "tags": [
+    "lighting",
+    "decorative",
+    "ceiling",
+    "hanging",
+    "fixture",
+    "chandelier",
+    "ornate",
+    "decor",
+    "elegant"
+   ],
+   "about": "Free 4K model of an ornate hanging chandelier: elegant brass fixture with crystal dishes and multiple candle-style bulbs, perfect for classi"
+  },
+  {
+   "id": "Chandelier_01",
+   "name": "Chandelier 01",
+   "size": [
+    0.746,
+    0.798,
+    0.816
+   ],
+   "tags": [
+    "lighting",
+    "decorative",
+    "ceiling",
+    "hanging",
+    "fixture",
+    "chandelier",
+    "ornate",
+    "vintage"
+   ],
+   "about": "Free 4K model of an ornate vintage brass chandelier with six fabric shades, decorative beads and hanging ceiling mount, detailed for archviz"
+  },
+  {
+   "id": "street_lamp_01",
+   "name": "Street Lamp 01",
+   "size": [
+    0.704,
+    3.871,
+    0.386
+   ],
+   "tags": [
+    "lighting",
+    "industrial",
+    "street",
+    "road",
+    "light",
+    "lamppost",
+    "outdoor",
+    "pole",
+    "sidewalk",
+    "night"
+   ],
+   "about": "Free 8K model: ornate cast-iron street lamp with glass panes, exposed bulb, weathered black finish and detailed base, finial and mounting ha"
+  },
+  {
+   "id": "modern_ceiling_lamp_01",
+   "name": "Modern Ceiling Lamp 01",
+   "size": [
+    0.432,
+    0.952,
+    0.432
+   ],
+   "tags": [
+    "lighting",
+    "light",
+    "modern",
+    "glass",
+    "round",
+    "hanging",
+    "hanging lamp",
+    "ceiling lamp",
+    "decorative lighting",
+    "modern decor"
+   ],
+   "about": "Free 8K model of a modern hanging ceiling lamp - frosted glass globe with brushed metal fittings, clean round minimalist design perfect for "
+  },
+  {
+   "id": "brass_candleholders",
+   "name": "Brass Candleholders",
+   "size": [
+    1.053,
+    0.835,
+    0.365
+   ],
+   "tags": [
+    "decorative",
+    "lighting",
+    "vintage",
+    "antique",
+    "ornate",
+    "fancy",
+    "brass",
+    "pattern",
+    "candleholders",
+    "elegant"
+   ],
+   "about": "Free 4K model of ornate antique brass candleholders - classic engraved bases, scrolling arms, and lit taper candles with a warm, aged patina"
+  },
+  {
+   "id": "lightbulb_01",
+   "name": "Lightbulb 01",
+   "size": [
+    0.06,
+    0.1,
+    0.06
+   ],
+   "tags": [
+    "lighting",
+    "globe",
+    "filament",
+    "light",
+    "lamp",
+    "shed",
+    "bulb",
+    "illumination",
+    "incandescent",
+    "coil filament"
+   ],
+   "about": "Free 4K model of a worn glass incandescent bulb: globe with visible coil filament, metal screw base, realistic scratches, smudges and reflec"
+  },
+  {
+   "id": "desk_lamp_arm_01",
+   "name": "Desk Lamp Arm 01",
+   "size": [
+    0.617,
+    0.879,
+    0.408
+   ],
+   "tags": [
+    "lighting",
+    "rigged",
+    "industrial",
+    "lamp",
+    "mounted",
+    "fixed",
+    "desk",
+    "table",
+    "light",
+    "arm"
+   ],
+   "about": "Free 8K model of an industrial, rigged desk lamp arm - clamp-mounted, articulated with springs, vintage workshop style."
+  },
+  {
+   "id": "Chandelier_02",
+   "name": "Chandelier 02",
+   "size": [
+    0.679,
+    0.848,
+    0.619
+   ],
+   "tags": [
+    "lighting",
+    "ceiling",
+    "decorative",
+    "chandelier",
+    "elegant",
+    "hanging",
+    "ornate",
+    "vintage"
+   ],
+   "about": "Free 4K model of an elegant vintage hanging ceiling chandelier, an ornate brass six-arm fixture with pleated fabric shades - ideal for class"
+  },
+  {
+   "id": "street_lamp_02",
+   "name": "Street Lamp 02",
+   "size": [
+    0.386,
+    1.675,
+    0.807
+   ],
+   "tags": [
+    "lighting",
+    "industrial",
+    "street",
+    "road",
+    "light",
+    "lamppost",
+    "outdoor",
+    "pole",
+    "sidewalk",
+    "night"
+   ],
+   "about": "Free 8K wall-mounted Victorian street lamp with ornate wrought-iron bracket, textured dark metal, frosted glass panes and exposed bulb detai"
+  },
+  {
+   "id": "wooden_lantern_01",
+   "name": "Wooden Lantern 01",
+   "size": [
+    0.221,
+    0.53,
+    0.235
+   ],
+   "tags": [
+    "props",
+    "lighting",
+    "lantern",
+    "wooden",
+    "wood",
+    "old",
+    "worn",
+    "farmhouse",
+    "maritime",
+    "colonial"
+   ],
+   "about": "Free 8K wooden lantern model - worn colonial/maritime farmhouse style with glass panels, metal top and handle; candle prop."
+  },
+  {
+   "id": "wooden_bowl_01",
+   "name": "Wooden Bowl 01",
+   "size": [
+    0.313,
+    0.094,
+    0.309
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "dishes",
+    "bowl",
+    "wooden",
+    "carved",
+    "fruit",
+    "fruitbowl",
+    "decoration"
+   ],
+   "about": "Free 8K model - hand-carved, rustic wooden bowl with irregular, worn rim, smooth shallow interior and rich aged grain and patina."
+  },
+  {
+   "id": "jug_01",
+   "name": "Jug 01",
+   "size": [
+    0.275,
+    0.211,
+    0.168
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "dishes",
+    "containers",
+    "ceramic",
+    "milk",
+    "white",
+    "antique",
+    "vintage",
+    "old"
+   ],
+   "about": "Free 8K model of a white ceramic milk jug featuring glossy antique glazing, a metallic rim, rounded handle, and a hand-painted pink tulip bo"
+  },
+  {
+   "id": "brass_pan_01",
+   "name": "Brass Pan 01",
+   "size": [
+    0.191,
+    0.053,
+    0.45
+   ],
+   "tags": [
+    "props",
+    "containers",
+    "decorative",
+    "dishes",
+    "brass",
+    "pan",
+    "copper",
+    "old",
+    "metal",
+    "prop"
+   ],
+   "about": "Free 8K model of a worn brass pan with warm aged patina, subtle dents and hammer marks, polished inner surface and a carved wooden handle."
+  },
+  {
+   "id": "brass_pot_02",
+   "name": "Brass Pot 02",
+   "size": [
+    0.367,
+    0.109,
+    0.302
+   ],
+   "tags": [
+    "props",
+    "dishes",
+    "containers",
+    "decorative",
+    "brass",
+    "metal",
+    "prop",
+    "cooking",
+    "container",
+    "pot"
+   ],
+   "about": "Free 8K model of a worn brass pot with warm copper interior, subtle patina, rolled rim detailing and wooden side handles."
+  },
+  {
+   "id": "brass_vase_04",
+   "name": "Brass Vase 04",
+   "size": [
+    0.082,
+    0.17,
+    0.061
+   ],
+   "tags": [
+    "containers",
+    "props",
+    "vases",
+    "dishes",
+    "vintage",
+    "fancy",
+    "metal",
+    "brass",
+    "copper",
+    "old"
+   ],
+   "about": "Free 8K brass vase model with tall pitcher form, ornate handle and subtle engraved patterns; aged copper-brass patina, scratches and wear fo"
+  },
+  {
+   "id": "carved_wooden_plate",
+   "name": "Carved Wooden Plate",
+   "size": [
+    0.272,
+    0.038,
+    0.269
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "dishes",
+    "vintage",
+    "wood",
+    "antique",
+    "carved",
+    "hand made",
+    "crafted",
+    "fruitbowl"
+   ],
+   "about": "Free 8K model, hand-carved antique wooden plate with shallow bowl, visible tool marks, knotty grain and carved geometric border."
+  },
+  {
+   "id": "pot_enamel_01",
+   "name": "Pot Enamel 01",
+   "size": [
+    0.263,
+    0.178,
+    0.18
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "dishes",
+    "pot",
+    "container",
+    "cooking",
+    "cookware",
+    "kitchen",
+    "enamel",
+    "crockery"
+   ],
+   "about": "Free 8K enamel pot model, dark brown with worn scuffs, lid and rounded handles, decorated with bold red-orange flame-like pattern around the"
+  },
+  {
+   "id": "wooden_bowl_02",
+   "name": "Wooden Bowl 02",
+   "size": [
+    0.131,
+    0.073,
+    0.125
+   ],
+   "tags": [
+    "props",
+    "decorative",
+    "dishes",
+    "antique",
+    "vintage",
+    "old",
+    "wooden",
+    "ornate",
+    "traditional",
+    "fruitbowl"
+   ],
+   "about": "Free 8K 3D model of a wooden bowl with warm honey-brown patina, irregular carved rim, rich burl grain and worn antique surface with rustic, "
+  },
+  {
+   "id": "food_apple_01",
+   "name": "Food Apple 01",
+   "size": [
+    0.098,
+    0.085,
+    0.096
+   ],
+   "tags": [
+    "food",
+    "nature",
+    "fruit",
+    "apple",
+    "fruitbowl",
+    "red",
+    "ripe",
+    "fresh",
+    "organic",
+    "stem"
+   ],
+   "about": "Free 8K model: realistic ripe red apple with subtle skin blemishes, glossy surface, organic stem and natural color variation."
+  },
+  {
+   "id": "food_lime_01",
+   "name": "Food Lime 01",
+   "size": [
+    0.06,
+    0.075,
+    0.061
+   ],
+   "tags": [
+    "food",
+    "nature",
+    "fruit",
+    "fruitbowl",
+    "lemon",
+    "lime",
+    "citrus",
+    "green",
+    "fresh"
+   ],
+   "about": "Free 8K model of a realistic lime with bumpy, mottled green-yellow peel, subtle blemishes and a glossy, slightly waxy surface."
+  },
+  {
+   "id": "food_pomegranate_01",
+   "name": "Food Pomegranate 01",
+   "size": [
+    0.114,
+    0.115,
+    0.115
+   ],
+   "tags": [
+    "food",
+    "nature",
+    "fruit",
+    "fruitbowl",
+    "red",
+    "pomegranite",
+    "produce",
+    "fresh fruit",
+    "ripe",
+    "calyx"
+   ],
+   "about": "Free 8K model of a ripe pomegranate - photorealistic red mottled skin, subtle blemishes, glossy highlights and dried calyx detail."
+  },
+  {
+   "id": "lemon",
+   "name": "Lemon",
+   "size": [
+    0.069,
+    0.095,
+    0.068
+   ],
+   "tags": [
+    "props",
+    "food",
+    "culinary",
+    "cooking",
+    "vegetable",
+    "vegetables",
+    "organic",
+    "ingredients",
+    "produce"
+   ],
+   "about": "Free 4K model of a realistic lemon with detailed bumpy rind, natural blemishes, glossy waxy surface, organic irregular shape and a visible s"
+  },
+  {
+   "id": "food_pears_asian_01",
+   "name": "Pears Asian 01",
+   "size": [
+    0.156,
+    0.11,
+    0.178
+   ],
+   "tags": [
+    "food",
+    "nature",
+    "fruit",
+    "fruitbowl",
+    "tropical",
+    "pears",
+    "organic",
+    "asian pears",
+    "produce",
+    "fresh fruit"
+   ],
+   "about": "Free 8K model of Asian pears with realistic green-yellow skin, subtle blemishes, natural stems, and high-detail surface textures."
+  },
+  {
+   "id": "carrot_cake",
+   "name": "Carrot Cake",
+   "size": [
+    0.225,
+    0.098,
+    0.225
+   ],
+   "tags": [
+    "food",
+    "props",
+    "baked goods",
+    "cake",
+    "carrot",
+    "bakery",
+    "dish",
+    "cooking",
+    "dessert"
+   ],
+   "about": "Free 8K model of a realistic carrot cake with cream-cheese frosting, walnut sprinkles, and baked crumb detail - perfect food prop for close-"
+  },
+  {
+   "id": "russian_food_cans_01",
+   "name": "Russian Food Cans 01",
+   "size": [
+    0.142,
+    0.085,
+    0.046
+   ],
+   "tags": [
+    "containers",
+    "props",
+    "food",
+    "russian",
+    "culinary",
+    "cooking",
+    "pantry",
+    "tuna",
+    "can"
+   ],
+   "about": "Free 4K model: three Russian pantry items - two dented metal cans and a salt carton with worn, faded labels and realistic scratched-metal te"
+  },
+  {
+   "id": "food_avocado_01",
+   "name": "Food Avocado 01",
+   "size": [
+    0.095,
+    0.143,
+    0.095
+   ],
+   "tags": [
+    "food",
+    "nature",
+    "fruit",
+    "fruitbowl",
+    "avo",
+    "dark",
+    "ripe"
+   ],
+   "about": "Free 8K photoreal avocado model: dark, ripe Hass with bumpy glossy skin, detailed stem and subtle brown flecking."
+  },
+  {
+   "id": "binder_notebook",
+   "name": "Binder Notebook",
+   "size": [
+    0.584,
+    0.025,
+    0.2
+   ],
+   "tags": [
+    "books",
+    "props",
+    "old",
+    "leather",
+    "vintage",
+    "worn",
+    "paper",
+    "pencil",
+    "pen",
+    "journal"
+   ],
+   "about": "Free 8K leather binder notebook with worn patina, brass rings, stitched pockets, snap strap and pen, embossed logo, realistic paper stack an"
+  },
+  {
+   "id": "potted_plant_02",
+   "name": "Potted Plant 02",
+   "size": [
+    0.701,
+    0.841,
+    0.657
+   ],
+   "tags": [
+    "decorative",
+    "plants",
+    "potted plants",
+    "nature",
+    "potplant",
+    "plant",
+    "pot",
+    "vase",
+    "medium",
+    "leaf"
+   ],
+   "about": "Realistic terracotta pot with weathered rim, textured soil, and variegated green, heart-shaped leaves with pronounced veins."
+  },
+  {
+   "id": "potted_plant_04",
+   "name": "Potted Plant 04",
+   "size": [
+    0.17,
+    0.268,
+    0.186
+   ],
+   "tags": [
+    "decorative",
+    "plants",
+    "potted plants",
+    "succulent",
+    "nature",
+    "cactus",
+    "aloe",
+    "potplant",
+    "small",
+    "pot"
+   ],
+   "about": "Free 8K potted succulent model - small zebra haworthia in a weathered ceramic pot."
+  },
+  {
+   "id": "planter_box_01",
+   "name": "Planter Box 01",
+   "size": [
+    0.913,
+    0.425,
+    0.414
+   ],
+   "tags": [
+    "decorative",
+    "containers",
+    "potted plants",
+    "old",
+    "wooden",
+    "wood",
+    "farmhouse",
+    "shed",
+    "outdoor",
+    "gardening"
+   ],
+   "about": "Free 8K model of an old farmhouse wooden planter box - weathered planks, interior liner, rustic shed/garden charm for landscaping, greenhous"
+  },
+  {
+   "id": "planter_box_02",
+   "name": "Planter Box 02",
+   "size": [
+    1.252,
+    0.453,
+    0.467
+   ],
+   "tags": [
+    "containers",
+    "decorative",
+    "potted plants",
+    "old",
+    "wooden",
+    "wood",
+    "worn",
+    "shed",
+    "outdoor",
+    "gardening"
+   ],
+   "about": "Free 8K model of a worn wooden planter box with metal liner, farmhouse shed style and realistic weathered grain - great for gardens, greenho"
+  },
+  {
+   "id": "planter_box_03",
+   "name": "Planter Box 03",
+   "size": [
+    0.914,
+    0.855,
+    0.656
+   ],
+   "tags": [
+    "containers",
+    "decorative",
+    "potted plants",
+    "old",
+    "wooden",
+    "wood",
+    "shed",
+    "farm",
+    "gardening",
+    "landscaping"
+   ],
+   "about": "Free 8K model - weathered wooden planter box with liner, rustic farmhouse style, ideal for gardens, greenhouses and landscaping scenes."
+  },
+  {
+   "id": "fern_02",
+   "name": "Fern 02",
+   "size": [
+    1.973,
+    0.428,
+    1.724
+   ],
+   "tags": [
+    "plants",
+    "nature",
+    "plant",
+    "fern",
+    "foliage",
+    "jungle",
+    "shrub",
+    "bush",
+    "leaf",
+    "leaves"
+   ],
+   "about": "Free 8K model of four realistic fern clumps featuring detailed serrated fronds, varied silhouettes and rich dappled green foliage."
+  },
+  {
+   "id": "dandelion_01",
+   "name": "Dandelion 01",
+   "size": [
+    4.214,
+    0.17,
+    0.258
+   ],
+   "tags": [
+    "plants",
+    "flowers",
+    "nature",
+    "ground cover",
+    "plant",
+    "green",
+    "shrub",
+    "outdoor",
+    "leaf",
+    "bush"
+   ],
+   "about": "Free 8K model - photoreal dandelion rosettes with serrated green leaves, slender stems and bright yellow flower heads, natural texture and h"
+  },
+  {
+   "id": "shrub_sorrel_01",
+   "name": "Shrub Sorrel 01",
+   "size": [
+    0.352,
+    0.058,
+    0.146
+   ],
+   "tags": [
+    "plants",
+    "flowers",
+    "nature",
+    "sorrel",
+    "potplant",
+    "bush",
+    "shrub",
+    "leaf",
+    "leaves",
+    "green"
+   ],
+   "about": "Free 8K model of small sorrel shrubs: clusters of round scalloped green leaves on thin stems, subtle edge wear and delicate pink five-petale"
+  },
+  {
+   "id": "anthurium_botany_01",
+   "name": "Anthurium Botany 01",
+   "size": [
+    2.806,
+    0.507,
+    1.801
+   ],
+   "tags": [
+    "plants",
+    "nature",
+    "bush",
+    "leaf",
+    "shrub",
+    "leaves",
+    "forest",
+    "plant",
+    "green",
+    "jungle"
+   ],
+   "about": "Free 8K shrub showcasing glossy broad leaves, wet sheen, detailed veins and varied low-growing clumps."
+  },
+  {
+   "id": "nettle_plant",
+   "name": "Nettle Plant",
+   "size": [
+    1.084,
+    0.219,
+    0.095
+   ],
+   "tags": [
+    "nature",
+    "plants",
+    "ground cover",
+    "nettle",
+    "plant",
+    "green",
+    "shrub",
+    "outdoor",
+    "leaf",
+    "bush"
+   ],
+   "about": "Free 8K photoreal nettle plant model: slender stems with serrated green leaves, multiple sprigs, detailed veins and a natural wet sheen."
+  },
+  {
+   "id": "weed_plant_02",
+   "name": "Weed Plant 02",
+   "size": [
+    2.125,
+    0.075,
+    0.291
+   ],
+   "tags": [
+    "nature",
+    "plants",
+    "ground cover",
+    "natural",
+    "bush",
+    "shrub",
+    "green",
+    "plant",
+    "outdoor",
+    "leaf"
+   ],
+   "about": "Free 8K model of small weed clusters with glossy green leaves, reddish stems and yellowing edges - photoreal low-growing groundcover with na"
+  },
+  {
+   "id": "ceramic_vase_01",
+   "name": "Ceramic Vase 01",
+   "size": [
+    0.205,
+    0.401,
+    0.206
+   ],
+   "tags": [
+    "vases",
+    "containers",
+    "decorative",
+    "pot",
+    "clean",
+    "tall",
+    "modern",
+    "fancy",
+    "decor"
+   ],
+   "about": "Free 8K Ceramic Vase 01 - a tall, modern glossy white pot with an elegant fluted rim and clean lines; a fancy decorative vase/container for "
+  },
+  {
+   "id": "brass_vase_02",
+   "name": "Brass Vase 02",
+   "size": [
+    0.21,
+    0.529,
+    0.21
+   ],
+   "tags": [
+    "decorative",
+    "vases",
+    "brass",
+    "antique",
+    "metal",
+    "ancient",
+    "old",
+    "gold",
+    "container",
+    "vase"
+   ],
+   "about": "Free 8K ornate brass vase with elongated neck, flared base and slim handle, polished antique gold finish with engraved decorative patterns a"
+  },
+  {
+   "id": "ceramic_vase_04",
+   "name": "Ceramic Vase 04",
+   "size": [
+    0.183,
+    0.342,
+    0.182
+   ],
+   "tags": [
+    "containers",
+    "decorative",
+    "vases",
+    "fancy",
+    "modern",
+    "vase",
+    "decor",
+    "painted",
+    "jug",
+    "clay"
+   ],
+   "about": "Free 8K model: painted clay vase with modern, elegant jug silhouette, single-handle and subtle rough texture - fancy decorative pot for inte"
+  },
+  {
+   "id": "brass_vase_01",
+   "name": "Brass Vase 01",
+   "size": [
+    0.227,
+    0.692,
+    0.227
+   ],
+   "tags": [
+    "decorative",
+    "vases",
+    "brass",
+    "antique",
+    "metal",
+    "ancient",
+    "artifact",
+    "vase",
+    "old",
+    "clean"
+   ],
+   "about": "Free 8K brass vase with an antique patina, elegant elongated silhouette, engraved decorative bands and subtle wear for a believable vintage "
+  },
+  {
+   "id": "planter_pot_clay",
+   "name": "Planter Pot Clay",
+   "size": [
+    0.266,
+    0.222,
+    0.263
+   ],
+   "tags": [
+    "containers",
+    "vases",
+    "outdoor",
+    "mossy",
+    "dirty",
+    "used",
+    "worn",
+    "shed",
+    "garden",
+    "gardening"
+   ],
+   "about": "Free 4K model of a weathered terracotta planter: worn rim, chipped paint, mossy stains and gritty dirt with rough, aged clay surface."
+  },
+  {
+   "id": "flower_empodium",
+   "name": "Flower Empodium",
+   "size": [
+    1.323,
+    0.268,
+    0.284
+   ],
+   "tags": [
+    "nature",
+    "plants",
+    "flowers",
+    "ground cover",
+    "karoo",
+    "field",
+    "yellow",
+    "floral",
+    "wildflower",
+    "south africa"
+   ],
+   "about": "Free 4K model of Empodium wildflower - realistic yellow Namaqualand groundcover with detailed textures and multiple growth variations."
+  },
+  {
+   "id": "periwinkle_plant",
+   "name": "Periwinkle Plant",
+   "size": [
+    1.249,
+    0.411,
+    0.335
+   ],
+   "tags": [
+    "nature",
+    "ground cover",
+    "plants",
+    "flowers",
+    "small flowers",
+    "shrub",
+    "bush",
+    "spring",
+    "botanical",
+    "garden plant"
+   ],
+   "about": "Free 4K periwinkle plant model with small pink flowers, realistic leaves and branch variations, perfect for gardens, meadows, groundcover an"
+  },
+  {
+   "id": "flower_gazania",
+   "name": "Flower Gazania",
+   "size": [
+    1.579,
+    0.401,
+    0.81
+   ],
+   "tags": [
+    "nature",
+    "plants",
+    "flowers",
+    "ground cover",
+    "karoo",
+    "outdoor",
+    "field",
+    "orange",
+    "botanical",
+    "floral"
+   ],
+   "about": "Free 8K model: realistic Gazania wildflower clumps from Namaqualand - orange daisy-like groundcover with botanical detail, ideal for fields."
+  },
+  {
+   "id": "Megaphone_01",
+   "name": "Megaphone 01",
+   "size": [
+    0.371,
+    0.3,
+    0.228
+   ],
+   "tags": [
+    "props",
+    "electronics",
+    "tools",
+    "plastic",
+    "megaphone",
+    "device",
+    "audio",
+    "amplifier",
+    "loudspeaker",
+    "announcement"
+   ],
+   "about": "Free 4K model of a handheld plastic megaphone - gray horn, red body, pistol grip, coiled mic cord, buttons, ports and realistic scuffs."
+  },
+  {
+   "id": "metal_tool_chest",
+   "name": "Metal Tool Chest",
+   "size": [
+    0.685,
+    0.652,
+    0.407
+   ],
+   "tags": [
+    "props",
+    "tools",
+    "industrial",
+    "containers",
+    "rigged",
+    "old",
+    "metal",
+    "garage",
+    "workshop",
+    "storage"
+   ],
+   "about": "Free 8K model of a worn red steel tool chest - rusted scratches, metal handles and lock; rigged lid and drawers, ideal for garage, workshop "
+  },
+  {
+   "id": "wooden_hammer_01",
+   "name": "Wooden Hammer 01",
+   "size": [
+    0.112,
+    0.279,
+    0.023
+   ],
+   "tags": [
+    "industrial",
+    "tools",
+    "props",
+    "wooden",
+    "worn",
+    "used",
+    "old",
+    "dirty",
+    "mallet",
+    "nails"
+   ],
+   "about": "Free 8K model of a worn wooden-handled hammer, with scratched metal head, paint flecks and dirt - perfect for workshop, tools, props and ind"
+  },
+  {
+   "id": "watering_can_metal_01",
+   "name": "Watering Can Metal 01",
+   "size": [
+    0.191,
+    0.197,
+    0.452
+   ],
+   "tags": [
+    "containers",
+    "tools",
+    "props",
+    "metal",
+    "garage",
+    "garden",
+    "gardening",
+    "landscaping",
+    "outdoor",
+    "shed"
+   ],
+   "about": "Free 8K metal watering can with a weathered, scratched patina, subtle dents, embossed bands and a long perforated spout - rustic shed/farmho"
+  },
+  {
+   "id": "spray_paint_bottles_02",
+   "name": "Spray Paint Bottles 02",
+   "size": [
+    0.196,
+    0.219,
+    0.077
+   ],
+   "tags": [
+    "industrial",
+    "props",
+    "tools",
+    "graffiti",
+    "street art",
+    "spray paint",
+    "paint",
+    "urban art"
+   ],
+   "about": "Free 4K model of two weathered spray paint cans with scuffed labels, vibrant purple and orange splatters, worn nozzles and realistic grime."
+  },
+  {
+   "id": "small_oil_can_01",
+   "name": "Small Oil Can 01",
+   "size": [
+    0.266,
+    0.237,
+    0.104
+   ],
+   "tags": [
+    "industrial",
+    "tools",
+    "props",
+    "oil",
+    "fuel",
+    "can",
+    "dropper",
+    "mechanic",
+    "repair"
+   ],
+   "about": "Free 8K model: small red metal oil can with long bent spout and pump lever, featuring chipped paint, dents, scratches and subtle rust for a "
+  },
+  {
+   "id": "rusted_spade_01",
+   "name": "Rusted Spade 01",
+   "size": [
+    0.168,
+    1.101,
+    0.046
+   ],
+   "tags": [
+    "tools",
+    "props",
+    "wood",
+    "old",
+    "vintage",
+    "wooden",
+    "worn",
+    "colonial",
+    "farmhouse",
+    "spade"
+   ],
+   "about": "Free 4K model of a worn, vintage spade with a battered wooden handle, riveted ferrule and a rusted, chipped blade with weathered dirt and pa"
+  },
+  {
+   "id": "lubricant_spray",
+   "name": "Lubricant Spray",
+   "size": [
+    0.067,
+    0.165,
+    0.065
+   ],
+   "tags": [
+    "props",
+    "containers",
+    "tools",
+    "decorative",
+    "shed",
+    "workshop",
+    "metal",
+    "garage",
+    "cleaning",
+    "spray"
+   ],
+   "about": "Free 8K model of a worn metal lubricant spray can, realistic workshop prop with taped straw, scuffed label and rust-prevention detailing."
+  },
+  {
+   "id": "handsaw_wood",
+   "name": "Handsaw Wood",
+   "size": [
+    0.041,
+    0.167,
+    0.633
+   ],
+   "tags": [
+    "props",
+    "tools",
+    "industrial",
+    "wooden",
+    "workshop",
+    "shed",
+    "woodwork",
+    "worn",
+    "metal",
+    "carpentry"
+   ],
+   "about": "Free 4K model of a worn handsaw with scuffed wooden handle, rust-speckled scratched steel blade and aged rivets, full of rustic workshop cha"
+  },
+  {
+   "id": "magnifying_glass_01",
+   "name": "Magnifying Glass 01",
+   "size": [
+    0.132,
+    0.272,
+    0.027
+   ],
+   "tags": [
+    "props",
+    "tools",
+    "eye",
+    "focal",
+    "lense",
+    "magnifier",
+    "magnifying lens",
+    "inspection",
+    "optical tool",
+    "reading aid"
+   ],
+   "about": "Free 8K model of a classic magnifying glass with a slightly worn convex lens, subtle scratches and dust, and a matte black metal frame and h"
+  },
+  {
+   "id": "boombox",
+   "name": "Boombox",
+   "size": [
+    0.724,
+    0.47,
+    0.186
+   ],
+   "tags": [
+    "appliances",
+    "electronics",
+    "loudspeaker",
+    "radio",
+    "cd player",
+    "stereo",
+    "80's",
+    "sound system",
+    "portable"
+   ],
+   "about": "Free 4K model of a vintage 80s portable boombox with dual speakers, cassette deck, tuner knobs, telescoping antenna and worn stickers, gritt"
+  },
+  {
+   "id": "security_camera_01",
+   "name": "Security Camera 01",
+   "size": [
+    0.17,
+    0.286,
+    0.554
+   ],
+   "tags": [
+    "electronics",
+    "appliances",
+    "industrial",
+    "rigged",
+    "cctv",
+    "surveillance",
+    "monitoring",
+    "police",
+    "security",
+    "camera"
+   ],
+   "about": "Free 8K model: rigged wall-mounted CCTV camera with weathered metal housing, pivoting mount and realistic lens - industrial security asset f"
+  },
+  {
+   "id": "exterior_aircon_unit",
+   "name": "Exterior Aircon Unit",
+   "size": [
+    1.8,
+    0.928,
+    0.374
+   ],
+   "tags": [
+    "appliances",
+    "industrial",
+    "electronics",
+    "cooling system",
+    "aircon",
+    "climatecontrol",
+    "ventilation",
+    "utility",
+    "infrastructure"
+   ],
+   "about": "Free 4K exterior aircon unit model with clean and heavily weathered variants, detailed grille and fan, mounting brackets and realistic rust "
+  },
+  {
+   "id": "security_camera_02",
+   "name": "Security Camera 02",
+   "size": [
+    0.141,
+    0.209,
+    0.394
+   ],
+   "tags": [
+    "industrial",
+    "electronics",
+    "appliances",
+    "rigged",
+    "camera",
+    "surveillance",
+    "monitoring",
+    "cctv",
+    "police",
+    "security"
+   ],
+   "about": "Free 8K model: rigged CCTV camera with weathered metal casing, protective hood and mounting bracket - perfect for industrial or urban survei"
+  },
+  {
+   "id": "electric_stove",
+   "name": "Electric Stove",
+   "size": [
+    0.503,
+    0.859,
+    0.648
+   ],
+   "tags": [
+    "electronics",
+    "appliances",
+    "rigged",
+    "props",
+    "kitchen appliance",
+    "cooking equipment",
+    "stovetop",
+    "oven",
+    "cooktop",
+    "simple"
+   ],
+   "about": "Free 8K model: compact white electric stove with four worn hotplates, front control knobs, oven window and subtle rust/weathering; rigged."
+  },
+  {
+   "id": "ceiling_fan",
+   "name": "Ceiling Fan",
+   "size": [
+    1.463,
+    0.516,
+    1.463
+   ],
+   "tags": [
+    "appliances",
+    "electronics",
+    "utility",
+    "ceiling",
+    "air circulation",
+    "ventilation",
+    "fixture",
+    "cooling",
+    "fan",
+    "interior"
+   ],
+   "about": "Free 4K model of a sleek matte-black ceiling fan with four curved blades, brushed metal hub and integrated frosted light diffuser; modern, l"
+  },
+  {
+   "id": "lightbulb_led",
+   "name": "Lightbulb Led",
+   "size": [
+    0.061,
+    0.1,
+    0.061
+   ],
+   "tags": [
+    "electronics",
+    "lighting",
+    "shed",
+    "indoor",
+    "interrior",
+    "globe",
+    "light"
+   ],
+   "about": "Free 4K model: realistic LED bulb with frosted globe, plastic finned heatsink, metal Edison base and subtle dust and wear."
+  },
+  {
+   "id": "vintage_video_camera",
+   "name": "Vintage Video Camera",
+   "size": [
+    0.071,
+    0.145,
+    0.133
+   ],
+   "tags": [
+    "electronics",
+    "appliances",
+    "old",
+    "vintage",
+    "photography",
+    "film",
+    "cinematic",
+    "video",
+    "camera",
+    "recording"
+   ],
+   "about": "Free 8K model of a vintage World War II era film/video camera with worn metal and triple-lens turret."
+  },
+  {
+   "id": "vintage_grandfather_clock_01",
+   "name": "Vintage Grandfather Clock 01",
+   "size": [
+    0.997,
+    2.191,
+    0.795
+   ],
+   "tags": [
+    "decorative",
+    "appliances",
+    "rigged",
+    "vintage",
+    "antique",
+    "fancy",
+    "time",
+    "clock",
+    "old",
+    "wooden"
+   ],
+   "about": "Free 8K model - ornate vintage wooden grandfather clock with antique brass dial and moonphase, fully rigged for animation; ideal for decorat"
+  },
+  {
+   "id": "CashRegister_01",
+   "name": "Cash Register 01",
+   "size": [
+    0.6,
+    0.621,
+    0.624
+   ],
+   "tags": [
+    "appliances",
+    "props",
+    "commercial",
+    "store",
+    "vintage",
+    "cash",
+    "transaction",
+    "register",
+    "money",
+    "sales"
+   ],
+   "about": "Free 8K vintage cash register model with worn cream finish, metal base and open coin drawer, featuring detailed keys, levers, decals, scratc"
+  },
+  {
+   "id": "mantel_clock_01",
+   "name": "Mantel Clock 01",
+   "size": [
+    0.484,
+    0.161,
+    0.251
+   ],
+   "tags": [
+    "decorative",
+    "appliances",
+    "rigged",
+    "vintage",
+    "antique",
+    "old",
+    "clock",
+    "time",
+    "wooden",
+    "shelf"
+   ],
+   "about": "Free 8K mantel clock model - ornate vintage wooden shelf clock with carved floral details, brass bezel and aged face; decorative, rigged for"
+  },
+  {
+   "id": "wall_clock",
+   "name": "Wall Clock",
+   "size": [
+    0.32,
+    0.32,
+    0.047
+   ],
+   "tags": [
+    "decorative",
+    "appliances",
+    "time",
+    "timepiece",
+    "watch",
+    "watchface",
+    "wall clock",
+    "analog",
+    "modern",
+    "office decor"
+   ],
+   "about": "Free 4K model of a modern wall clock with a worn metal bezel, clear glass, bold numerals, gray hour/minute hands, and a slim red second hand"
+  },
+  {
+   "id": "portable_generator",
+   "name": "Portable Generator",
+   "size": [
+    0.818,
+    0.577,
+    0.564
+   ],
+   "tags": [
+    "industrial",
+    "appliances",
+    "gasoline",
+    "backup power",
+    "construction equipment",
+    "power generator",
+    "petrol",
+    "garage",
+    "power",
+    "engine"
+   ],
+   "about": "Free 8K model of a rugged yellow portable generator branding, tubular steel frame, crisp gauges, outlets and switches, exposed wiring, and w"
+  },
+  {
+   "id": "gaming_console",
+   "name": "Gaming Console",
+   "size": [
+    0.325,
+    0.1,
+    0.319
+   ],
+   "tags": [
+    "appliances",
+    "electronics",
+    "game",
+    "gaming",
+    "console",
+    "playstation",
+    "entertainment",
+    "video games",
+    "xbox"
+   ],
+   "about": "Matte black gaming console with curved shell, front disc slot, circular illuminated power button, multiple front ports and ventilation detai"
+  },
+  {
+   "id": "marble_bust_01",
+   "name": "Marble Bust 01",
+   "size": [
+    0.272,
+    0.515,
+    0.3
+   ],
+   "tags": [
+    "decorative",
+    "sculpt",
+    "sculpture",
+    "statue",
+    "art",
+    "sandstone",
+    "bust",
+    "marble",
+    "mansion",
+    "renaissance"
+   ],
+   "about": "Free 8K model: a marble Renaissance-style male bust with finely carved features, subtle surface veining, light weathering and a round plinth"
+  },
+  {
+   "id": "concrete_cat_statue",
+   "name": "Concrete Cat Statue",
+   "size": [
+    0.153,
+    0.283,
+    0.25
+   ],
+   "tags": [
+    "decorative",
+    "garden",
+    "outdoor",
+    "landscaping",
+    "gardening",
+    "statue",
+    "concrete",
+    "sculpture",
+    "cat",
+    "lawn decoration"
+   ],
+   "about": "Free 8K concrete cat statue with a weathered, moss-speckled surface, serene expression and soft, rounded forms in a classic seated sculptura"
+  },
+  {
+   "id": "fancy_picture_frame_01",
+   "name": "Fancy Picture Frame 01",
+   "size": [
+    0.603,
+    0.464,
+    0.02
+   ],
+   "tags": [
+    "decorative",
+    "wall decoration",
+    "art",
+    "vintage",
+    "old",
+    "dutch",
+    "painting",
+    "oil",
+    "antique",
+    "fancy"
+   ],
+   "about": "Free 8K model - ornate antique gilt picture frame with beaded and rope molding around a warm Dutch oil landscape of a mill, bridge, river an"
+  },
+  {
+   "id": "fancy_picture_frame_02",
+   "name": "Fancy Picture Frame 02",
+   "size": [
+    0.661,
+    0.771,
+    0.089
+   ],
+   "tags": [
+    "decorative",
+    "wall decoration",
+    "art",
+    "vintage",
+    "old",
+    "dutch",
+    "painting",
+    "oil",
+    "antique",
+    "fancy"
+   ],
+   "about": "Free 8K model: ornate antique gold gilt frame with carved rococo flourishes, worn patina and an inset Dutch oil painting of gabled canal hou"
+  },
+  {
+   "id": "hanging_picture_frame_02",
+   "name": "Hanging Picture Frame 02",
+   "size": [
+    0.752,
+    0.5,
+    0.033
+   ],
+   "tags": [
+    "decorative",
+    "wall decoration",
+    "wood",
+    "painting",
+    "old",
+    "art",
+    "frame"
+   ],
+   "about": "Free 8K model of a vintage wooden hanging picture frame with distressed white finish and faded painted artwork - perfect for decorative wall"
+  },
+  {
+   "id": "throw_pillows_01",
+   "name": "Throw Pillows 01",
+   "size": [
+    1.022,
+    0.45,
+    0.627
+   ],
+   "tags": [
+    "decorative",
+    "pillow",
+    "throw",
+    "pattern",
+    "african",
+    "red",
+    "triangle",
+    "orange"
+   ],
+   "about": "Free 4K model of two decorative throw pillows with bold African-inspired zigzag chevrons in red, orange and ochre on a textured woven fabric"
+  },
+  {
+   "id": "standing_picture_frame_01",
+   "name": "Standing Picture Frame 01",
+   "size": [
+    0.201,
+    0.25,
+    0.1
+   ],
+   "tags": [
+    "decorative",
+    "modern",
+    "minimalist",
+    "clean",
+    "frame",
+    "photo",
+    "simple",
+    "art"
+   ],
+   "about": "Free 8K model - modern standing picture frame with slim black wood frame and white mat; minimalist, clean decorative piece for photos and ar"
+  },
+  {
+   "id": "lion_head",
+   "name": "Lion Head",
+   "size": [
+    0.321,
+    0.436,
+    0.207
+   ],
+   "tags": [
+    "decorative",
+    "old",
+    "wooden",
+    "vintage",
+    "sculpture",
+    "ornament",
+    "wildlife",
+    "figurine",
+    "art",
+    "animal"
+   ],
+   "about": "Free 8K model of a vintage carved lion head sculpture with dramatic flowing mane, ornate wood-like texture, weathered patina and detailed sq"
+  },
+  {
+   "id": "standing_picture_frame_02",
+   "name": "Standing Picture Frame 02",
+   "size": [
+    0.217,
+    0.266,
+    0.102
+   ],
+   "tags": [
+    "decorative",
+    "wood",
+    "painting",
+    "old",
+    "art",
+    "frame",
+    "photo"
+   ],
+   "about": "Free 8K standing wooden picture frame model with whitewashed, gently worn moulding and classic bevel - ideal for vintage photos or paintings"
+  },
+  {
+   "id": "wicker_basket_01",
+   "name": "Wicker Basket 01",
+   "size": [
+    0.383,
+    0.117,
+    0.295
+   ],
+   "tags": [
+    "containers",
+    "decorative",
+    "wood",
+    "wicker",
+    "twine",
+    "basket",
+    "picnic",
+    "outdoor",
+    "kitchen",
+    "dining"
+   ],
+   "about": "Free 8K wicker basket model with hand-woven twine, dark weathered wood tones, tight rectangular weave, braided rim and realistic grain with "
+  },
+  {
+   "id": "metal_office_desk",
+   "name": "Metal Office Desk",
+   "size": [
+    2,
+    0.788,
+    0.947
+   ],
+   "tags": [
+    "furniture",
+    "table",
+    "office",
+    "old",
+    "vintage",
+    "metal",
+    "dirty",
+    "scratched",
+    "industrial",
+    "rectangular"
+   ],
+   "about": "Free 8k metal office desk model with worn grey finish, dual pedestal drawers, chrome handles and tapered legs - sturdy industrial mid-centur"
+  },
+  {
+   "id": "classic_laptop",
+   "name": "Classic Laptop",
+   "size": [
+    0.652,
+    0.543,
+    0.486
+   ],
+   "tags": [
+    "office",
+    "electronics",
+    "old",
+    "vintage",
+    "beige",
+    "notebook",
+    "lcd",
+    "trackball"
+   ],
+   "about": "Free 4K model of a retro beige laptop with DOS screen, chunky keycaps, built-in trackball, floppy slot, thick hinges, and period-correct det"
+  }
+ ],
+ "textures": [
+  {
+   "id": "plywood",
+   "name": "Plywood",
+   "tags": [
+    "wood",
+    "clean",
+    "man made",
+    "natural",
+    "raw wood",
+    "even",
+    "smooth",
+    "flat"
+   ],
+   "tileMetres": 0.5,
+   "rough": "rough"
+  },
+  {
+   "id": "laminate_floor_02",
+   "name": "Laminate Floor 02",
+   "tags": [
+    "floor",
+    "man made",
+    "indoor",
+    "clean",
+    "wood",
+    "even",
+    "flat",
+    "wooden"
+   ],
+   "tileMetres": 1.7,
+   "rough": "rough"
+  },
+  {
+   "id": "wood_table_001",
+   "name": "Wood Table 001",
+   "tags": [
+    "wood",
+    "clean",
+    "man made",
+    "table",
+    "varnished",
+    "stained",
+    "red",
+    "furniture"
+   ],
+   "tileMetres": 1.5,
+   "rough": "rough"
+  },
+  {
+   "id": "oak_veneer_01",
+   "name": "Oak Veneer 01",
+   "tags": [
+    "wood",
+    "raw wood",
+    "natural",
+    "veneer",
+    "oak",
+    "grain",
+    "wood grain",
+    "natural wood"
+   ],
+   "tileMetres": 1.83,
+   "rough": "rough"
+  },
+  {
+   "id": "concrete_floor_worn_001",
+   "name": "Concrete Floor Worn 001",
+   "tags": [
+    "floor",
+    "man made",
+    "indoor",
+    "dirty",
+    "concrete",
+    "plaster-concrete",
+    "worn",
+    "old"
+   ],
+   "tileMetres": 3,
+   "rough": "rough"
+  },
+  {
+   "id": "asphalt_02",
+   "name": "Asphalt 02",
+   "tags": [
+    "terrain",
+    "road",
+    "man made",
+    "outdoor",
+    "floor",
+    "asphalt",
+    "cracked",
+    "flat"
+   ],
+   "tileMetres": 3,
+   "rough": "rough"
+  },
+  {
+   "id": "marble_01",
+   "name": "Marble 01",
+   "tags": [
+    "floor",
+    "man made",
+    "indoor",
+    "clean",
+    "wall",
+    "marble",
+    "smooth",
+    "even"
+   ],
+   "tileMetres": 1.5,
+   "rough": "rough"
+  },
+  {
+   "id": "beige_wall_001",
+   "name": "Beige Wall 001",
+   "tags": [
+    "man made",
+    "wall",
+    "plaster",
+    "outdoor",
+    "indoor",
+    "plaster-concrete",
+    "beige",
+    "painted"
+   ],
+   "tileMetres": 3,
+   "rough": "rough"
+  },
+  {
+   "id": "cracked_concrete_wall",
+   "name": "Cracked Concrete Wall",
+   "tags": [
+    "outdoor",
+    "man made",
+    "wall",
+    "dirty",
+    "brick",
+    "plaster-concrete",
+    "plaster",
+    "rough"
+   ],
+   "tileMetres": 1,
+   "rough": "rough"
+  },
+  {
+   "id": "red_brick",
+   "name": "Red Brick",
+   "tags": [
+    "wall",
+    "brick",
+    "man made",
+    "bricks",
+    "red brick",
+    "brick wall",
+    "rough",
+    "exterior"
+   ],
+   "tileMetres": 1.4,
+   "rough": "rough"
+  },
+  {
+   "id": "red_brick_03",
+   "name": "Red Brick 03",
+   "tags": [
+    "outdoor",
+    "wall",
+    "clean",
+    "man made",
+    "brick",
+    "red",
+    "industrial",
+    "factory"
+   ],
+   "tileMetres": 1,
+   "rough": "rough"
+  },
+  {
+   "id": "medieval_blocks_03",
+   "name": "Medieval Blocks 03",
+   "tags": [
+    "wall",
+    "brick",
+    "man made",
+    "outdoor",
+    "indoor",
+    "clean",
+    "blocks",
+    "large"
+   ],
+   "tileMetres": 2,
+   "rough": "rough"
+  },
+  {
+   "id": "concrete_floor_02",
+   "name": "Concrete Floor 02",
+   "tags": [
+    "concrete",
+    "plaster-concrete",
+    "dirty",
+    "man made",
+    "outdoor",
+    "indoor",
+    "wall",
+    "floor"
+   ],
+   "tileMetres": 2,
+   "rough": "rough"
+  },
+  {
+   "id": "concrete_layers_02",
+   "name": "Concrete Layers 02",
+   "tags": [
+    "man made",
+    "concrete",
+    "plaster-concrete",
+    "worn",
+    "chipped",
+    "rough",
+    "weathered",
+    "cracked"
+   ],
+   "tileMetres": 2,
+   "rough": "rough"
+  },
+  {
+   "id": "metal_plate",
+   "name": "Metal Plate",
+   "tags": [
+    "metal",
+    "floor",
+    "man made",
+    "indoor",
+    "outdoor",
+    "dirty",
+    "bare",
+    "painted"
+   ],
+   "tileMetres": 0.5,
+   "rough": "rough"
+  },
+  {
+   "id": "green_metal_rust",
+   "name": "Green Metal Rust",
+   "tags": [
+    "metal",
+    "outdoor",
+    "indoor",
+    "man made",
+    "dirty",
+    "painted",
+    "ship",
+    "tank"
+   ],
+   "tileMetres": 1,
+   "rough": "rough"
+  },
+  {
+   "id": "rust_coarse_01",
+   "name": "Rust Coarse 01",
+   "tags": [
+    "metal",
+    "outdoor",
+    "man made",
+    "dirty",
+    "wall",
+    "coarse",
+    "rusty",
+    "rust"
+   ],
+   "tileMetres": 2.2,
+   "rough": "rough"
+  },
+  {
+   "id": "interior_tiles",
+   "name": "Interior Tiles",
+   "tags": [
+    "floor",
+    "man made",
+    "tiles",
+    "tiled",
+    "indoor flooring",
+    "grout lines",
+    "square tiles",
+    "ceramic"
+   ],
+   "tileMetres": 1.9,
+   "rough": "rough"
+  },
+  {
+   "id": "stone_embedded_tiles",
+   "name": "Stone Embedded Tiles",
+   "tags": [
+    "floor",
+    "man made",
+    "tiles",
+    "outdoor",
+    "embedded pebble",
+    "stone embedded",
+    "mixed stone",
+    "speckled "
+   ],
+   "tileMetres": 2,
+   "rough": "rough"
+  },
+  {
+   "id": "coast_sand_rocks_02",
+   "name": "Coast Sand Rocks 02",
+   "tags": [
+    "outdoor",
+    "natural",
+    "terrain",
+    "aerial",
+    "rock",
+    "collection: smugglers_cove",
+    "grass",
+    "rock face"
+   ],
+   "tileMetres": 15,
+   "rough": "rough"
+  },
+  {
+   "id": "brown_mud_leaves_01",
+   "name": "Brown Mud Leaves 01",
+   "tags": [
+    "terrain",
+    "natural",
+    "outdoor",
+    "grass",
+    "mud",
+    "moss",
+    "stones",
+    "orange"
+   ],
+   "tileMetres": 1.3,
+   "rough": "rough"
+  },
+  {
+   "id": "aerial_rocks_02",
+   "name": "Aerial Rocks 02",
+   "tags": [
+    "terrain",
+    "outdoor",
+    "natural",
+    "rock",
+    "aerial",
+    "rocks",
+    "rough",
+    "moss"
+   ],
+   "tileMetres": 50,
+   "rough": "rough"
+  },
+  {
+   "id": "aerial_grass_rock",
+   "name": "Aerial Grass Rock",
+   "tags": [
+    "terrain",
+    "rock",
+    "outdoor",
+    "natural",
+    "aerial",
+    "moss",
+    "grass",
+    "cliff"
+   ],
+   "tileMetres": 15,
+   "rough": "rough"
+  },
+  {
+   "id": "factory_wall",
+   "name": "Factory Wall",
+   "tags": [
+    "metal",
+    "outdoor",
+    "wall",
+    "clean",
+    "roofing",
+    "man made",
+    "fence",
+    "industrial"
+   ],
+   "tileMetres": 3,
+   "rough": "rough"
+  },
+  {
+   "id": "brown_leather",
+   "name": "Brown Leather",
+   "tags": [
+    "fabric",
+    "leather",
+    "brown",
+    "chair",
+    "seat",
+    "upholstery",
+    "vintage",
+    "matte"
+   ],
+   "tileMetres": 0.4,
+   "rough": "rough"
+  }
+ ]
+}

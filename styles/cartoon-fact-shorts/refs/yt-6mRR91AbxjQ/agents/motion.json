@@ -1,0 +1,100 @@
+{
+  "inputHash": "c03e6bee309a383e386ae9b7e08939d10d862824ab97fd8cfaca6e16b174bbc0",
+  "role": "motion",
+  "seconds": 43,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 3597,
+    "costUsdEstimate": 0.1906093
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "characters",
+        "observation": "The 6 bursts have no faces, eyes, mouths or limbs anywhere. The only things that 'act' are anatomy props: blade-like mouthparts, a skin surface, a blood vessel and a blood column. Every bit of acting is mechanical: a prop moves, changes material, changes colour or turns see-through.",
+        "rule": "In a macro explainer, make the moving object the actor and give it no face. Express each beat through what the object does (cuts, saws, glows, drains), not through emotion.",
+        "measured": "0 faces across 6 burst sheets and 1 consecutive-frame sheet",
+        "evidence": "M3, M5, M6, M10, M12, M16, S11 sheets",
+        "confidence": "high"
+      },
+      {
+        "area": "faces",
+        "observation": "There are no expressions, blinks or lip sync. The 'emotional' charge comes from the narration and the gore (red cut lines, blood), not from any face.",
+        "rule": "Skip face rigs entirely in this format. Put the drama budget into material and colour changes on the subject.",
+        "measured": "",
+        "evidence": "all sheets",
+        "confidence": "high"
+      },
+      {
+        "area": "gestures",
+        "observation": "Action beats are very short. The slice in M3: the cut line lengthens and widens from f223 to f224, then a second blade enters from the left over f225–228, about 6 frames in total. There is no anticipation pose and no overshoot. Motion is linear and mechanical, and the camera dive takes over at f229.",
+        "rule": "Animate one tool action in 4–6 frames at 30 fps with linear or ease-in motion. Use no anticipation and no overshoot. Hand off straight into a camera move instead of a settle.",
+        "measured": "M3 burst f223–228 = 6 frames; peak f228",
+        "evidence": "M3 sheet f219–231",
+        "confidence": "high"
+      },
+      {
+        "area": "gestures",
+        "observation": "Sawing is shown as small alternating vertical moves. From about f360, one blade drops while the other stays put or rises. The tip moves only about 3–5% of frame height over 3–4 frames. It starts about 12 frames before the word 'sawing' (f372).",
+        "rule": "For a repeated action (saw, pump, pulse), alternate two parts in opposite phase. Use small strokes of 3–5% of frame height, each lasting 3–4 frames. Start the loop 10–12 frames before the verb that names it.",
+        "measured": "motion visible f360–366; 'sawing'@f372",
+        "evidence": "M6 sheet f359–366",
+        "confidence": "medium"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "A simile becomes a material swap. On 'like a saw', the smooth gold blades cross-dissolve into silver serrated saw blades with bigger teeth over 3 frames (f334–336), starting 1 frame before >like (f335). The saw look holds still for 19 frames (f337–355). It then dissolves back to gold over 3 frames (f356–358), 6 frames after >saw, (f350).",
+        "rule": "Picture a comparison by morphing the subject's material into the compared object. Use a 3-frame dissolve that starts 0–2 frames before the comparison word. Hold the swapped look for about 15–20 frames, then dissolve back over 3 frames once the noun has been spoken.",
+        "measured": "dissolve f334–336 (3 f), >like f335 (lead 1 f); hold f337–355; back f356–358, 6 f after >saw, f350",
+        "evidence": "M5, M6 sheets",
+        "confidence": "high"
+      },
+      {
+        "area": "colour",
+        "observation": "Emphasis is shown by a colour shift. After 'burst' (f481), the blood column switches from dark red to a glowing orange-yellow over 3 frames (f494–496). The switch lines up with >and (f494), 13 frames after the key word, and then holds. Meanwhile the column creeps upward a few pixels per frame (f496–501).",
+        "rule": "Mark a consequence by tinting the subject to a hot emissive colour over 3 frames. Land it 0–15 frames after the key word, then hold the glow while the subject keeps creeping slowly.",
+        "measured": "M10 f494–496 (3 f); burst@f481; >and f494",
+        "evidence": "M10 sheet f490–504",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "An x-ray cutaway shows the hidden mechanism. On 'spongy tip … laps', the outer blood pool drains over f778–780. At f781 the casing turns translucent, showing a blood column inside the tube, and from f783 (>laps) the column rises. The switch starts 5 frames before >laps.",
+        "rule": "When the narration names an internal process, cut the outer surface away or make it translucent in 2–3 frames, 3–5 frames before the verb. Then show the inside moving on the verb.",
+        "measured": "drain f778–780 (3 f), reveal f781, >laps f783",
+        "evidence": "M16 sheet f774–788",
+        "confidence": "high"
+      },
+      {
+        "area": "acting",
+        "observation": "Between actions everything freezes. The tools measured 0.008 px/frame of leftover motion while the camera holds, and blades and blood sit still for 4–20 frames between bursts. All the life on screen comes from the camera, which pushes, tilts and whips almost constantly (most shots are 96–100% moving). M12 (f519–522) and the dive at M3 f229+ are camera moves, not acting.",
+        "rule": "Keep props completely still between beats, with no idle drift or breathing. Let a constantly moving camera carry continuity, and give the subject only 3–6 frame action bursts tied to verbs.",
+        "measured": "hold stillness 0.008 px/frame; bursts 3–6 frames; holds 4–20 frames on sheets",
+        "evidence": "M5 f337–355, M10 f497–504, M12, S11 sheets",
+        "confidence": "high"
+      },
+      {
+        "area": "gestures",
+        "observation": "Each action lands close to its verb. The slice starts 2 frames before >slice. The saw morph starts 1 frame before >like. The x-ray reveal starts 5 frames before >laps. Only the follow-up beats (the glow after 'burst', the swap back after 'saw') come after their word, by 6–13 frames.",
+        "rule": "Lead each illustrative action by 1–5 frames before its word's first frame. Place any return or aftermath beat 6–13 frames after the word.",
+        "measured": "leads: 2, 1, 5 frames; lags: 6, 13 frames",
+        "evidence": "M3, M5, M6, M10, M16",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "horsefly bite",
+      "six needle-like mouthparts",
+      "blades slicing skin like scissors",
+      "serrated saw-like blades",
+      "blood vessels bursting",
+      "hollow blade pumping spit",
+      "anticoagulant keeps blood flowing",
+      "spongy tip lapping blood",
+      "Zack D. Films",
+      "captions: 'so they slice you', 'have tiny teeth', 'like a saw', 'until they burst', 'and you start', 'to bleed', 'as its spongy tip', 'laps it up', 'open like scissors'",
+      "skin with dark hairs, pink dermis, red vessel layer, blue sky"
+    ],
+    "notes": "The video has no characters or faces, so the face, blink and lip-sync analysis does not apply. M12 and the second half of M3 (from f229) are camera tilts and dives, not object acting. S11 is a pure camera zoom. For 'like', the burst table gives f336 but the sheet marks >like at f335; I used the sheet. The sawing stroke size is an estimate by eye."
+  }
+}

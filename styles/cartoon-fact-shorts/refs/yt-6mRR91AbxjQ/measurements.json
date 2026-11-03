@@ -1,0 +1,1328 @@
+{
+  "tool": "learn/measure v1",
+  "ref": {
+    "id": "yt-6mRR91AbxjQ",
+    "source": "https://www.youtube.com/shorts/6mRR91AbxjQ",
+    "title": "How Horseflies Bite You 😨",
+    "channel": "Zack D. Films",
+    "url": "https://www.youtube.com/watch?v=6mRR91AbxjQ",
+    "uploadDate": "20261030",
+    "views": 15482083,
+    "description": "",
+    "width": 1080,
+    "height": 1920,
+    "fps": 29.97002997002997,
+    "duration": 27.608526
+  },
+  "video": {
+    "fps": 29.97002997002997,
+    "frames": 826,
+    "duration": 27.561,
+    "width": 1080,
+    "height": 1920,
+    "transitions": [
+      {
+        "start": 22,
+        "end": 27,
+        "at": 28,
+        "kind": "zoom",
+        "speedIn": 1.911,
+        "speedOut": 9.019,
+        "direction": "out",
+        "directionOut": "right"
+      },
+      {
+        "start": 45,
+        "end": 46,
+        "at": 45,
+        "kind": "cut",
+        "speedIn": 7.327,
+        "speedOut": 8.776,
+        "direction": "left",
+        "directionOut": "in"
+      },
+      {
+        "start": 70,
+        "end": 72,
+        "at": 73,
+        "kind": "whip",
+        "speedIn": 1.125,
+        "speedOut": 0.937,
+        "direction": "left",
+        "directionOut": "left"
+      },
+      {
+        "start": 80,
+        "end": 81,
+        "at": 81,
+        "kind": "cut",
+        "speedIn": 0.772,
+        "speedOut": 0.375,
+        "direction": "left"
+      },
+      {
+        "start": 89,
+        "end": 91,
+        "at": 92,
+        "kind": "blur",
+        "speedIn": 0.262,
+        "speedOut": 0.159
+      },
+      {
+        "start": 98,
+        "end": 99,
+        "at": 98,
+        "kind": "cut",
+        "speedIn": 0.216,
+        "speedOut": 0.448
+      },
+      {
+        "start": 107,
+        "end": 109,
+        "at": 110,
+        "kind": "blur",
+        "speedIn": 0.517,
+        "speedOut": 0.92
+      },
+      {
+        "start": 116,
+        "end": 119,
+        "at": 120,
+        "kind": "whip",
+        "speedIn": 0.452,
+        "speedOut": 3.17,
+        "direction": "left",
+        "directionOut": "in"
+      },
+      {
+        "start": 230,
+        "end": 231,
+        "at": 231,
+        "kind": "cut",
+        "speedIn": null,
+        "speedOut": 21.902,
+        "directionOut": "in"
+      },
+      {
+        "start": 263,
+        "end": 264,
+        "at": 264,
+        "kind": "cut",
+        "speedIn": 1.387,
+        "speedOut": 2.272,
+        "direction": "right",
+        "directionOut": "in"
+      },
+      {
+        "start": 275,
+        "end": 281,
+        "at": 282,
+        "kind": "zoom",
+        "speedIn": 5.266,
+        "speedOut": 3.541,
+        "direction": "in",
+        "directionOut": "up"
+      },
+      {
+        "start": 427,
+        "end": 427,
+        "at": 427,
+        "kind": "cut",
+        "speedIn": 0.36,
+        "speedOut": 0.326
+      },
+      {
+        "start": 524,
+        "end": 525,
+        "at": 525,
+        "kind": "cut",
+        "speedIn": 4.983,
+        "speedOut": 11.524,
+        "direction": "up",
+        "directionOut": "left"
+      },
+      {
+        "start": 595,
+        "end": 603,
+        "at": 604,
+        "kind": "whip",
+        "speedIn": 7.775,
+        "speedOut": 0.003,
+        "direction": "down"
+      },
+      {
+        "start": 729,
+        "end": 733,
+        "at": 734,
+        "kind": "zoom",
+        "speedIn": 1.326,
+        "speedOut": 12.408,
+        "direction": "in",
+        "directionOut": "up"
+      },
+      {
+        "start": 781,
+        "end": 787,
+        "at": 788,
+        "kind": "whip",
+        "speedIn": 0.581,
+        "speedOut": 0.093,
+        "direction": "up"
+      },
+      {
+        "start": 800,
+        "end": 804,
+        "at": 805,
+        "kind": "blur",
+        "speedIn": 0.919,
+        "speedOut": null
+      }
+    ],
+    "shots": [
+      {
+        "index": 1,
+        "start": 0,
+        "end": 27,
+        "duration": 0.934,
+        "camera": {
+          "measured": 0.11,
+          "zoomTotal": -1.1,
+          "panTotalX": -0.86,
+          "panTotalY": 0.13,
+          "zoomRate": 39.3,
+          "panRate": 13.44,
+          "speedStart": 50.88,
+          "speedMid": 52.74,
+          "speedEnd": 50.88,
+          "moving": 1,
+          "shake": 0,
+          "profile": "unknown",
+          "dominant": "mixed"
+        },
+        "activity": 0.2385
+      },
+      {
+        "index": 2,
+        "start": 28,
+        "end": 44,
+        "duration": 0.567,
+        "camera": {
+          "measured": 1,
+          "zoomTotal": -5.4,
+          "panTotalX": 10.48,
+          "panTotalY": 0.51,
+          "zoomRate": 1.32,
+          "panRate": 9.51,
+          "speedStart": 304.6,
+          "speedMid": 10.83,
+          "speedEnd": 292.45,
+          "moving": 0.88,
+          "shake": 0.529,
+          "profile": "fast_in_fast_out",
+          "dominant": "pan_right"
+        },
+        "activity": 0.1487
+      },
+      {
+        "index": 3,
+        "start": 45,
+        "end": 72,
+        "duration": 0.934,
+        "camera": {
+          "measured": 0.43,
+          "zoomTotal": 44.1,
+          "panTotalX": -13,
+          "panTotalY": -1.17,
+          "zoomRate": 10.53,
+          "panRate": 38.63,
+          "speedStart": 99.8,
+          "speedMid": 51.22,
+          "speedEnd": 30.48,
+          "moving": 1,
+          "shake": 5.0392,
+          "profile": "steady_move",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.3021
+      },
+      {
+        "index": 4,
+        "start": 73,
+        "end": 80,
+        "duration": 0.267,
+        "camera": {
+          "measured": 0.88,
+          "zoomTotal": 1.3,
+          "panTotalX": -3.83,
+          "panTotalY": 0.08,
+          "zoomRate": 3.13,
+          "panRate": 23.14,
+          "speedStart": 28.39,
+          "speedMid": 25.37,
+          "speedEnd": 21.79,
+          "moving": 1,
+          "shake": 0.196,
+          "profile": "steady_move",
+          "dominant": "pan_left"
+        },
+        "activity": 0.2107
+      },
+      {
+        "index": 5,
+        "start": 81,
+        "end": 91,
+        "duration": 0.367,
+        "camera": {
+          "measured": 0.55,
+          "zoomTotal": 0.3,
+          "panTotalX": -0.73,
+          "panTotalY": 0.01,
+          "zoomRate": 0.64,
+          "panRate": 6.13,
+          "speedStart": 12.99,
+          "speedMid": 7.04,
+          "speedEnd": 8.22,
+          "moving": 1,
+          "shake": 0.0294,
+          "profile": "creep",
+          "dominant": "still"
+        },
+        "activity": 0.2426
+      },
+      {
+        "index": 6,
+        "start": 92,
+        "end": 97,
+        "duration": 0.2,
+        "camera": {
+          "measured": 1,
+          "zoomTotal": 0.2,
+          "panTotalX": -0.19,
+          "panTotalY": 0.07,
+          "zoomRate": 0.89,
+          "panRate": 3.61,
+          "speedStart": 4.98,
+          "speedMid": 4.84,
+          "speedEnd": 7.13,
+          "moving": 1,
+          "shake": 0.0705,
+          "profile": "creep",
+          "dominant": "still"
+        },
+        "activity": 0.1868
+      },
+      {
+        "index": 7,
+        "start": 98,
+        "end": 109,
+        "duration": 0.4,
+        "camera": {
+          "measured": 0.58,
+          "zoomTotal": 0,
+          "panTotalX": 0.93,
+          "panTotalY": 0.51,
+          "zoomRate": 2.06,
+          "panRate": 5.4,
+          "speedStart": 15.42,
+          "speedMid": 7.92,
+          "speedEnd": 18.19,
+          "moving": 1,
+          "shake": 0.2164,
+          "profile": "creep",
+          "dominant": "still"
+        },
+        "activity": 0.2782
+      },
+      {
+        "index": 8,
+        "start": 110,
+        "end": 119,
+        "duration": 0.334,
+        "camera": {
+          "measured": 0.6,
+          "zoomTotal": -1,
+          "panTotalX": -1.04,
+          "panTotalY": 0.02,
+          "zoomRate": 2.12,
+          "panRate": 12.53,
+          "speedStart": 31.82,
+          "speedMid": 14.48,
+          "speedEnd": 13.14,
+          "moving": 1,
+          "shake": 0.0316,
+          "profile": "steady_move",
+          "dominant": "mixed"
+        },
+        "activity": 0.3134
+      },
+      {
+        "index": 9,
+        "start": 120,
+        "end": 230,
+        "duration": 3.704,
+        "camera": {
+          "measured": 0.85,
+          "zoomTotal": 172.2,
+          "panTotalX": 16.85,
+          "panTotalY": -31.11,
+          "zoomRate": 19.96,
+          "panRate": 6.81,
+          "speedStart": 85.58,
+          "speedMid": 25.69,
+          "speedEnd": 30.76,
+          "moving": 0.96,
+          "shake": 0.3694,
+          "profile": "arrives_moving",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.1124
+      },
+      {
+        "index": 10,
+        "start": 231,
+        "end": 263,
+        "duration": 1.101,
+        "camera": {
+          "measured": 0.79,
+          "zoomTotal": 17.4,
+          "panTotalX": 18.29,
+          "panTotalY": -20.89,
+          "zoomRate": 6.57,
+          "panRate": 26.61,
+          "speedStart": 303.9,
+          "speedMid": 34.2,
+          "speedEnd": 41.6,
+          "moving": 1,
+          "shake": 0.8543,
+          "profile": "arrives_moving",
+          "dominant": "mixed"
+        },
+        "activity": 0.4301
+      },
+      {
+        "index": 11,
+        "start": 264,
+        "end": 281,
+        "duration": 0.601,
+        "camera": {
+          "measured": 0.56,
+          "zoomTotal": 23.3,
+          "panTotalX": 9.17,
+          "panTotalY": 11.41,
+          "zoomRate": 65.17,
+          "panRate": 51.1,
+          "speedStart": 62.09,
+          "speedMid": 116.27,
+          "speedEnd": 168.76,
+          "moving": 1,
+          "shake": 0.1128,
+          "profile": "steady_move",
+          "dominant": "zoom_in"
+        },
+        "activity": 0.2453
+      },
+      {
+        "index": 12,
+        "start": 282,
+        "end": 426,
+        "duration": 4.838,
+        "camera": {
+          "measured": 0.99,
+          "zoomTotal": 129.1,
+          "panTotalX": -5.82,
+          "panTotalY": -132.39,
+          "zoomRate": 17,
+          "panRate": 8.08,
+          "speedStart": 102.04,
+          "speedMid": 26.14,
+          "speedEnd": 10.08,
+          "moving": 0.99,
+          "shake": 0.1508,
+          "profile": "arrives_moving",
+          "dominant": "mixed"
+        },
+        "activity": 0.1875
+      },
+      {
+        "index": 13,
+        "start": 427,
+        "end": 524,
+        "duration": 3.27,
+        "camera": {
+          "measured": 0.98,
+          "zoomTotal": -51.6,
+          "panTotalX": -4.2,
+          "panTotalY": 123.45,
+          "zoomRate": 22.87,
+          "panRate": 22.61,
+          "speedStart": 9.8,
+          "speedMid": 64.68,
+          "speedEnd": 158.54,
+          "moving": 1,
+          "shake": 0.0864,
+          "profile": "steady_move",
+          "dominant": "tilt_up"
+        },
+        "activity": 0.1331
+      },
+      {
+        "index": 14,
+        "start": 525,
+        "end": 603,
+        "duration": 2.636,
+        "camera": {
+          "measured": 0.85,
+          "zoomTotal": -12.9,
+          "panTotalX": -149.24,
+          "panTotalY": 5.11,
+          "zoomRate": 8.44,
+          "panRate": 59.65,
+          "speedStart": 329.01,
+          "speedMid": 66.6,
+          "speedEnd": 259.82,
+          "moving": 1,
+          "shake": 0.9085,
+          "profile": "fast_in_fast_out",
+          "dominant": "pan_left"
+        },
+        "activity": 0.2158
+      },
+      {
+        "index": 15,
+        "start": 604,
+        "end": 733,
+        "duration": 4.338,
+        "camera": {
+          "measured": 0.96,
+          "zoomTotal": 4.4,
+          "panTotalX": 0.43,
+          "panTotalY": 1.85,
+          "zoomRate": 0.07,
+          "panRate": 0.03,
+          "speedStart": 0.1,
+          "speedMid": 0.1,
+          "speedEnd": 52.99,
+          "moving": 0.34,
+          "shake": 0.5077,
+          "profile": "accelerates_out",
+          "dominant": "still"
+        },
+        "activity": 0.0439
+      },
+      {
+        "index": 16,
+        "start": 734,
+        "end": 787,
+        "duration": 1.802,
+        "camera": {
+          "measured": 0.48,
+          "zoomTotal": 10.7,
+          "panTotalX": 14.38,
+          "panTotalY": -4.02,
+          "zoomRate": 10.65,
+          "panRate": 35.78,
+          "speedStart": 371.86,
+          "speedMid": 59.73,
+          "speedEnd": 21.58,
+          "moving": 0.96,
+          "shake": 1.131,
+          "profile": "arrives_moving",
+          "dominant": "mixed"
+        },
+        "activity": 0.2481
+      },
+      {
+        "index": 17,
+        "start": 788,
+        "end": 804,
+        "duration": 0.567,
+        "camera": {
+          "measured": 0.65,
+          "zoomTotal": -0.5,
+          "panTotalX": 1.33,
+          "panTotalY": 0.12,
+          "zoomRate": 6.26,
+          "panRate": 10.52,
+          "speedStart": 2.71,
+          "speedMid": 19.13,
+          "speedEnd": 25.59,
+          "moving": 1,
+          "shake": 0.2669,
+          "profile": "steady_move",
+          "dominant": "pan_right"
+        },
+        "activity": 0.4782
+      },
+      {
+        "index": 18,
+        "start": 805,
+        "end": 825,
+        "duration": 0.701,
+        "camera": {
+          "measured": 0.71,
+          "zoomTotal": -14.7,
+          "panTotalX": -0.2,
+          "panTotalY": 0.21,
+          "zoomRate": 3.02,
+          "panRate": 0.32,
+          "speedStart": 148.01,
+          "speedMid": 3.35,
+          "speedEnd": 0.19,
+          "moving": 0.47,
+          "shake": 0.3024,
+          "profile": "arrives_moving",
+          "dominant": "zoom_out"
+        },
+        "activity": 0.0756
+      }
+    ],
+    "events": [
+      {
+        "shot": 9,
+        "onset": 142,
+        "peak": 143,
+        "end": 144,
+        "frames": 3,
+        "strength": 0.0366
+      },
+      {
+        "shot": 9,
+        "onset": 170,
+        "peak": 170,
+        "end": 171,
+        "frames": 2,
+        "strength": 0.0278
+      },
+      {
+        "shot": 9,
+        "onset": 223,
+        "peak": 228,
+        "end": 228,
+        "frames": 6,
+        "strength": 0.1249
+      },
+      {
+        "shot": 12,
+        "onset": 288,
+        "peak": 289,
+        "end": 291,
+        "frames": 4,
+        "strength": 0.0717
+      },
+      {
+        "shot": 12,
+        "onset": 334,
+        "peak": 335,
+        "end": 336,
+        "frames": 3,
+        "strength": 0.0948
+      },
+      {
+        "shot": 12,
+        "onset": 356,
+        "peak": 356,
+        "end": 358,
+        "frames": 3,
+        "strength": 0.1072
+      },
+      {
+        "shot": 12,
+        "onset": 403,
+        "peak": 404,
+        "end": 406,
+        "frames": 4,
+        "strength": 0.0869
+      },
+      {
+        "shot": 13,
+        "onset": 430,
+        "peak": 432,
+        "end": 435,
+        "frames": 6,
+        "strength": 0.0259
+      },
+      {
+        "shot": 13,
+        "onset": 474,
+        "peak": 476,
+        "end": 478,
+        "frames": 5,
+        "strength": 0.0335
+      },
+      {
+        "shot": 13,
+        "onset": 494,
+        "peak": 496,
+        "end": 496,
+        "frames": 3,
+        "strength": 0.127
+      },
+      {
+        "shot": 13,
+        "onset": 509,
+        "peak": 511,
+        "end": 512,
+        "frames": 4,
+        "strength": 0.0265
+      },
+      {
+        "shot": 13,
+        "onset": 519,
+        "peak": 522,
+        "end": 522,
+        "frames": 4,
+        "strength": 0.1217
+      },
+      {
+        "shot": 14,
+        "onset": 547,
+        "peak": 550,
+        "end": 551,
+        "frames": 5,
+        "strength": 0.0654
+      },
+      {
+        "shot": 15,
+        "onset": 671,
+        "peak": 677,
+        "end": 677,
+        "frames": 7,
+        "strength": 0.0885
+      },
+      {
+        "shot": 15,
+        "onset": 725,
+        "peak": 727,
+        "end": 728,
+        "frames": 4,
+        "strength": 0.0684
+      },
+      {
+        "shot": 16,
+        "onset": 778,
+        "peak": 780,
+        "end": 780,
+        "frames": 3,
+        "strength": 0.3978
+      }
+    ],
+    "holdStillness": 0.008,
+    "loop": {
+      "histCorrel": 0.7380762165393057,
+      "meanDiff": 33.25607681274414
+    }
+  },
+  "speech": {
+    "language": "en",
+    "words": 80,
+    "wpm": 174.2,
+    "articulationWpm": 196.4,
+    "speechRatio": 0.887,
+    "pauses": {
+      "sentence": {
+        "median": 0.33,
+        "p10": 0.322,
+        "p90": 0.338,
+        "n": 2
+      },
+      "clause": {
+        "median": 0.36,
+        "p10": 0.21,
+        "p90": 0.4,
+        "n": 6
+      },
+      "word": {
+        "median": 0,
+        "p10": 0,
+        "p90": 0,
+        "n": 71
+      }
+    },
+    "sentences": [
+      {
+        "text": "When a horsefly bites you, it presses six needle -like tools against your skin.",
+        "start": 0,
+        "end": 5.12,
+        "words": 14
+      },
+      {
+        "text": "Two of them have sharp edges, so they slice you open like scissors, while two more have tiny teeth like a saw, sawing up and down to tear open your blood vessels until they burst and you start to bleed.",
+        "start": 5.46,
+        "end": 17.86,
+        "words": 40
+      },
+      {
+        "text": "Next, a hollow blade pumps in spit, which stops the cut from sealing so the blood keeps flowing out as its spongy tip laps it up.",
+        "start": 18.18,
+        "end": 27.04,
+        "words": 26
+      }
+    ],
+    "clauseStarts": [
+      0,
+      1.82,
+      5.46,
+      7.28,
+      9.5,
+      12.42,
+      18.18,
+      18.64,
+      20.68
+    ],
+    "pitch": {
+      "medianHz": 176.2,
+      "rangeSemitones": 16.8
+    },
+    "levels": {
+      "speechDb": -14.6,
+      "gapDb": -29.3,
+      "voiceOverBed": 14.7,
+      "bed": "music"
+    },
+    "loudness": {
+      "integrated": -10.5,
+      "range": 2.3,
+      "truePeak": 1
+    }
+  },
+  "words": [
+    {
+      "w": "When",
+      "start": 0,
+      "end": 0.22,
+      "p": 0.965
+    },
+    {
+      "w": "a",
+      "start": 0.22,
+      "end": 0.34,
+      "p": 0.993
+    },
+    {
+      "w": "horsefly",
+      "start": 0.34,
+      "end": 0.9,
+      "p": 0.664
+    },
+    {
+      "w": "bites",
+      "start": 0.9,
+      "end": 1.26,
+      "p": 0.996
+    },
+    {
+      "w": "you,",
+      "start": 1.26,
+      "end": 1.6,
+      "p": 0.997
+    },
+    {
+      "w": "it",
+      "start": 1.82,
+      "end": 1.92,
+      "p": 0.994
+    },
+    {
+      "w": "presses",
+      "start": 1.92,
+      "end": 2.2,
+      "p": 0.986
+    },
+    {
+      "w": "six",
+      "start": 2.2,
+      "end": 2.68,
+      "p": 0.872
+    },
+    {
+      "w": "needle",
+      "start": 2.68,
+      "end": 3.2,
+      "p": 0.983
+    },
+    {
+      "w": "-like",
+      "start": 3.2,
+      "end": 3.54,
+      "p": 0.966
+    },
+    {
+      "w": "tools",
+      "start": 3.54,
+      "end": 4.04,
+      "p": 0.994
+    },
+    {
+      "w": "against",
+      "start": 4.04,
+      "end": 4.4,
+      "p": 0.997
+    },
+    {
+      "w": "your",
+      "start": 4.4,
+      "end": 4.7,
+      "p": 0.998
+    },
+    {
+      "w": "skin.",
+      "start": 4.7,
+      "end": 5.12,
+      "p": 0.999
+    },
+    {
+      "w": "Two",
+      "start": 5.46,
+      "end": 5.6,
+      "p": 0.985
+    },
+    {
+      "w": "of",
+      "start": 5.6,
+      "end": 5.76,
+      "p": 0.996
+    },
+    {
+      "w": "them",
+      "start": 5.76,
+      "end": 5.96,
+      "p": 0.998
+    },
+    {
+      "w": "have",
+      "start": 5.96,
+      "end": 6.16,
+      "p": 0.997
+    },
+    {
+      "w": "sharp",
+      "start": 6.16,
+      "end": 6.46,
+      "p": 0.999
+    },
+    {
+      "w": "edges,",
+      "start": 6.46,
+      "end": 6.9,
+      "p": 0.996
+    },
+    {
+      "w": "so",
+      "start": 7.28,
+      "end": 7.38,
+      "p": 0.996
+    },
+    {
+      "w": "they",
+      "start": 7.38,
+      "end": 7.52,
+      "p": 0.995
+    },
+    {
+      "w": "slice",
+      "start": 7.52,
+      "end": 7.88,
+      "p": 0.978
+    },
+    {
+      "w": "you",
+      "start": 7.88,
+      "end": 8.18,
+      "p": 0.994
+    },
+    {
+      "w": "open",
+      "start": 8.18,
+      "end": 8.44,
+      "p": 0.996
+    },
+    {
+      "w": "like",
+      "start": 8.44,
+      "end": 8.68,
+      "p": 0.996
+    },
+    {
+      "w": "scissors,",
+      "start": 8.68,
+      "end": 9.1,
+      "p": 0.997
+    },
+    {
+      "w": "while",
+      "start": 9.5,
+      "end": 9.66,
+      "p": 0.994
+    },
+    {
+      "w": "two",
+      "start": 9.66,
+      "end": 9.84,
+      "p": 0.988
+    },
+    {
+      "w": "more",
+      "start": 9.84,
+      "end": 10.14,
+      "p": 0.998
+    },
+    {
+      "w": "have",
+      "start": 10.14,
+      "end": 10.42,
+      "p": 0.999
+    },
+    {
+      "w": "tiny",
+      "start": 10.42,
+      "end": 10.78,
+      "p": 0.979
+    },
+    {
+      "w": "teeth",
+      "start": 10.78,
+      "end": 11.2,
+      "p": 1
+    },
+    {
+      "w": "like",
+      "start": 11.2,
+      "end": 11.56,
+      "p": 0.977
+    },
+    {
+      "w": "a",
+      "start": 11.56,
+      "end": 11.68,
+      "p": 0.978
+    },
+    {
+      "w": "saw,",
+      "start": 11.68,
+      "end": 12.08,
+      "p": 0.996
+    },
+    {
+      "w": "sawing",
+      "start": 12.42,
+      "end": 12.78,
+      "p": 0.995
+    },
+    {
+      "w": "up",
+      "start": 12.78,
+      "end": 13,
+      "p": 0.996
+    },
+    {
+      "w": "and",
+      "start": 13,
+      "end": 13.18,
+      "p": 0.992
+    },
+    {
+      "w": "down",
+      "start": 13.18,
+      "end": 13.56,
+      "p": 0.999
+    },
+    {
+      "w": "to",
+      "start": 13.56,
+      "end": 13.86,
+      "p": 0.994
+    },
+    {
+      "w": "tear",
+      "start": 13.86,
+      "end": 14.14,
+      "p": 0.999
+    },
+    {
+      "w": "open",
+      "start": 14.14,
+      "end": 14.44,
+      "p": 0.991
+    },
+    {
+      "w": "your",
+      "start": 14.44,
+      "end": 14.6,
+      "p": 0.996
+    },
+    {
+      "w": "blood",
+      "start": 14.6,
+      "end": 14.84,
+      "p": 0.998
+    },
+    {
+      "w": "vessels",
+      "start": 14.84,
+      "end": 15.34,
+      "p": 0.999
+    },
+    {
+      "w": "until",
+      "start": 15.34,
+      "end": 15.82,
+      "p": 0.976
+    },
+    {
+      "w": "they",
+      "start": 15.82,
+      "end": 16.06,
+      "p": 0.995
+    },
+    {
+      "w": "burst",
+      "start": 16.06,
+      "end": 16.5,
+      "p": 0.999
+    },
+    {
+      "w": "and",
+      "start": 16.5,
+      "end": 16.9,
+      "p": 0.943
+    },
+    {
+      "w": "you",
+      "start": 16.9,
+      "end": 17.04,
+      "p": 0.969
+    },
+    {
+      "w": "start",
+      "start": 17.04,
+      "end": 17.3,
+      "p": 0.993
+    },
+    {
+      "w": "to",
+      "start": 17.3,
+      "end": 17.52,
+      "p": 0.998
+    },
+    {
+      "w": "bleed.",
+      "start": 17.52,
+      "end": 17.86,
+      "p": 1
+    },
+    {
+      "w": "Next,",
+      "start": 18.18,
+      "end": 18.44,
+      "p": 0.994
+    },
+    {
+      "w": "a",
+      "start": 18.64,
+      "end": 18.7,
+      "p": 0.963
+    },
+    {
+      "w": "hollow",
+      "start": 18.7,
+      "end": 18.92,
+      "p": 0.919
+    },
+    {
+      "w": "blade",
+      "start": 18.92,
+      "end": 19.28,
+      "p": 0.746
+    },
+    {
+      "w": "pumps",
+      "start": 19.28,
+      "end": 19.64,
+      "p": 0.987
+    },
+    {
+      "w": "in",
+      "start": 19.64,
+      "end": 19.88,
+      "p": 0.923
+    },
+    {
+      "w": "spit,",
+      "start": 19.88,
+      "end": 20.28,
+      "p": 0.986
+    },
+    {
+      "w": "which",
+      "start": 20.68,
+      "end": 20.84,
+      "p": 0.998
+    },
+    {
+      "w": "stops",
+      "start": 20.84,
+      "end": 21.24,
+      "p": 0.998
+    },
+    {
+      "w": "the",
+      "start": 21.24,
+      "end": 21.48,
+      "p": 0.998
+    },
+    {
+      "w": "cut",
+      "start": 21.48,
+      "end": 21.7,
+      "p": 0.998
+    },
+    {
+      "w": "from",
+      "start": 21.7,
+      "end": 21.9,
+      "p": 0.999
+    },
+    {
+      "w": "sealing",
+      "start": 21.9,
+      "end": 22.36,
+      "p": 0.948
+    },
+    {
+      "w": "so",
+      "start": 22.36,
+      "end": 22.86,
+      "p": 0.765
+    },
+    {
+      "w": "the",
+      "start": 22.86,
+      "end": 23,
+      "p": 0.953
+    },
+    {
+      "w": "blood",
+      "start": 23,
+      "end": 23.26,
+      "p": 0.999
+    },
+    {
+      "w": "keeps",
+      "start": 23.26,
+      "end": 23.7,
+      "p": 0.998
+    },
+    {
+      "w": "flowing",
+      "start": 23.7,
+      "end": 24.1,
+      "p": 0.831
+    },
+    {
+      "w": "out",
+      "start": 24.1,
+      "end": 24.54,
+      "p": 0.99
+    },
+    {
+      "w": "as",
+      "start": 24.54,
+      "end": 25.08,
+      "p": 0.774
+    },
+    {
+      "w": "its",
+      "start": 25.08,
+      "end": 25.22,
+      "p": 0.888
+    },
+    {
+      "w": "spongy",
+      "start": 25.22,
+      "end": 25.84,
+      "p": 0.955
+    },
+    {
+      "w": "tip",
+      "start": 25.84,
+      "end": 26.14,
+      "p": 0.996
+    },
+    {
+      "w": "laps",
+      "start": 26.14,
+      "end": 26.6,
+      "p": 0.724
+    },
+    {
+      "w": "it",
+      "start": 26.6,
+      "end": 26.88,
+      "p": 0.853
+    },
+    {
+      "w": "up.",
+      "start": 26.88,
+      "end": 27.04,
+      "p": 0.995
+    }
+  ],
+  "shotWords": [
+    "When a horsefly",
+    "bites you,",
+    "it presses",
+    "six",
+    "needle",
+    "",
+    "-like",
+    "tools",
+    "against your skin. Two of them have sharp edges, so they slice",
+    "you open like",
+    "scissors,",
+    "while two more have tiny teeth like a saw, sawing up and down to tear",
+    "open your blood vessels until they burst and you start to",
+    "bleed. Next, a hollow blade pumps in spit,",
+    "which stops the cut from sealing so the blood keeps flowing out",
+    "as its spongy tip",
+    "laps it",
+    "up."
+  ],
+  "pace": {
+    "pictureEvery": 1.53,
+    "shotSeconds": {
+      "median": 0.82,
+      "p10": 0.31,
+      "p90": 3.89,
+      "n": 18
+    },
+    "wordsPerShot": {
+      "median": 2,
+      "p10": 1,
+      "p90": 12,
+      "n": 18
+    },
+    "firstChange": 0.93,
+    "hook": {
+      "text": "When a horsefly bites you, it presses six needle -like tools against your skin.",
+      "end": 5.12
+    },
+    "ending": {
+      "text": "Next, a hollow blade pumps in spit, which stops the cut from sealing so the blood keeps flowing out as its spongy tip laps it up.",
+      "start": 18.18
+    },
+    "loopFrameSimilarity": 0.738
+  },
+  "sync": {
+    "cutsOnWord": 0.353,
+    "cutsOnWordChance": 0.381,
+    "cutsOnClause": 0.059,
+    "cutsOnClauseChance": 0.084,
+    "motionLead": {
+      "median": 21.3,
+      "p10": 4,
+      "p90": 34.6,
+      "n": 6
+    },
+    "motionBursts": 16
+  }
+}

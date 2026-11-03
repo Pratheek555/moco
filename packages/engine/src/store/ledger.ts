@@ -42,6 +42,15 @@ export interface Decision {
   detail: string;
 }
 
+// One day of AI use, for the usage page. Keyed by local date, so "today" matches the user's clock.
+export interface DailyUsage {
+  calls: number;
+  inputTokens: number;
+  outputTokens: number;
+  costUsdEstimate: number;
+  rateLimits: number; // calls stopped by the user's plan limit
+}
+
 export interface LedgerData {
   episodeIds: string[]; // from the current series plan, in order; empty before it exists
   // Set by extendSeries until the longer plan is approved: series_plan keeps the first `keep` episodes and plans
@@ -51,7 +60,13 @@ export interface LedgerData {
   stages: Record<string, StageRecord>; // key: "bible" or "ep-01/script"
   jobs: Record<string, JobRecord>;
   decisions: Decision[];
-  usage: { aiCalls: Record<string, number>; costUsdEstimate: number }; // aiCalls key: episode id or "series"
+  usage: {
+    aiCalls: Record<string, number>; // key: episode id or "series"
+    costUsdEstimate: number;
+    // Added after the first release: ledgers from before it have neither, so readers treat them as empty.
+    tokens?: { input: number; output: number };
+    daily?: Record<string, DailyUsage>; // key: local date, "2026-11-03"
+  };
 }
 
 export class Ledger {
@@ -89,7 +104,18 @@ export class Ledger {
     return next;
   }
 
+  // Today's usage row, created on first use.
+  today(): DailyUsage {
+    const daily = (this.data.usage.daily ??= {});
+    return (daily[localDate(new Date())] ??= { calls: 0, inputTokens: 0, outputTokens: 0, costUsdEstimate: 0, rateLimits: 0 });
+  }
+
   decide(category: Decision["category"], subject: string, detail: string): void {
     this.data.decisions.push({ at: new Date().toISOString(), category, subject, detail });
   }
+}
+
+export function localDate(at: Date): string {
+  const pad = (n: number) => String(n).padStart(2, "0");
+  return `${at.getFullYear()}-${pad(at.getMonth() + 1)}-${pad(at.getDate())}`;
 }

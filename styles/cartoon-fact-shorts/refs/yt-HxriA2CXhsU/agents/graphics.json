@@ -1,0 +1,99 @@
+{
+  "inputHash": "60816361be68217c64e5590435d3bf409a00e1ebbeb61da1acc29865d41593e5",
+  "role": "graphics",
+  "seconds": 42,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 3593,
+    "costUsdEstimate": 0.1573
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "captions",
+        "observation": "One caption style for the whole short: small white bold sans-serif in lowercase sentence case. It is centred horizontally, and its baseline sits about 78% down the frame. It has a soft dark drop shadow and no box. There is no thick stroke.",
+        "rule": "Use one caption style throughout: white bold sans, lowercase, centred, placed about 78% down the 9:16 frame. Use a soft dark shadow only. No box, no heavy outline.",
+        "measured": "Caption y ≈ 182/234 px of the tile height on bursts and 244/312 on the overview, about 78% in every shot (S1–S14).",
+        "evidence": "Overview S1–S14; S8 f395–f424; S10 f588–f617",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "The caption is small. A 2–3 word chunk spans roughly 35–55% of the frame width. Letter height is about 3–4% of frame height. It reads as a quiet subtitle, not big kinetic type.",
+        "rule": "Keep captions small: the longest 3-word chunk should be no wider than about 55% of frame width, with letter height about 3–4% of frame height. The picture stays the star.",
+        "measured": "'the tornado' ≈ 50/132 px tile width (~38%); 'Just minutes later' ≈ 75/132 (~57%)",
+        "evidence": "S10 f588–f611; S8 f408–f424",
+        "confidence": "medium"
+      },
+      {
+        "area": "captions",
+        "observation": "Chunks are 2–3 words, cut on phrase boundaries: 'This tied' / 'the game' / 'Just minutes later' / 'the tornado' / 'hit the building'. A chunk replaces the previous one on a hard swap. There is no pop, no fade and no scale. Nothing is emphasised by colour or size.",
+        "rule": "Show 2–3 word phrase chunks that swap on a hard cut, with no entry or exit animation and no emphasis colour or scaling.",
+        "measured": "'This tied' last seen f407, 'the game' first seen f408 (one-frame swap). 'the tornado' ends f614, 'hit the building' starts f615.",
+        "evidence": "S8 f407→f408; S10 f595→f596, f614→f615",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "Chunk timing follows the spoken word to within about ±3 frames. Sometimes the caption leads the word slightly, sometimes it lags. During speech pauses the previous chunk stays on screen until the next phrase begins.",
+        "rule": "Start each chunk within 3 frames of its first spoken word. Hold the last chunk through pauses instead of clearing the screen.",
+        "measured": "'the game' on at f408 = word 'the' f408. 'the tornado' on at f596, word f598 (2 frames early). 'hit the building' on at f615, word 'hit' f612 (3 frames late). 'Just minutes later' held f594–f595 with no word spoken.",
+        "evidence": "S8 f407–f412; S10 f594–f617",
+        "confidence": "high"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions sit above the transition layer. During the blur/whip into S8 the picture is heavily motion-blurred, but the caption stays sharp and does not move.",
+        "rule": "Composite captions after transitions so they stay crisp and fixed while shots blur, whip or zoom underneath.",
+        "measured": "Caption sharp at f401–f405 while the scoreboard is a streaked blur",
+        "evidence": "S8 f400–f406",
+        "confidence": "high"
+      },
+      {
+        "area": "graphics",
+        "observation": "There are no overlay graphics: no maps, icons, arrows, boxes or lower thirds. Numbers and facts are shown as in-world props. A big scoreboard shows time and score. Within one held shot, a score digit flips so the two teams' scores match, about 10 frames after the narration says 'game'. A shot-clock reading of zero carries 'the clock ended'.",
+        "rule": "Show numeric facts through readable in-world objects (displays, clocks, signs) filmed close up. Change the value on camera, just after the narration names it, instead of adding a graphic overlay.",
+        "measured": "Score digit changes between f421 and f422. Word 'game,' at f412.",
+        "evidence": "S8 f412–f424; overview S3, S7, S8",
+        "confidence": "high"
+      },
+      {
+        "area": "graphics",
+        "observation": "The digital readouts are bright amber/red on black so they read at a glance in a dark scene. The shot frames the display large: it fills about 60–70% of the frame width at mid-shot.",
+        "rule": "When a prop carries the fact, make it high-contrast (glowing digits on dark) and frame it to fill most of the width before the key change happens.",
+        "measured": "",
+        "evidence": "Overview S3, S7, S8; S8 f413–f424",
+        "confidence": "medium"
+      },
+      {
+        "area": "captions",
+        "observation": "There is no backing plate, so legibility depends on the scene. On bright floor areas (S4, S14) the white text gets weak and only the shadow separates it. The rest of the short uses dark scenes, where it reads well.",
+        "rule": "Keep the lower-middle caption band darker or mid-tone in each shot's composition. If a shot is bright there, strengthen the shadow rather than adding a box.",
+        "measured": "",
+        "evidence": "Overview S4 ('launched the ball' over light court), S14",
+        "confidence": "medium"
+      },
+      {
+        "area": "captions",
+        "observation": "The narrow, centred caption keeps clear of the right-side platform buttons. At about 78% height it sits just above the bottom username/description zone. The top of the frame stays free of text.",
+        "rule": "Keep caption text centred and narrow, between 75% and 80% of frame height. Leave the top 15%, the bottom 18% and the right 12% free of text.",
+        "measured": "Caption band ≈ 76–80% of height; width ≤ ~57%",
+        "evidence": "All overview tiles",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "tornado hitting a domed stadium",
+      "basketball game, buzzer-beater three-pointer tying the game into overtime",
+      "scoreboard reading 00:06, then 00:00, scores 56 and 59 tied 59–59, period 4",
+      "team names on scoreboard (Alabama, Mississippi)",
+      "arena floor text 'ATLANTA', dome signage 'Georgia Dome'",
+      "fans in red shirts and jeans with popcorn",
+      "shattered glass, roof torn off",
+      "caption lines: 'ripped towards', 'of fans inside', 'was about to end', 'launched the ball', 'three point line', 'into the hoop', 'just as the clock', 'sending it', 'their seats', 'Just minutes later', 'the tornado', 'hit the building', 'shattered glass', 'outside', 'single shot', 'kept safe inside', 'This tied', 'the game'",
+      "title 'The Basketball Shot That Saved Thousands'",
+      "Zack D. Films"
+    ],
+    "notes": "I took the caption sizes and positions from the tile sheets in pixels, so they are approximate (±2%). Bursts were only available for S8 and S10. I couldn't fully check the caption timing in other shots, but the overview frames are consistent with it. The transcript's Title Case ending ('Watch All The Fans Were Kept Safe Inside') is an ASR artefact. The on-screen caption is still lowercase ('kept safe inside'). I couldn't read the font family exactly. It looks like a rounded geometric bold sans."
+  }
+}

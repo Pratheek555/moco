@@ -1,0 +1,117 @@
+{
+  "inputHash": "fb78c8b99cd3dc1db2392de5a5188a78b4daa3884285c9ab45c069c93a67afb3",
+  "role": "story",
+  "seconds": 50,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 4474,
+    "costUsdEstimate": 0.15214169999999996
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "script",
+        "observation": "Three sentences, 80 words, no title card and no outro. Hook 0–5.12 s (14 words): the subject, the action on 'you', and a counted claim. Mechanism 5.46–17.86 s (40 words): one long chained sentence covering two pairs of tools that builds to 'until they burst and you start to bleed'. Turn at 18.18 s on 'Next,'. Payoff 18.18–27.04 s (26 words): the last tools keep the wound open and drink from it. It stops on the final verb, with no moral and no call to action.",
+        "rule": "Use 3 sentences of about 15 / 40 / 25 words: (1) subject + action on the viewer + a counted claim, (2) a long chained sentence that escalates step by step to a bodily result, (3) one 'Next,' sentence that finishes the process. End on the last physical action, not on a summary.",
+        "measured": "sentence spans 0–5.12 s (14 w), 5.46–17.86 s (40 w), 18.18–27.04 s (26 w); speech covers 89%",
+        "evidence": "transcript sentences; shots S1–S18",
+        "confidence": "high"
+      },
+      {
+        "area": "hook",
+        "observation": "The first line is a condition plus a number: 'When a horsefly bites you, it presses six needle-like tools against your skin.' The opening picture is the subject alone, close and low, standing on skin against a flat blue background, while the narrator says the 3-word subject. It cuts at 0.93 s, on 'bites you', to a human head with the insect on his shoulder, so 'you' gets its own picture. The number 'six' sets up a count that the rest of the video works through (two + two + blade + tip).",
+        "rule": "Start with 'When [thing] does [action] to you,' then a concrete count. Show the subject alone in shot 1. Cut to the human victim on the word 'you'. Use the number as a promise and pay it off one item at a time through the rest of the video.",
+        "measured": "hook 14 words, 5.12 s; first cut at 0.93 s on 'bites' (f27)",
+        "evidence": "S1, S2",
+        "confidence": "high"
+      },
+      {
+        "area": "loop",
+        "observation": "The words do not loop: 'laps it up.' does not run back into 'When a horsefly…' on its own. The picture does loop. The last shot (S18) zooms out to the insect standing on skin against the same blue background as S1, so a replay looks continuous.",
+        "rule": "End on a wide shot that repeats the opening composition (subject on the surface, same background), arriving with a short zoom-out that stops on the final word. The visual match carries the loop even when the words don't connect.",
+        "measured": "loopFrameSimilarity 0.74; S18 zoom −14.7%, speed 148→0.2 %/s",
+        "evidence": "S1 vs S18",
+        "confidence": "high"
+      },
+      {
+        "area": "script",
+        "observation": "Written in second person throughout: 'you' or 'your' appears 6 times, and every harm lands on the viewer. The tone is deadpan and factual, with no jokes. Clauses are chained with so / while / until / and / which / as, so the middle sentence runs 40 words without stopping. The verbs are physical and short: presses, slice, sawing, tear, burst, pumps, laps. Each tool gets an everyday comparison: 'like scissors', 'like a saw'.",
+        "rule": "Put the viewer in the sentence as the object of every action. Join steps with plain connectives instead of starting new sentences, so the voice never stops. Use one blunt physical verb per step, and pair each unfamiliar part with a household tool it works like.",
+        "measured": "6 second-person words of 80; sentence lengths 14/40/26",
+        "evidence": "transcript",
+        "confidence": "high"
+      },
+      {
+        "area": "facts_to_pictures",
+        "observation": "Each comparison is drawn literally. 'Like scissors' becomes two blades parting the skin layer (S10–S11). 'Tiny teeth like a saw' becomes serrated blades rendered in steel grey, unlike the organic orange of the other mouthparts (S12). 'Blood vessels burst' becomes a red blob swelling up through cut tissue (S13). 'Stops the cut from sealing' becomes a glossy line held open along a gash (S15). 'Laps it up' becomes a column of blood rising up the tip (S17). 'Six needle-like tools' is shown by fanning the six parts out as they touch the skin (S4–S9).",
+        "rule": "Draw the comparison literally: if a part works 'like a saw', render it with saw teeth and a metal finish. Show an invisible process (bleeding, sealing, sucking) as a cutaway of glossy fluid moving through a cross-section of the surface.",
+        "measured": "",
+        "evidence": "S4–S9, S10–S13, S15, S17",
+        "confidence": "high"
+      },
+      {
+        "area": "pace",
+        "observation": "Words per shot change with the content. The counted noun 'six needle-like tools' gets 1 word per shot across five cuts of 0.2–0.4 s (S4–S8). Mechanism shots then hold for 3–4.8 s with 10–14 words each (S9, S12, S13, S15).",
+        "rule": "Cut fast, about one word per shot (6–12 frames), on the line that names and counts the parts. Then hold 90–145-frame shots while the narrator explains how one part works.",
+        "measured": "median 2 words/shot (p10–p90 1–12); S4–S8 0.2–0.4 s; S12 4.84 s, S15 4.34 s",
+        "evidence": "shots table",
+        "confidence": "high"
+      },
+      {
+        "area": "voice",
+        "observation": "One narrator, fast and unbroken. Pauses are short and only at punctuation, with none between words. The pitch moves a lot, but the level stays flat and high; it only falls off after the last word.",
+        "rule": "Deliver at about 195 wpm while speaking (about 175 wall to wall). Pause about 10 frames after sentences and 6–12 frames after commas, never mid-clause. Keep the level steady and let pitch carry the emphasis.",
+        "measured": "196.4 wpm speaking, 174.2 wall to wall; sentence pauses 0.33 s, clause pauses 0.36 s (0.21–0.4), word gaps 0 s; median pitch 176 Hz, range 16.8 st",
+        "evidence": "voice/pitch chart; pause stats",
+        "confidence": "high"
+      },
+      {
+        "area": "music",
+        "observation": "A constant music bed sits well under the voice. The pause level (−29.3 dB) is close to the bed, and there is no clear lift in the gaps, so it reads as a fixed low bed rather than obvious ducking.",
+        "rule": "Run a quiet music bed about 15 dB under the voice for the whole video, with no swells. Speech fills about 90% of the time anyway.",
+        "measured": "voice −14.6 dB, pauses −29.3 dB, gap 14.7 dB",
+        "evidence": "audio numbers",
+        "confidence": "medium"
+      },
+      {
+        "area": "sound",
+        "observation": "The mix is very loud and compressed. The picture implies sound effects (whooshes on the 4 whip transitions, a wet pop on the vessel burst, a slurp on the lap), but none can be confirmed from the numbers.",
+        "rule": "Master around −10 to −11 LUFS with a narrow loudness range. If you add effects, put a whoosh on whip cuts and wet hits on fluid moments, kept under the voice. Keep true peak below 0 dBFS.",
+        "measured": "−10.5 LUFS, LRA 2.3 LU, true peak +1 dBFS",
+        "evidence": "loudness numbers; S2, S10, S14 whips; S13, S17",
+        "confidence": "low"
+      },
+      {
+        "area": "captions",
+        "observation": "Captions are 2–4 word chunks in bold white with a soft shadow, centred in the lower-middle of the frame. One chunk stays up across several fast cuts ('six needle like tools' over S4–S8), so text does not flicker on 1-word shots.",
+        "rule": "Caption 2–4 words at a time, centred in the lower third. Keep a chunk on screen across a burst of fast cuts instead of changing it every shot.",
+        "measured": "",
+        "evidence": "S4–S8, S10–S11 overview tiles",
+        "confidence": "medium"
+      },
+      {
+        "area": "transitions",
+        "observation": "Cuts are not timed to words. They line up with word onsets at about chance and rarely fall on clause starts. Many cuts land mid-sentence or mid-phrase ('slice | you open', 'tear | open'), which keeps the picture pushing through the run-on narration.",
+        "rule": "Cut when the picture's motion is done, not on word onsets. Cutting mid-clause is fine and helps the momentum.",
+        "measured": "35% within ±2 frames of a word onset (chance 38%); 6% within ±4 frames of a clause start (chance 8%)",
+        "evidence": "S9→S10, S12→S13",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "horsefly bite",
+      "six needle-like mouthparts",
+      "two blades that cut like scissors",
+      "two serrated blades that work like a saw",
+      "blood vessels bursting",
+      "hollow blade pumping in spit to stop the cut sealing",
+      "spongy tip lapping up blood",
+      "bald/short-haired man with a beard and blue shirt as the victim",
+      "skin surface with hairs on a blue background",
+      "title 'How Horseflies Bite You 😨'",
+      "Zack D. Films",
+      "caption lines: 'six needle like tools', 'open like scissors', 'like a saw', 'until they burst', 'laps it up'"
+    ],
+    "notes": "The true peak of +1 dBFS means the reference likely clips, so don't copy that. Pitch range (16.8 st) may be inflated by the music bed. Camera tracking failed on S1, S3 and S16 (11–48% tracked). With only 2 sentence pauses measured, the pause figures are thin. The sound effects are inferred from the picture, not measured. Loop similarity of 0.74 comes from matching composition and background; the subject is smaller in S18 than in S1."
+  }
+}

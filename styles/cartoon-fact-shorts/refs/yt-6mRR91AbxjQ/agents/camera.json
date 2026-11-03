@@ -1,0 +1,102 @@
+{
+  "inputHash": "62522d1c4da83ff876d0a3d523e10f4770b2e5df17211d003845880832e29402",
+  "role": "camera",
+  "seconds": 62,
+  "usage": {
+    "inputTokens": 2,
+    "outputTokens": 5375,
+    "costUsdEstimate": 0.2404732
+  },
+  "output": {
+    "findings": [
+      {
+        "area": "camera",
+        "observation": "The camera moves in 85% of measured frames. In longer shots the default move is one smooth push or tilt in a single direction, with a bell-shaped speed curve. S9 pushes in 172% over 3.7 s (about 46%/s zoom). S12 tilts down 132% over 4.84 s at a mid speed of 26%/s. S13 tilts up 124% over 3.27 s at a mid speed of 65%/s. Short macro inserts (S5–S7) only creep, at 5–8%/s. In the chart, each long shot has one hump on one axis. Direction almost never reverses inside a shot.",
+        "rule": "Give every shot exactly one move on one main axis: a push-in, a tilt down or a tilt up. Do not reverse direction inside a shot. Use mid speeds of 25–65%/s for shots longer than 2 s, and a 5–8%/s creep for inserts under 0.5 s. Never lock the frame dead, except on one deliberate hold (see stability).",
+        "measured": "moving 85% of frames; S9 zoom 172.2% in 3.7 s; S12 pan y -132.4% in 4.84 s, mid 26.1%/s; S13 pan y +123.5% in 3.27 s, mid 64.7%/s; S5/S6/S7 mid 7/4.8/7.9%/s",
+        "evidence": "shot table; chart humps at 4–7.7 s, 11.8–14 s, 15.5–17.5 s",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "Shots usually start already moving fast and then settle (arrives_moving ×4). In fast_in_fast_out shots, speed collapses mid-shot and spikes again at both ends: S2 start/mid/end = 304.6/10.8/292.5%/s, about 28× mid at both ends. S14 = 329/66.6/259.8, about 4.9× at the start and 3.9× at the end. S12 starts at 3.9× mid and ends at 0.39× mid. S18 goes 148 → 3.4 → 0.2, so it lands to a full stop. Shots that hand off by moving out speed up into the cut: S13 start/mid/end = 9.8/64.7/158.5, so the end is 2.45× mid. S11 ends at 1.45× mid.",
+        "rule": "Ease out of every transition: enter a shot at 4–28× its mid speed and decelerate exponentially over about 6–10 frames to the cruise speed. If a shot hands off with a move, ease in instead: ramp to 1.5–2.5× the cruise speed over its last 10–15 frames, so the camera reaches the cut already moving. End the final shot with a fast decel to 0.",
+        "measured": "S2 304.6/10.8/292.5; S9 85.6/25.7/30.8; S10 303.9/34.2/41.6; S12 102/26.1/10.1; S13 9.8/64.7/158.5; S14 329/66.6/259.8; S18 148/3.4/0.2 %/s",
+        "evidence": "shot table; chart speed spikes at every lavender line, with valleys between",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "There are 17 transitions: 7 cut (41%), 4 whip (24%), 3 zoom (18%), 3 blur (18%). On the sheets, most of the 'cuts' are not hard cuts. They are one continuous 3D camera move squeezed into 1–2 frames. T2 (f45–46) dollies from the shoulder back toward the fly. T9 (f229–231) dives down through the skin surface into a cross-section. T13 (f524–526) pulls up out of the cross-section to the skin surface, with the insect above. Blur lengths: cuts 1–2 frames, blur 3–5, zoom 5–7, whip 3–9 (median 5.5). Blur frames show directional motion smear and stretched texture. They are not dissolves.",
+        "rule": "Join shots with a fast continuous camera move through the same 3D space rather than a hard cut. Pick the length by type: 'snap' moves 1–2 frames, push or zoom-throughs 5–7 frames, whips 3–9 frames (default 5). Render the in-between frames with directional motion blur along the move. Never use cross-dissolves.",
+        "measured": "7/4/3/3 of 17; blur frames: cuts 1–2, blur 3,3,5, zoom 6,7,5, whip 3,4,9,7",
+        "evidence": "transitions table; sheets T1 f22–27, T2 f45–46, T9 f229–231, T13 f524–526",
+        "confidence": "high"
+      },
+      {
+        "area": "transitions",
+        "observation": "Moves come in mirrored pairs. T1 pulls out and orbits from a frontal macro to a rear three-quarter wide (f22–27). T2, 0.57 s later, reverses back in to the frontal macro (f45–52). T9 dives down into the cross-section. T13 later rises back up out of it. Direction across a single transition is mixed: T3 goes left→left and T8 left→in, but T11 goes in→up, T13 up→left and T14 down→stop.",
+        "rule": "When you leave a scale level (surface → inside, close → wide), plan to return with the exact reverse move later. A dive-in is answered by a pull-out, and an orbit-out by an orbit-back. Directions do not have to match across a single transition, but each move should carry its momentum into the next shot's first frames (out speed ≥ in speed in 10 of 15 measured cases).",
+        "measured": "T1 out 9.02%/fr right; T2 in 7.33 left → out 8.78 in; T9 out 21.9%/fr in; T13 in 4.98 up → out 11.52 left",
+        "evidence": "sheets T1, T2, T9, T13; transitions table",
+        "confidence": "medium"
+      },
+      {
+        "area": "framing",
+        "observation": "Scale jumps across transitions are large, but the subject stays near frame centre. T1 goes from a macro where the insect fills about 40% of the frame to a wide where it is about 8%, with a human head entering top right. T9 goes from the skin surface to a cutaway where the blades fill the frame. T13 goes from a full-frame tissue wall to a split frame: surface strip in the middle third, insect above. Blades and insect stay on the centre vertical throughout. The bottom third is kept clear for captions.",
+        "rule": "Across each transition, change scale by 3–5×, keep the hero object on the centre vertical (within about 10% of width), and keep the lower 30% of the frame low-detail for captions.",
+        "measured": "",
+        "evidence": "T1 f21 vs f28; T9 f228 vs f232; T13 f523 vs f529",
+        "confidence": "medium"
+      },
+      {
+        "area": "transitions",
+        "observation": "Transitions do not lock to words or clauses. 35% fall within ±2 frames of a word onset (chance 38%). 6% fall within ±4 frames of a clause start (chance 8%). The current word started 3–18 frames before the cut (median about 7), so changes land mid-word or late in a word, inside a sentence. Only T11 lands in a pause.",
+        "rule": "Do not snap transitions to word or sentence onsets. Place each change 4–12 frames after the onset of the word it illustrates, while the narration keeps running, so the picture flows under the voice.",
+        "measured": "35% vs 38% chance; 6% vs 8% chance; word-start offsets -3 to -18 frames",
+        "evidence": "sync numbers; transitions table word column",
+        "confidence": "high"
+      },
+      {
+        "area": "pace",
+        "observation": "A new picture arrives every 1.53 s on average. The median shot is 0.82 s, but it is bimodal: a burst of 0.2–0.4 s macro inserts at 2.4–4.0 s (S4–S8, 5 shots in 1.56 s), then long continuous move shots of 3.3–4.8 s (S9, S12, S13, S15).",
+        "rule": "Alternate a rapid burst of 4–6 inserts at 6–12 frames each with long single-move shots of 100–145 frames that carry a whole sentence.",
+        "measured": "p10–p90 0.31–3.89 s; S4–S8 0.27/0.37/0.2/0.4/0.33 s",
+        "evidence": "shot table",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "Holds are true stops on the CG render: leftover motion is 0.01 px/frame. S15 sits at 0.1%/s for most of 4.34 s (moving 34%), then accelerates out to 53%/s into a zoom transition. Median jerk is 0.216% per frame. Shake readings of 0.85–0.91 occur only in the fastest shots (S10, S14) and reflect the blurred snap moves, not handheld wobble.",
+        "rule": "Use no simulated handheld shake. Allow one dead-still hold of about 4 s on an explanatory beat, then leave it with an ease-in to about 50%/s over its last 10 frames. Everything else moves on smooth splines.",
+        "measured": "0.01 px/frame residual; S15 0.1/0.1/53%/s, 34% moving; median shake 0.216",
+        "evidence": "shot table S15; chart flat line 20.2–24.5 s",
+        "confidence": "high"
+      },
+      {
+        "area": "camera",
+        "observation": "In the S11 burst (f266–281), the camera tilts up across a tissue wall at constant speed. The top edge enters at f274 and the insect head is revealed by f281. There is a slight blur, and speed rises from 62 to 169%/s toward the zoom transition T11.",
+        "rule": "Use a tilt to reveal: start on a textured surface, keep the tilt steady, and bring the next subject in over the frame edge 8–10 frames before the transition. Keep accelerating into it.",
+        "measured": "S11 start/mid/end 62.1/116.3/168.8%/s; zoom 23.3%",
+        "evidence": "burst S11 f266–281",
+        "confidence": "medium"
+      }
+    ],
+    "contentSpecifics": [
+      "horsefly",
+      "biting insect on human shoulder",
+      "bearded man in light blue shirt, side profile",
+      "six needle-like mouthparts",
+      "blades slicing skin, cross-section of skin layers",
+      "saw-toothed blades",
+      "scissors comparison",
+      "blood vessels bursting, bleeding",
+      "hollow blade pumping spit",
+      "spongy tip lapping blood",
+      "captions: 'When a horse fly', 'bites you', 'six needle like tools', 'so they slice you', 'open like scissors', 'to bleed'",
+      "title 'How Horseflies Bite You'",
+      "Zack D. Films"
+    ],
+    "notes": "S1, S3 and S16 have no camera data (11–48% tracked), so the vocabulary rests on 15 shots. Most transitions labelled 'cut' are really 1–2 frame continuous camera moves through the 3D scene (T2, T9, T13 on the sheets). Treat them as snap moves, not hard cuts. T5 ('blur', f89–91) shows almost no framing change, only a slight shift. It may be a micro jump-cut or a misdetection, so don't build a rule on it. The high shake values (0.85–0.91) in S10 and S14 likely come from motion blur during snap moves, not real jitter. The in-speeds for T9 and the out-speed for T17 are n/a."
+  }
+}

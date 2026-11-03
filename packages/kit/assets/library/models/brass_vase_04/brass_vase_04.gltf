@@ -1,0 +1,155 @@
+{
+  "asset": {
+    "generator": "Khronos glTF Blender I/O v1.6.16",
+    "version": "2.0"
+  },
+  "scene": 0,
+  "scenes": [
+    {
+      "name": "Scene",
+      "nodes": [
+        0
+      ]
+    }
+  ],
+  "nodes": [
+    {
+      "mesh": 0,
+      "name": "brass_vase_04"
+    }
+  ],
+  "materials": [
+    {
+      "doubleSided": true,
+      "name": "brass_vase_04",
+      "normalTexture": {
+        "index": 0
+      },
+      "pbrMetallicRoughness": {
+        "baseColorTexture": {
+          "index": 1
+        },
+        "metallicRoughnessTexture": {
+          "index": 2
+        }
+      }
+    }
+  ],
+  "meshes": [
+    {
+      "name": "brass_vase_04_Cylinder.007",
+      "primitives": [
+        {
+          "attributes": {
+            "POSITION": 0,
+            "NORMAL": 1,
+            "TEXCOORD_0": 2
+          },
+          "indices": 3,
+          "material": 0
+        }
+      ]
+    }
+  ],
+  "textures": [
+    {
+      "sampler": 0,
+      "source": 0
+    },
+    {
+      "sampler": 0,
+      "source": 1
+    },
+    {
+      "sampler": 0,
+      "source": 2
+    }
+  ],
+  "images": [
+    {
+      "mimeType": "image/jpeg",
+      "name": "brass_vase_04_nor_gl",
+      "uri": "textures/brass_vase_04_nor_gl_1k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "brass_vase_04_diff",
+      "uri": "textures/brass_vase_04_diff_1k.jpg"
+    },
+    {
+      "mimeType": "image/jpeg",
+      "name": "brass_vase_04_arm",
+      "uri": "textures/brass_vase_04_arm_1k.jpg"
+    }
+  ],
+  "accessors": [
+    {
+      "bufferView": 0,
+      "componentType": 5126,
+      "count": 1614,
+      "max": [
+        0.03052457980811596,
+        0.17036007344722748,
+        0.03052457980811596
+      ],
+      "min": [
+        -0.05143953114748001,
+        0.00008732038986636326,
+        -0.03052457980811596
+      ],
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 1,
+      "componentType": 5126,
+      "count": 1614,
+      "type": "VEC3"
+    },
+    {
+      "bufferView": 2,
+      "componentType": 5126,
+      "count": 1614,
+      "type": "VEC2"
+    },
+    {
+      "bufferView": 3,
+      "componentType": 5123,
+      "count": 8280,
+      "type": "SCALAR"
+    }
+  ],
+  "bufferViews": [
+    {
+      "buffer": 0,
+      "byteLength": 19368,
+      "byteOffset": 0
+    },
+    {
+      "buffer": 0,
+      "byteLength": 19368,
+      "byteOffset": 19368
+    },
+    {
+      "buffer": 0,
+      "byteLength": 12912,
+      "byteOffset": 38736
+    },
+    {
+      "buffer": 0,
+      "byteLength": 16560,
+      "byteOffset": 51648
+    }
+  ],
+  "samplers": [
+    {
+      "magFilter": 9729,
+      "minFilter": 9987
+    }
+  ],
+  "buffers": [
+    {
+      "byteLength": 68208,
+      "uri": "brass_vase_04.bin"
+    }
+  ]
+}
