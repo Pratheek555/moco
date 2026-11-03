@@ -1,0 +1,136 @@
+# Checks every pull request into main, and main itself after a merge.
+# Four independent jobs, so one failure doesn't hide the others; a final job sums them up for branch protection.
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+# A new push to the same branch cancels the run that is now out of date.
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  NODE_VERSION: 22
+
+jobs:
+  typecheck:
+    name: Typecheck (TypeScript, all packages + desktop)
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+      - name: Set up pnpm (version from package.json)
+        uses: pnpm/action-setup@v4
+      - name: Set up Node ${{ env.NODE_VERSION }} with the pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies exactly as locked
+        run: pnpm install --frozen-lockfile
+      - name: Typecheck
+        run: pnpm typecheck
+      - name: Explain a failure
+        if: failure()
+        run: echo "::error title=Typecheck failed::TypeScript found errors. Run 'pnpm typecheck' locally to see them."
+
+  unit-tests:
+    name: Unit and engine tests (Vitest)
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+      - name: Set up pnpm (version from package.json)
+        uses: pnpm/action-setup@v4
+      - name: Set up Node ${{ env.NODE_VERSION }} with the pnpm cache
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: pnpm
+      - name: Install dependencies exactly as locked
+        run: pnpm install --frozen-lockfile
+      # The engine tests run on fakes. Real renders need Chrome and run locally (MOCO_RENDER_TESTS=1).
+      # The longer timeout is for the whole-episode pipeline test, which is slow on a busy shared runner.
+      - name: Run the tests
+        run: pnpm exec vitest run --testTimeout=30000 --reporter=default --reporter=junit --outputFile.junit=test-results/junit.xml
+      - name: Publish the test report to the run summary
+        if: always()
+        uses: mikepenz/action-junit-report@v5
+        with:
+          report_paths: test-results/junit.xml
+          check_name: Vitest results
+          detailed_summary: true
+          include_passed: false
+      - name: Explain a failure
+        if: failure()
+        run: echo "::error title=Tests failed::Some tests failed. The 'Vitest results' summary lists them; run 'pnpm test' locally to reproduce."
+
+  python-tests:
+    name: Python worker tests (voice download)
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+      - name: Set up Python 3.11
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Run the voice worker tests (standard library only)
+        working-directory: packages/audio/python
+        run: python -m unittest -v test_download_model
+      - name: Check every Python script compiles
+        run: python -m py_compile packages/audio/python/*.py packages/learn/python/*.py
+      - name: Explain a failure
+        if: failure()
+        run: echo "::error title=Python tests failed::Run 'python3 -m unittest test_download_model' in packages/audio/python."
+
+  lockfile:
+    name: Lockfile matches package.json files
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Check out the code
+        uses: actions/checkout@v4
+      - name: Set up pnpm (version from package.json)
+        uses: pnpm/action-setup@v4
+      - name: Set up Node ${{ env.NODE_VERSION }}
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+      - name: Resolve dependencies without installing
+        run: pnpm install --frozen-lockfile --lockfile-only
+      - name: Explain a failure
+        if: failure()
+        run: echo "::error title=Lockfile out of date::pnpm-lock.yaml doesn't match the package.json files. Run 'pnpm install' and commit the lockfile."
+
+  ci-passed:
+    name: CI passed
+    if: always()
+    needs: [typecheck, unit-tests, python-tests, lockfile]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Sum up the checks
+        run: |
+          echo "## CI results" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Check | Result |" >> "$GITHUB_STEP_SUMMARY"
+          echo "|---|---|" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Typecheck | ${{ needs.typecheck.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Unit and engine tests | ${{ needs.unit-tests.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Python worker tests | ${{ needs.python-tests.result }} |" >> "$GITHUB_STEP_SUMMARY"
+          echo "| Lockfile | ${{ needs.lockfile.result }} |" >> "$GITHUB_STEP_SUMMARY"
+      - name: Fail if any check failed or was cancelled
+        if: contains(needs.*.result, 'failure') || contains(needs.*.result, 'cancelled')
+        run: |
+          echo "::error title=CI failed::One or more checks failed. See the table in the run summary."
+          exit 1
