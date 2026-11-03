@@ -1,15 +1,17 @@
 // @moco/ai — one interface over the AI backends the engine can call.
 // For now only `claude-cli`: the user's own Claude Code session (`claude -p`), no API keys.
 // The AI is always called with tools disabled, in an empty temp folder: it can only return text/JSON.
+// Images, when given, travel inside the prompt message itself, so the model still needs no file access.
 import { spawn } from "node:child_process";
-import { mkdtemp, rm, writeFile } from "node:fs/promises";
+import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { extname, join } from "node:path";
 
 export interface AiRequest {
   system: string; // full system prompt (replaces the backend's default)
   prompt: string;
   jsonSchema?: object; // structured output
+  images?: string[]; // PNG/JPEG/WebP/GIF files shown to the model before the prompt text
   model?: string;
   timeoutMs: number;
   signal?: AbortSignal;
@@ -26,6 +28,7 @@ export interface AiResult {
 
 export interface AiBackend {
   id: string;
+  seesImages?: boolean; // takes AiRequest.images; without it the engine never asks the AI to look at a render
   available(): Promise<{ ok: boolean; reason?: string; authMethod?: string; version?: string }>;
   generate(req: AiRequest): Promise<AiResult>;
 }
@@ -63,6 +66,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
 
   return {
     id: "claude-cli",
+    seesImages: true,
 
     async available() {
       // Flags like --safe-mode and --json-schema need a recent Claude Code (reference R2).
@@ -94,9 +98,11 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
         const systemFile = join(cwd, "system.md");
         await writeFile(systemFile, req.system);
 
+        const images = req.images ?? [];
         const args = [
           "-p",
-          "--output-format", "json",
+          // With images the prompt goes in as one stream-json user message; the reply then streams too.
+          ...(images.length > 0 ? ["--input-format", "stream-json", "--output-format", "stream-json", "--verbose"] : ["--output-format", "json"]),
           "--system-prompt-file", systemFile,
           "--tools", "", // no built-in tools
           "--disallowedTools", "mcp__*",
@@ -109,7 +115,8 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
         if (req.model) args.push("--model", req.model);
 
         // Prompt goes in via stdin, never through a shell string.
-        const run = await runProcess(bin, args, req.prompt, req.timeoutMs, req.signal, cwd);
+        const stdin = images.length > 0 ? await imageMessage(req.prompt, images) : req.prompt;
+        const run = await runProcess(bin, args, stdin, req.timeoutMs, req.signal, cwd);
         return parseClaudeResult(run, req);
       } finally {
         await rm(cwd, { recursive: true, force: true });
@@ -118,7 +125,21 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
   };
 }
 
-// Shape of `claude -p --output-format json` output (only the fields we read).
+const MEDIA_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" };
+
+// One stream-json line: a user message with the images first, then the prompt.
+async function imageMessage(prompt: string, images: string[]): Promise<string> {
+  const content: object[] = [];
+  for (const file of images) {
+    const mediaType = MEDIA_TYPES[extname(file).toLowerCase()];
+    if (!mediaType) throw new AiError(`unsupported image type: ${file}`);
+    content.push({ type: "image", source: { type: "base64", media_type: mediaType, data: (await readFile(file)).toString("base64") } });
+  }
+  content.push({ type: "text", text: prompt });
+  return `${JSON.stringify({ type: "user", message: { role: "user", content } })}\n`;
+}
+
+// Shape of `claude -p --output-format json` output, and of the final `result` event in stream-json (only the fields we read).
 interface ClaudeJson {
   is_error?: boolean;
   subtype?: string;
@@ -132,10 +153,8 @@ interface ClaudeJson {
 function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
   if (run.timedOut) throw new TimeoutError(`claude timed out after ${req.timeoutMs} ms`);
 
-  let out: ClaudeJson;
-  try {
-    out = JSON.parse(run.stdout) as ClaudeJson;
-  } catch {
+  const out = readClaudeJson(run.stdout);
+  if (!out) {
     // No JSON at all: the CLI failed before answering. stderr says why.
     const detail = (run.stderr || run.stdout).trim().slice(0, 500);
     throw classifyFailure(detail || `claude exited with code ${run.code}`);
@@ -162,6 +181,23 @@ function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
     model: req.model,
     sessionId: out.session_id,
   };
+}
+
+// One JSON object (--output-format json), or one event per line (stream-json) where the last `result` event is the answer.
+function readClaudeJson(stdout: string): ClaudeJson | undefined {
+  try {
+    return JSON.parse(stdout) as ClaudeJson;
+  } catch {
+    for (const line of stdout.trim().split("\n").reverse()) {
+      try {
+        const event = JSON.parse(line) as ClaudeJson & { type?: string };
+        if (event.type === "result") return event;
+      } catch {
+        // not a JSON line; keep looking
+      }
+    }
+    return undefined;
+  }
 }
 
 // Turn an error message from the CLI into the right typed error.

@@ -48,7 +48,7 @@ export async function runShotList(ctx: StageContext, episodeId: string, feedback
   });
 
   const shotList: ShotList = { shots: timeShots(draft, voiceover) };
-  const inputs = [ctx.store.inputRef(files.voiceover(episodeId)), ctx.store.inputRef(files.bible), promptRef("shots")];
+  const inputs = [ctx.store.inputRef(files.voiceover(episodeId)), ctx.store.inputRef(files.bible), promptRef("shots", ctx.series.template)];
   const saved = await ctx.store.save(files.shotList(episodeId), "ShotList", shotList, { producedBy: "ai", backend: ctx.ai.backendId, inputs });
   return saved.meta.contentHash;
 }

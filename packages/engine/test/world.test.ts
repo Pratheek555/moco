@@ -52,6 +52,28 @@ describe("checkWorld", () => {
     expect(issuesOf(world)).toContain("a lathe needs `profile`");
   });
 
+  it("only takes library models and materials that exist", () => {
+    const world = testWorld();
+    world.models[1]!.parts[0]!.shape = "asset";
+    (world.models[1]!.parts[0] as { asset?: string }).asset = "no_such_model";
+    (world.models[1]!.surfaces.skin as { material?: string }).material = "no_such_texture";
+    const problems = issuesOf(world);
+    expect(problems).toContain('"no_such_model" is not in the asset library');
+    expect(problems).toContain('"no_such_texture" is not a library material');
+  });
+
+  it("wants the library id an asset part fits", () => {
+    const world = testWorld();
+    world.models[1]!.parts[0]!.shape = "asset";
+    expect(issuesOf(world)).toContain("an asset needs `asset`");
+  });
+
+  it("takes a described character without parts or joints", () => {
+    const world = testWorld();
+    world.models[0] = { id: world.models[0]!.id, rig: "humanoid", height: 1.7, character: { skin: "#d9a98a", hair: { style: "short", colour: "#222222" }, top: { kind: "shirt", colour: "#3366aa" }, bottom: { kind: "trousers", colour: "#333333" } } } as never;
+    expect(checkWorld(parse(world))).toEqual([]);
+  });
+
   it("refuses numbers out of range and anything that isn't a colour", () => {
     const world = testWorld();
     world.models[1]!.surfaces.skin!.colour = "url(http://example.com)";

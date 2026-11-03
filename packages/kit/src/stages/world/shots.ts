@@ -14,9 +14,11 @@ export interface Placed {
   face: number; // metres from the feet to the middle of the head
   width: number; // metres side to side
   headWidth: number;
+  flat?: boolean;
+  span?: number;
 }
 
-type Size = Pick<Placed, "face" | "width" | "headWidth">;
+type Size = Pick<Placed, "face" | "width" | "headWidth" | "flat" | "span">;
 const sizeFrom = (model: WorldModel): Size => ({ face: model.height * 0.86, width: model.height * 0.5, headWidth: model.height * 0.3 });
 
 // `at` and `to` are metres from the mark; a moving player turns to face its way, unless it's only drifting.
@@ -95,9 +97,25 @@ export const RIGS: Record<string, Rig> = {
 
 export const subjectOf = (stage: SceneStage, placed: Placed[]): Placed => placed.find((item) => isSubject(item.player, stage.subject)) ?? placed[0]!;
 
+// The rigs put the lens at a share of the subject's height, which for something flat (a dish, a map, a pond) is
+// edge-on and far too close: a thin line. A flat subject is looked down on instead, from at least this high, and
+// framed by its width (a close shot crops in a little).
+const LOOK_DOWN = radians(38);
+const CLOSE_RIGS = new Set(["close", "push_in", "low_hero"]);
+function overFlat(lens: Lens, subject: Placed, camera: string): Lens {
+  if (!subject.flat) return lens;
+  const from = lens.eye.clone().sub(lens.target);
+  const fits = distanceFor(spanFor(0, subject.span ?? subject.width), lens.fov) * (CLOSE_RIGS.has(camera) ? 0.62 : 1);
+  const distance = Math.max(from.length(), fits);
+  const level = Math.hypot(from.x, from.z);
+  if (Math.atan2(from.y, level) >= LOOK_DOWN || level < 1e-6) return lens;
+  const along = from.setY(0).normalize().multiplyScalar(distance * Math.cos(LOOK_DOWN));
+  return { ...lens, eye: lens.target.clone().add(along).setY(lens.target.y + distance * Math.sin(LOOK_DOWN)) };
+}
+
 export function lensFor(stage: SceneStage, placed: Placed[], frame: number, durationFrames: number): Lens {
   const subject = subjectOf(stage, placed);
   const other = placed.find((item) => item !== subject);
   const rig = RIGS[stage.camera] ?? RIGS.medium!;
-  return rig(subject, other, frame / durationFrames);
+  return overFlat(rig(subject, other, frame / durationFrames), subject, stage.camera);
 }

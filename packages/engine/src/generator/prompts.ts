@@ -2,16 +2,21 @@
 import { readFileSync } from "node:fs";
 import type { InputRef } from "@moco/spec";
 import { sha256 } from "../store/hash.ts";
+import { isTemplateStage, templateGuide } from "../templates/guide.ts";
 
-export type PromptName = "series" | "series_extend" | "bible" | "world" | "script" | "shots" | "scene" | "memory" | "publish";
+export type PromptName = "series" | "series_extend" | "bible" | "world" | "script" | "shots" | "scene" | "memory" | "publish" | "look_models" | "look_shots" | "fix_model";
 
-export function loadPrompt(name: PromptName): string {
-  return readFileSync(new URL(`./prompts/${name}.md`, import.meta.url), "utf8");
+// With a template, its guidance for this stage follows the base prompt, so it can override the general style advice.
+export function loadPrompt(name: PromptName, template?: string): string {
+  const base = readFileSync(new URL(`./prompts/${name}.md`, import.meta.url), "utf8");
+  const guide = template && isTemplateStage(name) ? templateGuide(template, name) : "";
+  return guide ? `${base.trimEnd()}\n\n${guide}\n` : base;
 }
 
-// Recorded in every artifact's inputs, so we know which prompt produced it and caches miss when a prompt changes.
-export function promptRef(name: PromptName): InputRef {
-  const text = loadPrompt(name);
+// Recorded in every artifact's inputs, so we know which prompt produced it and caches miss when a prompt
+// (or the series' template) changes.
+export function promptRef(name: PromptName, template?: string): InputRef {
+  const text = loadPrompt(name, template);
   const version = Number(/<!-- prompt: \w+ v(\d+)/.exec(text)?.[1] ?? 0);
   return { kind: `Prompt:${name}`, revision: version, contentHash: sha256(text) };
 }

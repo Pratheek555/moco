@@ -4,8 +4,10 @@ import {
   api,
   type AiStatus,
   type EngineEvent,
+  type LearnJob,
   type SeriesSummary,
   type Settings,
+  type TemplateInfo,
 } from "./api.ts";
 
 export type Route =
@@ -16,6 +18,7 @@ export type Route =
   | { name: "renders" }
   | { name: "usage" }
   | { name: "kit"; tab?: KitTab }
+  | { name: "templates"; id?: string }
   | { name: "settings"; section?: string };
 
 export type KitTab = "characters" | "backgrounds" | "props" | "looks";
@@ -46,6 +49,13 @@ interface AppState {
   palette: boolean;
   setPalette(open: boolean): void;
   composerIdea: string;
+  /** The template the next series starts from; null = from scratch. */
+  composerTemplate: string | null;
+  setComposerTemplate(id: string | null): void;
+  templates: TemplateInfo[];
+  refreshTemplates(): Promise<void>;
+  /** Templates being learned from videos this session, newest last. */
+  learnJobs: LearnJob[];
   setComposerIdea(idea: string): void;
   dark: boolean;
   /** The last Claude Code check this session; null until one has run. */
@@ -107,6 +117,16 @@ export const useApp = create<AppState>((set, get) => ({
   setPalette(open) {
     set({ palette: open });
   },
+  composerTemplate: null,
+  setComposerTemplate(id) {
+    set({ composerTemplate: id });
+  },
+  templates: [],
+  async refreshTemplates() {
+    const templates = await api.templates.list();
+    set({ templates });
+  },
+  learnJobs: [],
   composerIdea: "",
   setComposerIdea(idea) {
     set({ composerIdea: idea });
@@ -202,6 +222,8 @@ export async function bootstrap() {
   const settings = await api.settings.get();
   applyTheme(settings);
   useApp.setState({ settings });
+  const templates = await api.templates.list().catch(() => []);
+  useApp.setState({ templates });
   await useApp.getState().refreshLibrary();
   api.on("engine", (payload) => onEngineEvent(payload as EngineEvent));
   api.on(
@@ -212,10 +234,28 @@ export async function bootstrap() {
         .refreshLibrary()
         .catch((e) => useApp.getState().toast(String(e.message ?? e), "error")),
   );
+  useApp.setState({ learnJobs: await api.templates.jobs().catch(() => []) });
+  api.on("learn", (payload) => onLearnJob(payload as LearnJob));
   api.on("settings", (s) => {
     useApp.setState({ settings: s as Settings });
     applyTheme(s as Settings);
   });
+}
+
+function onLearnJob(job: LearnJob) {
+  const { learnJobs, toast, go, refreshTemplates } = useApp.getState();
+  const before = learnJobs.find((candidate) => candidate.id === job.id);
+  useApp.setState({ learnJobs: [...learnJobs.filter((candidate) => candidate.id !== job.id), job] });
+  if (before?.state === job.state) return;
+  if (job.state === "done") {
+    void refreshTemplates().catch(report);
+    toast(`“${job.name}” is ready`, "success", {
+      description: "Learned from your videos. Find it in Templates.",
+      action: { label: "Open", run: () => go({ name: "templates", id: job.templateId }) },
+    });
+  } else if (job.state === "error") {
+    toast(`Couldn’t learn “${job.name}”`, "error", { description: job.error });
+  }
 }
 
 /** Opens the studio with the idea box focused, ready to type. */
@@ -251,4 +291,12 @@ export function stageLabel(key: string): string {
   if (!second) return names[first!] ?? first!;
   const number = Number(first!.replace(/\D/g, ""));
   return `Episode ${number} ${names[second] ?? second}`;
+}
+
+/** Opens the studio with a template picked, and its first sample idea if the box is empty. */
+export function startFromTemplate(template: TemplateInfo) {
+  const state = useApp.getState();
+  state.setComposerTemplate(template.id);
+  if (!state.composerIdea.trim() && template.ideas[0]) state.setComposerIdea(template.ideas[0].idea);
+  newSeries();
 }

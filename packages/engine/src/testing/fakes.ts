@@ -14,6 +14,7 @@ export function taskOf(request: AiRequest): string {
 // AI that answers with whatever the handler returns as structured output. Records every request.
 export class FakeAi implements AiBackend {
   id = "fake-ai";
+  seesImages = false; // tests that review renders turn it on
   readonly requests: AiRequest[] = [];
 
   private readonly handler: (request: AiRequest, task: string) => unknown | Promise<unknown>;

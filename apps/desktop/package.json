@@ -23,6 +23,7 @@
     "@moco/audio": "workspace:*",
     "@moco/engine": "workspace:*",
     "@moco/kit": "workspace:*",
+    "@moco/learn": "workspace:*",
     "@moco/renderer": "workspace:*",
     "@moco/spec": "workspace:*",
     "@remotion/bundler": "4.0.539",

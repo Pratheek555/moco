@@ -11,7 +11,9 @@ import * as z from "zod";
 //   0.4.0: PublishKit.thumbnail, AiPublishCopy.thumbnail (optional: old kits parse as-is).
 //   0.5.0: Generated world schema and per-series world rendering.
 //   0.6.0: ScriptLine.delivery (optional performance directions; old scripts parse as-is).
-export const SPEC_VERSION = "0.6.0";
+//   0.7.0: WorldPart shape "asset" + asset, WorldSurface.material (the asset library), WorldModel.character (a designed
+//          character built by the kit from a description), World.look (film or toon). All optional: old worlds parse as-is.
+export const SPEC_VERSION = "0.7.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -56,12 +58,18 @@ const Id = z.string().regex(/^[a-zA-Z0-9][a-zA-Z0-9_-]*$/, "letters, digits, - a
 const Fraction = z.number().min(0).max(1);
 
 export const WORLD_PATTERNS = ["plain", "noise", "stripes", "checker", "bricks", "planks", "windows", "scales"] as const;
-export const WORLD_SHAPES = ["box", "sphere", "cylinder", "capsule", "torus", "lathe", "extrude", "tube"] as const;
+// "asset" is a ready-made model from the asset library (@moco/kit/library), fitted into the part's size.
+export const WORLD_SHAPES = ["box", "sphere", "cylinder", "capsule", "torus", "lathe", "extrude", "tube", "asset"] as const;
 export const WORLD_WEATHER = ["none", "rain", "snow", "dust", "embers", "fireflies", "bubbles"] as const;
+// How the whole world is drawn: "film" is lit and finished like a 3D animated film; "toon" is cel-shaded with ink
+// outlines, flat and graphic, and forgives simple models.
+export const WORLD_LOOKS = ["film", "toon"] as const;
 
-// How something looks. `pattern` mixes `colour` and `colour2`; `glow` makes it give off its own light.
+// How something looks. `pattern` mixes `colour` and `colour2`; `glow` makes it give off its own light. `material` is
+// a texture from the asset library (real wood, brick, fabric…), tinted by `colour`; it replaces the pattern.
 export const WorldSurface = z.object({
   colour: Colour,
+  material: Id.optional(),
   colour2: Colour.optional(),
   pattern: z.enum(WORLD_PATTERNS).default("plain"),
   repeat: z.number().min(0.05).max(400).default(1), // how many times the pattern fits across the shape
@@ -88,6 +96,7 @@ export const WorldPart = z.object({
   profile: z.array(Vec2).min(3).max(32).optional(), // lathe: [radius, height] points, turned around the y axis
   outline: z.array(Vec2).min(3).max(48).optional(), // extrude: [x, y] points of a flat shape, pushed out by size z
   path: z.array(Vec3).min(2).max(24).optional(), // tube: points the tube runs through; hair, tails, tentacles, pipes
+  asset: Id.optional(), // asset: the library model's id; it keeps its proportions and fits inside `size`
   spin: Vec3.optional(), // degrees per second, always on: wheels, rotors
   blinks: z.boolean().default(false), // an eye: it shuts now and then
 });
@@ -102,15 +111,41 @@ export const WorldMove = z.object({
 });
 export type WorldMove = z.infer<typeof WorldMove>;
 
-// `rig: humanoid` promises the standard joint ids and earns the built-in moves (walk, wave, kneel…).
-export const WorldModel = z.object({
-  id: Id,
-  rig: z.enum(["none", "humanoid"]).default("none"),
-  height: z.number().positive().max(2000), // metres, the camera frames by it
-  surfaces: z.record(Id, WorldSurface),
-  parts: z.array(WorldPart).min(1).max(160),
-  moves: z.array(WorldMove).max(12).default([]),
+// A person, described instead of built: the kit's character designer turns it into a humanoid with the standard
+// joints (stylised proportions, faces with irises and highlights, hands, clothes, hair), so it moves like one.
+export const CHARACTER_BUILDS = ["child", "slim", "average", "broad", "heavy"] as const;
+export const CHARACTER_HAIR = ["bald", "short", "side_part", "curly", "spiky", "bun", "ponytail", "long", "bob", "afro", "mohawk"] as const;
+export const CHARACTER_TOPS = ["shirt", "tshirt", "sweater", "coat", "lab_coat", "suit", "robe", "dress", "armour", "kurta"] as const;
+export const CHARACTER_BOTTOMS = ["trousers", "shorts", "skirt", "dhoti"] as const;
+export const CHARACTER_HATS = ["none", "cap", "flat_cap", "top_hat", "crown", "turban", "helmet", "headband", "hood"] as const;
+export const CHARACTER_EXTRAS = ["tie", "bow_tie", "scarf", "belt", "necklace", "cape", "glasses", "round_glasses", "moustache", "beard", "stubble", "earrings", "sash"] as const;
+export const WorldCharacter = z.object({
+  build: z.enum(CHARACTER_BUILDS).default("average"),
+  skin: Colour,
+  eyes: Colour.default("#4a3426"), // the iris
+  hair: z.object({ style: z.enum(CHARACTER_HAIR), colour: Colour }),
+  top: z.object({ kind: z.enum(CHARACTER_TOPS), colour: Colour, colour2: Colour.optional() }), // colour2: shirt under a coat, trim
+  bottom: z.object({ kind: z.enum(CHARACTER_BOTTOMS), colour: Colour }),
+  shoes: Colour.default("#2b2420"),
+  hat: z.object({ kind: z.enum(CHARACTER_HATS), colour: Colour }).default({ kind: "none", colour: "#333333" }),
+  extras: z.array(z.object({ kind: z.enum(CHARACTER_EXTRAS), colour: Colour.optional() })).max(6).default([]),
+  smile: z.number().min(-1).max(1).default(0.3), // -1 a frown, 0 neutral, 1 a broad smile
 });
+export type WorldCharacter = z.infer<typeof WorldCharacter>;
+
+// `rig: humanoid` promises the standard joint ids and earns the built-in moves (walk, wave, kneel…). A model with a
+// `character` needs no parts: the kit builds them (any parts given are added on top, e.g. a prop held in a hand).
+export const WorldModel = z
+  .object({
+    id: Id,
+    rig: z.enum(["none", "humanoid"]).default("none"),
+    height: z.number().positive().max(2000), // metres, the camera frames by it
+    character: WorldCharacter.optional(),
+    surfaces: z.record(Id, WorldSurface).default({}),
+    parts: z.array(WorldPart).max(160).default([]),
+    moves: z.array(WorldMove).max(12).default([]),
+  })
+  .refine((model) => model.character || model.parts.length > 0, { message: "a model needs parts, or a character to build them from", path: ["parts"] });
 export type WorldModel = z.infer<typeof WorldModel>;
 
 // One location of the world.
@@ -144,6 +179,7 @@ export const WorldLocation = z.object({
 export type WorldLocation = z.infer<typeof WorldLocation>;
 
 export const World = z.object({
+  look: z.enum(WORLD_LOOKS).default("film"),
   models: z.array(WorldModel).min(1).max(40),
   locations: z.array(WorldLocation).min(1).max(8),
   cast: z.array(z.object({ id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase with dashes"), model: Id, description: z.string() })).min(1),
@@ -355,7 +391,7 @@ export const SceneSpec = z.object({
     .default([]),
   // Engine-filled, never by the AI:
   visemes: VisemeTrack.default([]), // shot frames, copied from the voiceover
-  world: z.object({ location: WorldLocation, models: z.array(WorldModel) }).optional(), // a generated world: what this shot needs of it
+  world: z.object({ location: WorldLocation, models: z.array(WorldModel), look: z.enum(WORLD_LOOKS).default("film") }).optional(), // a generated world: what this shot needs of it
   grade: z.string().default("none"), // the series grade, copied from the bible
   finish: z.object({ vignette: z.boolean().default(true), grain: z.boolean().default(true) }).default({ vignette: true, grain: true }),
 });

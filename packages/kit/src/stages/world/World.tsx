@@ -1,19 +1,23 @@
 // One generic 3D stage: draws any world the AI wrote as data. It has no idea what story it's in.
-import { useEffect, useMemo } from "react";
+import { useContext, useEffect, useMemo } from "react";
 import * as THREE from "three";
 import type { SceneAction, ScenePlayer, WorldLocation, WorldModel, WorldPart } from "@moco/spec";
 import type { BackgroundDef, StageProps } from "../../define.ts";
-import { Reflections, Sky } from "../race-circuit/Circuit.tsx";
+import { Sky } from "../race-circuit/Circuit.tsx";
 import { Lens } from "../race-circuit/index.tsx";
 import { seededRandom } from "../race-circuit/textures.ts";
 import { geometryOf, materialOf, measureModel, patternTexture, restParts } from "./build.ts";
 import { blockersOf, steadyLens } from "./clearance.ts";
+import { Finish, SkyEnvironment, SubjectLights, exposureAt } from "./finish.tsx";
+import { expandModel } from "./character.ts";
+import { LibraryModel, LookContext, ScatteredLibraryModel, useLibraryTextures } from "./library.tsx";
 import { isBlinking, poseAt, seedOf, spinAt, type Pose } from "./moves.ts";
 import { WORLD_CAMERAS, isSubject } from "./options.ts";
 import { placePlayer, type Placed } from "./shots.ts";
 
 const radians = THREE.MathUtils.degToRad;
 const NO_ACTIONS: SceneAction[] = [];
+
 
 // ---------- models ----------
 
@@ -24,11 +28,11 @@ interface Built {
 }
 
 // Everything about a model that never changes from frame to frame.
-function buildModel(model: WorldModel): Built {
+function buildModel(model: WorldModel, look: "film" | "toon"): Built {
   const children = new Map<string | undefined, WorldPart[]>();
   model.parts.forEach((part) => children.set(part.parent, [...(children.get(part.parent) ?? []), part]));
   const geometry = new Map(model.parts.map((part) => [part.id, geometryOf(part)]));
-  const materials = new Map(Object.entries(model.surfaces).map(([id, surface]) => [id, materialOf(surface) as THREE.Material]));
+  const materials = new Map(Object.entries(model.surfaces).map(([id, surface]) => [id, materialOf(surface, look) as THREE.Material]));
   return { children, geometry, materials };
 }
 
@@ -47,7 +51,13 @@ function PartNode({ part, built, pose, frame, blinking }: PartProps) {
   const rotation = [0, 1, 2].map((axis) => radians(part.turn[axis]! + added[axis]! + spinAt(spin[axis]!, frame))) as [number, number, number];
   return (
     <group position={part.at} rotation={rotation}>
-      <mesh geometry={built.geometry.get(part.id)} material={built.materials.get(part.surface)} position={part.offset} scale={[1, blinking && part.blinks ? 0.08 : 1, 1]} castShadow receiveShadow />
+      {part.shape === "asset" && part.asset ? (
+        <group position={part.offset}>
+          <LibraryModel id={part.asset} size={part.size} />
+        </group>
+      ) : (
+        <mesh geometry={built.geometry.get(part.id)} material={built.materials.get(part.surface)} position={part.offset} scale={[1, blinking && part.blinks ? 0.08 : 1, 1]} castShadow receiveShadow />
+      )}
       {(built.children.get(part.id) ?? []).map((child) => (
         <PartNode key={child.id} part={child} built={built} pose={pose} frame={frame} blinking={blinking} />
       ))}
@@ -56,7 +66,8 @@ function PartNode({ part, built, pose, frame, blinking }: PartProps) {
 }
 
 function ModelView({ model, actions, frame, seed }: { model: WorldModel; actions: SceneAction[]; frame: number; seed: number }) {
-  const built = useMemo(() => buildModel(model), [model]);
+  const look = useContext(LookContext);
+  const built = useMemo(() => buildModel(model, look), [model, look]);
   const pose = poseAt(model, actions, frame, seed);
   const blinking = isBlinking(seed, frame);
   return (
@@ -93,7 +104,8 @@ function landGeometry(hills: number): THREE.BufferGeometry {
 
 function Ground({ ground, frame }: { ground: WorldLocation["ground"]; frame: number }) {
   const geometry = useMemo(() => landGeometry(ground.kind === "land" ? ground.hills : 0), [ground]);
-  const material = useMemo(() => materialOf(ground.surface), [ground]);
+  const look = useContext(LookContext);
+  const material = useMemo(() => materialOf(ground.surface, look), [ground, look]);
   const ripples = useMemo(() => patternTexture({ ...ground.surface, pattern: "noise", repeat: 90 }), [ground]);
   if (ground.kind === "none") return null;
   if (ground.kind === "water" && ripples) {
@@ -101,8 +113,10 @@ function Ground({ ground, frame }: { ground: WorldLocation["ground"]; frame: num
     ripples.offset.set(frame * 0.0009, frame * 0.0006);
     material.bumpMap = ripples;
     material.bumpScale = 1.6;
-    material.roughness = Math.min(ground.surface.rough, 0.22);
-    material.metalness = 0.35;
+    if (material instanceof THREE.MeshPhysicalMaterial) {
+      material.roughness = Math.min(ground.surface.rough, 0.22);
+      material.metalness = 0.35;
+    }
   }
   return <mesh geometry={geometry} material={material} receiveShadow />;
 }
@@ -137,12 +151,17 @@ function ScatteredPart({ part, matrix, spots, material }: { part: WorldPart; mat
 function Scattered({ entry, model, hills, seed }: { entry: WorldLocation["scatter"][number]; model: WorldModel; hills: number; seed: number }) {
   const parts = useMemo(() => restParts(model), [model]);
   const spots = useMemo(() => scatterSpots(entry, hills, seed), [entry, hills, seed]);
-  const materials = useMemo(() => new Map(Object.entries(model.surfaces).map(([id, surface]) => [id, materialOf(surface)])), [model]);
+  const look = useContext(LookContext);
+  const materials = useMemo(() => new Map(Object.entries(model.surfaces).map(([id, surface]) => [id, materialOf(surface, look)])), [model, look]);
   return (
     <>
-      {parts.map(({ part, matrix }) => (
-        <ScatteredPart key={part.id} part={part} matrix={matrix} spots={spots} material={materials.get(part.surface)!} />
-      ))}
+      {parts.map(({ part, matrix }) =>
+        part.shape === "asset" && part.asset ? (
+          <ScatteredLibraryModel key={part.id} id={part.asset} size={part.size} matrix={matrix} spots={spots} />
+        ) : (
+          <ScatteredPart key={part.id} part={part} matrix={matrix} spots={spots} material={materials.get(part.surface)!} />
+        ),
+      )}
     </>
   );
 }
@@ -266,7 +285,10 @@ const STAND_IN_PLAYER: ScenePlayer = { id: "mark", model: "mark", at: [0, 0, 0],
 
 function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
   if (!world) throw new Error("the generated world is missing from this shot");
-  const { location, models } = world;
+  const { location } = world;
+  // Described characters become their designed parts here, once per model.
+  const models = useMemo(() => world.models.map(expandModel), [world.models]);
+  useLibraryTextures(models, location.ground.surface);
   const modelOf = (id: string) => models.find((model) => model.id === id);
   const mark = location.marks.find((candidate) => candidate.id === stage.place) ?? location.marks[0]!;
 
@@ -285,15 +307,21 @@ function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
   const placed = placeAt(frame);
   const framed = framing(frame);
   // The camera works out its whole path through the set, so it never ends up behind a wall.
-  const lens = steadyLens(stage, framing, frame, durationFrames, blockersOf(location, models));
-  const focus = (framed.find((item) => isSubject(item.player, stage.subject)) ?? framed[0]!).position;
+  const blockers = blockersOf(location, models);
+  const lens = steadyLens(stage, framing, frame, durationFrames, blockers);
+  const previous = steadyLens(stage, framing, Math.max(0, frame - 0.5), durationFrames, blockers); // for motion blur
+  const subject = framed.find((item) => isSubject(item.player, stage.subject)) ?? framed[0]!;
+  const focus = subject.position;
   const light = useMemo(() => skyLight(location.sky), [location]);
+  const exposure = exposureAt(location, lens.target);
   const shadowReach = Math.max(36, Math.max(...framed.map((item) => item.model.height)) * 6);
 
   return (
-    <>
+    <LookContext.Provider value={world.look ?? "film"}>
       <Lens eye={lens.eye} target={lens.target} fov={lens.fov} />
-      <Reflections />
+      <SkyEnvironment sky={location.sky} ground={location.ground.surface.colour} sun={light.sun} />
+      <SubjectLights eye={lens.eye} target={lens.target} height={subject.model.height} sky={location.sky} exposure={exposure} />
+      <Finish focus={lens.target} fov={lens.fov} subjectHeight={subject.model.height} exposure={exposure} frame={frame} previous={previous} toon={world.look === "toon"} />
       <fogExp2 attach="fog" args={[location.sky.fog, location.sky.fogDensity]} />
       <Sky light={light} />
       {location.sky.stars ? <Stars /> : null}
@@ -330,7 +358,7 @@ function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
         );
       })}
       <Weather kind={location.weather} around={focus} frame={frame} />
-    </>
+    </LookContext.Provider>
   );
 }
 

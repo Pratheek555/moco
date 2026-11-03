@@ -13,6 +13,7 @@ import {
   RotateCcwIcon,
   SquareIcon,
   Trash2Icon,
+  LayoutTemplateIcon,
   TriangleAlertIcon,
 } from "lucide-react";
 import type { EpisodeScript, SeriesBible, SeriesPlan } from "@moco/spec";
@@ -143,6 +144,7 @@ export function SeriesPage({ id }: { id: string }) {
       ? stage(status.next.key)
       : undefined;
   const aiCalls = Object.values(status.usage.aiCalls).reduce((a, b) => a + b, 0);
+  const template = useApp.getState().templates.find((t) => t.id === status.series.template);
 
   const run = (key?: string) => void api.stages.run(id, key).catch(report);
   const stop = async () => {
@@ -165,6 +167,14 @@ export function SeriesPage({ id }: { id: string }) {
             <Badge variant="secondary">
               {status.series.episodes} {status.series.episodes === 1 ? "episode" : "episodes"}
             </Badge>
+            {template && (
+              <Badge variant="outline" asChild>
+                <button type="button" onClick={() => go({ name: "templates", id: template.id })}>
+                  <LayoutTemplateIcon />
+                  {template.name}
+                </button>
+              </Badge>
+            )}
           </div>
           <div className="flex flex-col gap-2">
             <h1 className="text-3xl font-semibold tracking-tight text-balance">

@@ -9,6 +9,7 @@ import type { Ledger } from "../store/ledger.ts";
 
 export interface MeteredAi {
   backendId: string;
+  seesImages: boolean; // the backend can be shown renders (see review/look.ts)
   // `scope` is the episode id, or "series" for series-level stages.
   generate(request: Omit<AiRequest, "timeoutMs"> & { timeoutMs?: number }, scope: string): Promise<AiResult>;
 }
@@ -27,6 +28,7 @@ export function meteredAi(
 
   return {
     backendId: ai.id,
+    seesImages: ai.seesImages === true,
     async generate(request, scope) {
       const calls = callsThisJob[scope] ?? 0;
       if (calls >= config.limits.maxAiCallsPerEpisode) {

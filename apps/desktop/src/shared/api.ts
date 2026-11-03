@@ -2,6 +2,8 @@
 // The UI never talks to the engine directly: main forwards these calls to the engine host (main/engine-host.ts).
 import type { VoiceInfo } from "@moco/audio";
 import type { DailyUsage, EngineEvent, SeriesStatus } from "@moco/engine";
+import type { EngineEvent, SeriesStatus } from "@moco/engine";
+import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
 import type { PublishDefaults, PublishKit } from "@moco/spec";
 
@@ -45,6 +47,7 @@ export interface SeriesSummary {
   premise: string;
   language: string;
   episodes: number;
+  template?: string; // the template id the series was started from
   createdAt: string;
   cast: string[]; // kit character ids from the bible
   finals: number; // episodes with a final render
@@ -61,6 +64,19 @@ export interface EpisodeMedia {
   thumbnail?: string;
   thumbnailPath?: string; // on disk, for dragging into YouTube
   stills: Record<string, string[]>; // shot id → still URLs
+}
+
+// Learning a template from reference videos (@moco/learn), run by main in a background process.
+export interface LearnJob {
+  id: string;
+  name: string;
+  sources: string[];
+  state: "running" | "done" | "error" | "cancelled";
+  step: string; // fetch, measure, sheets, agents, merge, template, done
+  log: string[]; // recent progress lines, newest last
+  startedAt: string;
+  templateId?: string; // set when done
+  error?: string;
 }
 
 export interface AiStatus {
@@ -95,12 +111,20 @@ export interface MocoApi {
     cancelDownload(): Promise<void>;
     preview(text: string): Promise<{ url?: string; error?: string }>;
   };
+  templates: {
+    list(): Promise<TemplateInfo[]>; // built-in plus learned
+    learn(input: { name: string; sources: string[] }): Promise<string>; // job id; progress arrives on "learn"
+    jobs(): Promise<LearnJob[]>;
+    cancelLearn(jobId: string): Promise<void>;
+    openFolder(id: string): Promise<void>; // a learned template's folder (skill, measurements, sheets)
+    remove(id: string): Promise<void>; // learned templates only
+  };
   kit: {
     catalog(): Promise<Catalog>;
   };
   series: {
     list(): Promise<SeriesSummary[]>;
-    create(input: { idea: string; language: string; episodes: number }): Promise<string>; // creates and starts planning
+    create(input: { idea: string; language: string; episodes: number; template?: string }): Promise<string>; // creates and starts planning
     extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
     status(id: string): Promise<SeriesStatus>;
     artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;
@@ -124,7 +148,7 @@ export interface MocoApi {
     setDefaults(seriesId: string, defaults: Partial<PublishDefaults>): Promise<void>;
     openStudio(): Promise<void>;
   };
-  on(channel: "engine" | "library" | "settings", cb: (payload: unknown) => void): () => void;
+  on(channel: "engine" | "library" | "settings" | "learn", cb: (payload: unknown) => void): () => void;
 }
 
 export type DeepPartial<T> = {
@@ -132,6 +156,7 @@ export type DeepPartial<T> = {
 };
 
 export type { Catalog, DailyUsage, EngineEvent, PublishDefaults, PublishKit, SeriesStatus, VoiceInfo };
+export type { Catalog, EngineEvent, PublishDefaults, PublishKit, SeriesStatus, TemplateInfo, VoiceInfo };
 
 /** moco-asset:// URL for a file under the projects folder. */
 export const assetUrl = (relativeToProjects: string) =>

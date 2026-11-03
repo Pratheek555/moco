@@ -14,7 +14,7 @@ import { blankReason, decodePng } from "./pixels.ts";
 
 // Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
 // (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
-export const RENDERER_VERSION = "0.2.0"; // 0.2.0: generated-world cameras stay on the open side of the set
+export const RENDERER_VERSION = "0.4.0"; // 0.4.0: worlds lit and finished like film, library assets, designed characters, flat subjects seen from above
 
 export interface RemotionRenderOptions {
   stillTimeoutMs?: number; // per still; a hung browser fails the check instead of blocking forever (default 60 s)

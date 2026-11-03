@@ -9,8 +9,12 @@ artifacts/
 *.tsbuildinfo
 .env
 .venv-voice/
+.venv-learn/
 __pycache__/
 projects/*
 !projects/README.md
 # copied from node_modules by `pnpm --filter @moco/renderer spike:rive`
 packages/renderer/spikes/rive/public/rive.wasm
+styles/
+# downloaded by `pnpm library:setup` (Poly Haven, CC0)
+packages/kit/assets/library/
