@@ -9,6 +9,7 @@ import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
 import { checkIds, planWithAi, previousSection } from "./common.ts";
 import { runWorld } from "./world.ts";
+import { lookupTemplate } from "../templates/registry.ts";
 
 // What the AI writes: the bible without the narrator. An empty cast is how it says the kit can't play this story.
 const BibleDraft = SeriesBible.omit({ narrator: true }).extend({ cast: z.array(CastMember) });
@@ -34,7 +35,9 @@ export async function runBible(ctx: StageContext, feedback?: string): Promise<st
   });
 
   // No kit entry fits, so build the story's own cast and places. Sent back with a note, it builds them again.
-  const world = draft.cast.length === 0 ? await runWorld(ctx, plan.data, feedback) : undefined;
+  // A template can always want its own world, whatever cast the AI picked from the kit.
+  const wantsWorld = draft.cast.length === 0 || lookupTemplate(ctx.series.template)?.world === "world";
+  const world = wantsWorld ? await runWorld(ctx, plan.data, feedback) : undefined;
   if (world) ctx.useWorld(world);
   const cast = world ? world.cast.map(({ id, model, description }) => ({ id, kitCharacterId: model, description })) : draft.cast;
 
@@ -44,7 +47,7 @@ export async function runBible(ctx: StageContext, feedback?: string): Promise<st
   const saved = await ctx.store.save(files.bible, "SeriesBible", bible, {
     producedBy: "ai",
     backend: ctx.ai.backendId,
-    inputs: [ctx.store.inputRef(files.seriesPlan), promptRef("bible")],
+    inputs: [ctx.store.inputRef(files.seriesPlan), promptRef("bible", ctx.series.template)],
   });
   return saved.meta.contentHash;
 }

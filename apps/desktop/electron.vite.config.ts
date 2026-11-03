@@ -5,7 +5,7 @@ import { defineConfig } from 'electron-vite';
 
 // Workspace packages are TypeScript source, so they're bundled rather than
 // treated as external node_modules.
-const workspace = ['@moco/ai', '@moco/audio', '@moco/engine', '@moco/kit', '@moco/spec', '@moco/renderer'];
+const workspace = ['@moco/ai', '@moco/audio', '@moco/engine', '@moco/kit', '@moco/learn', '@moco/spec', '@moco/renderer'];
 
 export default defineConfig({
   main: {

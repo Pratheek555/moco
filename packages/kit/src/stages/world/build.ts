@@ -3,14 +3,17 @@ import * as THREE from "three";
 import { RoundedBoxGeometry } from "three/examples/jsm/geometries/RoundedBoxGeometry.js";
 import type { WorldModel, WorldPart, WorldSurface } from "@moco/spec";
 import { seededRandom } from "../race-circuit/textures.ts";
+import { applyLibraryTexture } from "./library.tsx";
 
 const radians = THREE.MathUtils.degToRad;
 const TEXTURE_SIZE = 512;
 const CURVE_STEPS = 48;
 
-// A point path smoothed into a curve, so a dozen points read as a shape and not a polygon.
+// A point path smoothed into a curve, so a dozen points read as a shape and not a polygon. Turned bottom to top:
+// three.js faces a lathe's outside only that way round, and a profile written top down would show its inside.
 function smoothProfile(points: [number, number][]): THREE.Vector2[] {
-  const curve = new THREE.SplineCurve(points.map(([x, y]) => new THREE.Vector2(Math.max(x, 0), y)));
+  const upwards = points.length > 1 && points[0]![1] > points[points.length - 1]![1] ? [...points].reverse() : points;
+  const curve = new THREE.SplineCurve(upwards.map(([x, y]) => new THREE.Vector2(Math.max(x, 0), y)));
   return curve.getPoints(CURVE_STEPS);
 }
 
@@ -37,6 +40,8 @@ export function geometryOf(part: WorldPart): THREE.BufferGeometry {
   if (part.shape === "torus") return new THREE.TorusGeometry(0.5, height / width / 2, 18, 56).rotateX(Math.PI / 2).scale(width, width, depth);
   if (part.shape === "lathe") return new THREE.LatheGeometry(smoothProfile((part.profile ?? []) as [number, number][]), 40).scale(width, height, depth);
   if (part.shape === "extrude") return extruded(part);
+  // A library model is drawn by LibraryModel; for measuring and for the camera's clearance it is the box it fits in.
+  if (part.shape === "asset") return new THREE.BoxGeometry(width, height, depth);
   return tube(part);
 }
 
@@ -57,6 +62,8 @@ export interface Measure {
   face: number; // height of the head's middle above the feet
   width: number; // side to side, capped: a long tail shouldn't push the camera to the horizon
   headWidth: number;
+  flat: boolean; // much wider or deeper than tall, like a dish or a rug: the camera looks down on it
+  span: number; // the widest it is side to side or front to back, uncapped
 }
 
 const measures = new WeakMap<WorldModel, Measure>();
@@ -83,6 +90,8 @@ export function measureModel(model: WorldModel): Measure {
     face: head ? head.getCenter(new THREE.Vector3()).y - bottom : height * 0.86,
     width,
     headWidth: head ? head.max.x - head.min.x : width * 0.6,
+    flat: Math.max(whole.max.x - whole.min.x, whole.max.z - whole.min.z) > height * 2.5,
+    span: Math.max(whole.max.x - whole.min.x, whole.max.z - whole.min.z),
   };
   measures.set(model, measure);
   return measure;
@@ -185,16 +194,101 @@ export function patternTexture(surface: WorldSurface): THREE.CanvasTexture | und
   return texture;
 }
 
-export function materialOf(surface: WorldSurface): THREE.MeshStandardMaterial {
-  const texture = patternTexture(surface);
-  return new THREE.MeshStandardMaterial({
+// Fine bumps every surface gets, so nothing is perfectly smooth plastic: a normal map worked out from soft noise.
+let detail: THREE.CanvasTexture | undefined;
+function detailNormals(): THREE.CanvasTexture {
+  if (detail) return detail;
+  const size = 256;
+  const random = seededRandom(91);
+  // Height: a few octaves of blurred random dots, wrapped so the map tiles.
+  const height = new Float32Array(size * size);
+  for (const [cells, weight] of [[8, 0.5], [32, 0.3], [96, 0.2]] as const) {
+    const grid = Array.from({ length: cells * cells }, () => random());
+    for (let y = 0; y < size; y += 1) {
+      for (let x = 0; x < size; x += 1) {
+        const gx = (x / size) * cells, gy = (y / size) * cells;
+        const x0 = Math.floor(gx), y0 = Math.floor(gy);
+        const fx = gx - x0, fy = gy - y0;
+        const at = (cx: number, cy: number) => grid[((cy + cells) % cells) * cells + ((cx + cells) % cells)]!;
+        const sx = fx * fx * (3 - 2 * fx), sy = fy * fy * (3 - 2 * fy);
+        const top = at(x0, y0) + (at(x0 + 1, y0) - at(x0, y0)) * sx;
+        const bottom = at(x0, y0 + 1) + (at(x0 + 1, y0 + 1) - at(x0, y0 + 1)) * sx;
+        height[y * size + x]! += (top + (bottom - top) * sy) * weight;
+      }
+    }
+  }
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const context = canvas.getContext("2d")!;
+  const image = context.createImageData(size, size);
+  const h = (x: number, y: number) => height[((y + size) % size) * size + ((x + size) % size)]!;
+  for (let y = 0; y < size; y += 1) {
+    for (let x = 0; x < size; x += 1) {
+      const normal = new THREE.Vector3((h(x - 1, y) - h(x + 1, y)) * 6, (h(x, y - 1) - h(x, y + 1)) * 6, 1).normalize();
+      const index = (y * size + x) * 4;
+      image.data[index] = (normal.x * 0.5 + 0.5) * 255;
+      image.data[index + 1] = (normal.y * 0.5 + 0.5) * 255;
+      image.data[index + 2] = (normal.z * 0.5 + 0.5) * 255;
+      image.data[index + 3] = 255;
+    }
+  }
+  context.putImageData(image, 0, 0);
+  detail = new THREE.CanvasTexture(canvas);
+  detail.wrapS = detail.wrapT = THREE.RepeatWrapping;
+  detail.repeat.set(3, 3);
+  return detail;
+}
+
+// Roughness says what a surface is made of, near enough: matte things get a soft sheen like cloth or skin, glossy
+// ones a clear coat like varnish or glass, and everything gets fine bumps.
+// Toon shading: three flat bands of light instead of a smooth falloff.
+let bands: THREE.DataTexture | undefined;
+function toonBands(): THREE.DataTexture {
+  if (bands) return bands;
+  bands = new THREE.DataTexture(new Uint8Array([90, 90, 90, 255, 175, 175, 175, 255, 255, 255, 255, 255]), 3, 1, THREE.RGBAFormat);
+  bands.minFilter = bands.magFilter = THREE.NearestFilter;
+  bands.needsUpdate = true;
+  return bands;
+}
+
+export function materialOf(surface: WorldSurface, look: "film" | "toon" = "film"): THREE.MeshPhysicalMaterial | THREE.MeshToonMaterial {
+  if (look === "toon") return toonMaterialOf(surface);
+  const texture = surface.material ? undefined : patternTexture(surface);
+  const glossy = surface.rough < 0.35 && surface.metal < 0.5;
+  const matte = surface.rough > 0.6 && surface.metal < 0.3;
+  const colour = new THREE.Color(surface.colour);
+  const material = new THREE.MeshPhysicalMaterial({
     color: texture ? "#ffffff" : surface.colour,
     map: texture ?? null,
     roughness: surface.rough,
     metalness: surface.metal,
+    normalMap: detailNormals(),
+    normalScale: new THREE.Vector2(1, 1).multiplyScalar(0.05 + surface.rough * 0.12),
+    sheen: matte ? 0.35 : 0,
+    sheenRoughness: 0.8,
+    sheenColor: colour.clone().lerp(new THREE.Color("#ffffff"), 0.5),
+    clearcoat: glossy ? 0.6 : 0,
+    clearcoatRoughness: 0.15,
     emissive: surface.glow > 0 ? surface.colour : "#000000",
     emissiveIntensity: surface.glow,
     transparent: surface.opacity < 1,
     opacity: surface.opacity,
   });
+  applyLibraryTexture(material, surface);
+  return material;
+}
+
+function toonMaterialOf(surface: WorldSurface): THREE.MeshToonMaterial {
+  const texture = surface.material ? undefined : patternTexture(surface);
+  const material = new THREE.MeshToonMaterial({
+    color: texture ? "#ffffff" : surface.colour,
+    map: texture ?? null,
+    gradientMap: toonBands(),
+    emissive: surface.glow > 0 ? surface.colour : "#000000",
+    emissiveIntensity: surface.glow,
+    transparent: surface.opacity < 1,
+    opacity: surface.opacity,
+  });
+  applyLibraryTexture(material, surface);
+  return material;
 }

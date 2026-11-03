@@ -16,6 +16,7 @@ import { createRemotionRenderPort } from "@moco/renderer";
 
 export interface EngineHostConfig {
   projectsDir: string;
+  stylesDir: string; // learned styles, each also a template
   voice: Settings["voice"];
   voiceRuntime: VoiceRuntime;
   concurrency: number | null; // render tabs; null = the renderer's default
@@ -40,6 +41,7 @@ parentPort.on("message", ({ data, ports }) => {
 
   const engine = createEngine({
     projectsDir: data.projectsDir,
+    stylesDir: data.stylesDir,
     ai: claudeCli(), // the user's own Claude Code session
     render: createRemotionRenderPort({ ...data.remotion, concurrency: data.concurrency }),
     audio: narrationAudio(data.voice, data.voiceRuntime),

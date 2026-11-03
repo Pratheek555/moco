@@ -34,7 +34,7 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
     check: (data) => checkScript(data, ctx.config, budget),
   });
 
-  const inputs = [ctx.store.inputRef(files.seriesPlan), ctx.store.inputRef(files.bible), promptRef("script")];
+  const inputs = [ctx.store.inputRef(files.seriesPlan), ctx.store.inputRef(files.bible), promptRef("script", ctx.series.template)];
   const saved = await ctx.store.save(files.script(episodeId), "EpisodeScript", script, { producedBy: "ai", backend: ctx.ai.backendId, inputs });
   return saved.meta.contentHash;
 }

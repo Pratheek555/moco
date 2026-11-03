@@ -6,6 +6,8 @@
 > - **TTS deferred** (R5): `@moco/audio` ships `placeholderAudio` (silent WAV, even word timings) so the pipeline runs end to end. Replace it once a TTS engine is chosen; the engine only depends on the `AudioPort` shape (§8).
 > - **No test UI:** Pratheek builds `apps/desktop`. The backend side of it is `apps/desktop/src/engine-host.ts` (utilityProcess entry) + `@moco/engine/client` (typed client for the UI).
 > - **Verified:** `--safe-mode` + `--system-prompt-file` + `--json-schema` + `--tools ""` on Claude Code 2.1.312 and 2.1.302 (the minimum) — the model sees only `StructuredOutput` (§6.2 [VERIFY] resolved). Remotion 4.0.539 stills + H.264 episode render with audio work from Node (§7.2). Running Remotion inside a `utilityProcess` is still unverified.
+> - **Templates (`feat/templates`):** a template is a ready-made skill for the AI. `packages/engine/src/templates/index.ts` lists them (plain data, exported as `@moco/engine/templates` for the UI); `templates/<id>.md` holds a `# <stage>` section per planning stage, appended to that stage's system prompt by `loadPrompt(name, series.template)` and hashed into `promptRef`, so changing a template makes its artifacts stale. Rules a template needs are enforced in code (e.g. `world: "world"` makes the bible stage always build a World). `SeriesInfo.template` records the choice; `createSeries` rejects unknown ids.
+> - **Learned styles (`@moco/learn`, `pnpm learn`):** reference videos in, a skill and a template out (§13 L). `@moco/ai` accepts `images` (sent inside one stream-json message, tools still off).
 >
 > **Implementation status vs §13:**
 > - E0 ✅ pnpm, TS strict, Vitest, CI (`.github/workflows/ci.yml`); dependency rule enforced by `packages/engine/test/boundaries.test.ts` instead of dependency-cruiser.
@@ -56,8 +58,10 @@
 | `packages/audio` | 5 | TTS, music, SFX, word-level timing. |
 | `packages/kit` | 2 | Layered SVG characters, props, backgrounds + a machine-readable **catalog**. |
 | `packages/renderer` | 6 | Remotion project: spec → frames → MP4. No AI. |
+| `packages/learn` | — | Learns a style from reference videos: measures every frame and word, has agents study tile sheets, writes a skill + template. |
 | `apps/desktop` | — | Electron shell over `engine`. |
 | `projects/` | — | User output (git-ignored). |
+| `<userData>/styles/` | — | Learned styles: `<slug>/{skill/, moco-template.md/.json, refs/}`; each is also a template. |
 
 ### 1.3 The core principle
 > **Creative judgment comes from the AI. Rules that must hold are enforced by the engine in code.**
@@ -86,6 +90,7 @@ These don't block engine work — the engine is backend-agnostic by design — b
 ```
 apps/desktop ──► engine (public API only)
 engine ──► spec, ai, audio, kit (catalog data only), renderer (via RenderPort interface)
+learn ──► ai (plus Python tools in .venv-learn and ffmpeg)
 renderer ──► spec, kit (components)
 audio ──► spec (timing types)
 ai ──► (nothing internal; returns raw text/JSON + usage)
@@ -260,7 +265,10 @@ fallback:
 ```
 - Error messages are **for the model**: JSON path, what's wrong, the allowed values (truncated list), one-line fix. Example: `actors[0].actions[1].name: "jump" is not in Krishna's rig. Allowed: blink, raise_hand, point, turn_head, smile. Pick one.`
 - Store every attempt + errors under `shots/<id>/attempts/` — this is the dataset for improving prompts and the kit.
-- Later (L4): visual QA — sample frames and ask the AI to grade against a rubric (requires an image-capable backend; with tools disabled, pass images via API backend or a Read tool restricted to a temp folder **[VERIFY per backend]**).
+- L4 visual review (`review/look.ts`, as built; backends with `seesImages`, i.e. `claude-cli`, which sends images inside the prompt message): the AI looks at renders of what it wrote blind.
+  - **Models**, when the world is built: each model rendered alone in a grey studio (`medium` for cast, `wide` for things), scored 1–5 in batches of 12 (`look_models.md`); the worst (≤3, at most 6) are rebuilt one by one with their render and notes (`fix_model.md`), keeping id, rig, height and joint hinges.
+  - **Shots**, once every shot of an episode exists (after the no-3-in-a-row pass): a fresh middle still of each, scored against its brief (`look_shots.md`); the worst (≤3, at most a third, never fallbacks) are regenerated once with the notes as feedback, keeping the old spec if that fails.
+  - Decisions are logged as `look`; a failed review is skipped, never fatal.
 
 ### 4.9 Memory (harness 7)
 - `SeriesBible` (approved, stable): cast, character descriptions → kit variants, style, palette, voice.
@@ -536,6 +544,16 @@ Performance rule: there are no live `filter: blur()`, shadows or CSS gradients i
 
 `focus_on` keeps the actor's face at `FOCUS_POINT` (540, 576), above the captions, and clamps so the frame edges stay covered (`src/camera.ts`).
 
+### 7.4b Generated worlds: light, finish, library, characters (2026-11-03)
+`kit/src/stages/world/`:
+- **Finish** (`finish.tsx`): environment light from the location's own sky (PMREM of a sky gradient with soft studio panels, dark skies lifted so models don't go black); a key and rim light on the subject placed from the lens each frame, set against the exposure; deterministic auto-exposure from the light reaching the subject (sun, fill, key and every lamp by its three.js falloff), so a 140-candela lamp by a face no longer blows out; then N8AO ambient occlusion, a one-pass camera motion blur (each pixel reprojected through the camera half a frame earlier, from depth), depth of field focused on the lens target (bokeh grows as the lens tightens), bloom above HDR 1.6, ACES tone curve, a grade (S-curve, saturation, warm highs/cool lows), vignette and frame-seeded grain. Materials are `MeshPhysicalMaterial` with fine detail normals, sheen on matte and clear coat on glossy surfaces.
+  - Generated worlds skip `CameraMotionBlur`: six canvases cost 789 ms a frame against 183 ms for the whole finish in one (bench: Fleming s06, preview scale).
+- **Flat subjects** (`shots.ts`): anything ≥2.5× wider than tall (a dish, a rug) is looked down on from ≥38° and framed by its real width.
+- **Asset library** (`library.tsx`, `@moco/kit/library`): `pnpm library:setup` downloads curated Poly Haven models (glTF 1k) and PBR textures (CC0) into `kit/assets/library/` (gitignored) with `index.json`. A part `shape: "asset"` is a library model fitted (uniformly) into `size`; a surface `material` is a library texture mapped triplanar in the shape's own metres and tinted by `colour`. The world prompt lists the library one line per item; `checkWorld` rejects unknown ids. Without the library the list is empty and worlds are built from shapes as before.
+- **Character designer** (`character.ts`): a model with `character` (build, skin, eyes, hair style, top, bottom, shoes, hat, extras, smile) is expanded by the kit into a designed humanoid with the standard joints (proportions in units of height, eyes with iris, pupil and highlight, brows, nose, mouth by `smile`, mitten hands with thumbs, clothes, 11 hair styles, 8 hats, 13 extras). Parts the AI adds go on top. The world prompt asks for `character` for every person.
+- **Looks** (`World.look`): `film` (the finish above) or `toon` (MeshToonMaterial in three bands, library models redrawn as toon, depth-edge ink lines, little depth of field). The world prompt picks by genre.
+- **Template learner knows the renderer** (`learn/src/prompts/template.md` v2): it gets a can/cannot list, picks the nearest look and writes `info.missing` (shown in the app as "Not available in Moco yet").
+
 ### 7.5 Benchmarks and budget
 - `pnpm --filter @moco/renderer bench:render` (Phase 0 script) renders a spec N times at preview (scale 0.5) and/or final quality and records the median, slowest frames and machine info in `docs/benchmarks/render-<date>.{json,md}`. `--off <feature>` switches one premium feature off, and `--entry/--public-dir` benchmarks other compositions (the Rive spike).
 - Results and the proposed render budget are in `docs/benchmarks/render-2026-10-30.md`.
@@ -692,6 +710,32 @@ Each milestone ends with a demo-able check. E0–E4 need **no real AI and no rea
 - [ ] utilityProcess host, IPC, approvals UI, render queue, settings, packaged-build Remotion setup (§7.2).
 - [ ] Partial regeneration (§4.5), render cache, usage meter UI, crash recovery.
 - **Done when:** a packaged app on a clean machine completes an episode offline (except AI calls), and editing one script line re-generates only affected shots.
+
+### L — Learn a style from reference videos (v1 2026-11-02, branch `feat/templates`)
+`pnpm learn:setup` once (uv venv `.venv-learn`: yt-dlp, OpenCV, numpy, faster-whisper), then
+`pnpm learn --name "Style" <youtube-url|file> [more…]` → the app's styles folder (`<userData>/styles/<slug>/`, or `--out`), or **Templates → Learn from videos** in the app. Every step's output is kept; a re-run resumes.
+1. **Fetch** (`fetch.ts`): yt-dlp ≤1080p + trimmed `meta.json`, `audio.wav` 16 kHz.
+2. **Measure** (`python/measure.py`, derived in `video.ts`/`audio.ts`/`measure.ts`): per frame, a RANSAC similarity fit to
+   features tracked forward and back (zoom, pan, rotation; `selftest` checks it on synthetic moves), the motion left once
+   that is undone, and cut scores. From these: transitions (one-frame cuts vs multi-frame blur where tracking collapses
+   *relative to the frames before*, named `zoom`/`whip` by the move into them), shots, each shot's camera profile
+   (creep / arrives moving / accelerates out…), shake as frame-to-frame jerk, motion bursts. Audio: faster-whisper word
+   timings, wpm, speech coverage, pauses after sentences/clauses, pitch, ebur128 loudness, voice-over-music-bed estimate.
+   Sync stats always carry their chance rate.
+3. **Sheets** (`sheets.ts` plans, measure.py draws): overview (middle frame of every shot + its words), every frame around
+   selected transitions and motion bursts with the spoken word on each tile, 1 s bursts, camera and audio charts. Each
+   sheet ≤1.25 MP; the number of sheets grows with length and busyness.
+4. **Agents per reference** (`agents.ts`, prompts in `src/prompts/`): overview (classifies the format) → specialists the
+   format needs (camera + story always, motion when characters act, graphics for text/explainer formats; ≤6 sheets each,
+   so busy references get more agents) → reference lead (rule card). All references run in parallel under one limit.
+5. **Merge** (`merge.ts`): code computes the metric table (median, min–max); the style editor writes Default / Range /
+   Deviate when per rule. `findLeaks` checks for the references' named content, narration names and 4-word lines; one
+   revision pass if any. → `skill/SKILL.md` + `skill/references/measurements.md` (a self-contained Claude skill).
+6. **Template** : the skill compiled into moco's `# <stage>` sections → `moco-template.md` + `moco-template.json`
+   (TemplateInfo-shaped). Same leak check.
+- [x] Learned styles are templates: `@moco/engine/templates/registry` reads `<userData>/styles/*/moco-template.{json,md}` on every lookup (built-in ids win); the app lists them with a "Learned" badge, and **Learn from videos** runs `learnStyle` in its own utility process (`apps/desktop/src/main/learn-host.ts`, from source) with live progress on the `learn` channel.
+- [ ] Engine-enforced numbers from the skill (camera creep, gesture lead, caption chunking, TTS rate) instead of prompt guidance only.
+- [ ] Frame-exact word timing (forced alignment, e.g. wav2vec2) instead of whisper DTW (±2–3 frames); face-change detection; dissolve detection.
 
 ---
 

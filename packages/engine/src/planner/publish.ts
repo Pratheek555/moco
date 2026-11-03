@@ -53,7 +53,7 @@ export async function runPublish(ctx: StageContext, episodeId: string, feedback?
     const message = err instanceof Error ? err.message.split("\n")[0] : String(err);
     ctx.ledger.decide("fallback", `${episodeId}/publish`, `Couldn't render the thumbnail: ${message}`);
   }
-  const inputs = [ctx.store.inputRef(files.seriesPlan), ctx.store.inputRef(files.script(episodeId)), ctx.store.inputRef(files.shotList(episodeId)), promptRef("publish")];
+  const inputs = [ctx.store.inputRef(files.seriesPlan), ctx.store.inputRef(files.script(episodeId)), ctx.store.inputRef(files.shotList(episodeId)), promptRef("publish", ctx.series.template)];
   if (ctx.store.has(files.publishDefaults)) inputs.push(ctx.store.inputRef(files.publishDefaults));
   const saved = await ctx.store.save(files.publish(episodeId), "PublishKit", kit, { producedBy: "ai", backend: ctx.ai.backendId, inputs });
   return saved.meta.contentHash;

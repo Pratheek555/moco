@@ -10,6 +10,7 @@ import { avoidFor, repeatedLook, shotLook, validateScene, type SceneBrief, type 
 import type { StageContext } from "../pipeline/context.ts";
 import { worldForShot } from "../planner/world.ts";
 import { files } from "../pipeline/stages.ts";
+import { lookAtShots } from "../review/look.ts";
 import { hashData } from "../store/hash.ts";
 import { catalogSlice, fallbackScene, goldenScene, relevantFacts, shotBrief, shotVisemes } from "./context.ts";
 import { feedbackSection, joinSections, jsonSection, loadPrompt, promptRef } from "./prompts.ts";
@@ -54,7 +55,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     scope: episodeId,
     schema: SceneSpec,
     jsonSchema: sceneJsonSchema,
-    system: loadPrompt("scene"),
+    system: loadPrompt("scene", ctx.series.template),
     prompt: scenePrompt(ctx, inputs, brief, previous),
     maxAttempts: ctx.config.limits.maxAttemptsPerShot,
     signal: ctx.signal,
@@ -98,7 +99,7 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
     kitVersion: ctx.catalog.kitVersion,
     style: inputs.bible.style,
     facts: relevantFacts(inputs.memory, brief.shot),
-    prompt: promptRef("scene").contentHash,
+    prompt: promptRef("scene", ctx.series.template).contentHash,
   });
   return { kind: "SceneInput", revision: 0, contentHash: key };
 }
@@ -193,6 +194,8 @@ export async function runScenes(ctx: StageContext, episodeId: string, feedback?:
   const failure = settled.find((outcome) => outcome.status === "rejected");
   if (failure) throw failure.reason;
   await breakRepeatedLooks(ctx, episodeId, shotList.shots, shared);
+  // Every shot was written blind: the director looks at the cut and the weakest shots get one more go.
+  await lookAtShots(ctx, episodeId, shotList.shots, shared);
   return scenesHash(ctx, episodeId);
 }
 

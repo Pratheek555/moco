@@ -15,6 +15,7 @@ export interface SeriesInfo {
   idea: string;
   language: string;
   episodes: number;
+  template?: string; // a template id from templates/index.ts; its guidance joins every stage's prompt
   createdAt: string;
   engineVersion: string;
   specVersion: string;

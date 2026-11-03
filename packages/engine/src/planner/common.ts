@@ -22,7 +22,7 @@ export async function planWithAi<T>(ctx: StageContext, call: PlanCall<T>): Promi
     scope: call.scope,
     schema: call.schema,
     jsonSchema: toAiJsonSchema(call.schema),
-    system: loadPrompt(call.promptName),
+    system: loadPrompt(call.promptName, ctx.series.template),
     prompt: call.prompt,
     maxAttempts: ctx.config.limits.maxAttemptsPerPlanStage,
     check: call.check,

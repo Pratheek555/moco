@@ -4,6 +4,8 @@ import { narrationAudio } from "./narration.ts";
 import { createVoiceModelManager, voiceRuntimePaths } from "./voice-models.ts";
 import type { Engine, EngineEvent, SeriesStatus } from "@moco/engine";
 import { createEngineClient, EngineClientError } from "@moco/engine/client";
+import { TEMPLATES } from "@moco/engine/templates";
+import { learnedTemplates } from "@moco/engine/templates/registry";
 import { catalog } from "@moco/kit";
 import type { PublishDefaults, PublishKit, SeriesBible, SeriesPlan } from "@moco/spec";
 import {
@@ -26,12 +28,14 @@ import { fileURLToPath } from "node:url";
 import type {
   DeepPartial,
   EpisodeMedia,
+  LearnJob,
   Settings,
   SeriesSummary,
 } from "../shared/api.ts";
 import { assetUrl } from "../shared/api.ts";
 import { handleAssetProtocol, registerAssetScheme } from "./assets.ts";
 import type { EngineHostConfig } from "./engine-host.ts";
+import type { LearnHostInput, LearnHostMessage } from "./learn-host.ts";
 import { loadSettings, saveSettings } from "./settings.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
@@ -52,6 +56,8 @@ let settings: Settings;
 const send = (channel: string, payload: unknown) =>
   win?.webContents.send(`moco:${channel}`, payload);
 const previewsDir = () => path.join(app.getPath("userData"), "previews");
+// Styles learned from reference videos; each folder is also a template (see @moco/engine/templates/registry).
+const stylesDir = () => path.join(app.getPath("userData"), "styles");
 
 function isDark() {
   return (
@@ -144,6 +150,7 @@ function startEngineHost(): Engine {
   const { port1, port2 } = new MessageChannelMain();
   const config: EngineHostConfig = {
     projectsDir: settings.projectsDir,
+    stylesDir: stylesDir(),
     voice: { ...settings.voice },
     voiceRuntime,
     concurrency: settings.render.concurrency || null,
@@ -185,6 +192,52 @@ function onEngineEvent(event: EngineEvent) {
     send("library", { seriesId: event.seriesId });
 }
 
+// ---------- learning templates from reference videos ----------
+
+// Each run is its own utility process (main/learn-host.ts); jobs are kept for this session so the page can show them.
+const learnJobs = new Map<string, { view: LearnJob; process: UtilityProcess }>();
+
+function startLearning(input: { name: string; sources: string[] }): string {
+  const name = input.name.trim();
+  const sources = input.sources.map((source) => source.trim()).filter(Boolean);
+  if (!name) throw new Error("Give the template a name");
+  if (sources.length === 0 || sources.length > 10) throw new Error("Add 1–10 video links");
+  for (const source of sources) if (!/^https?:\/\//i.test(source) && !existsSync(source)) throw new Error(`Not a link or a file: ${source}`);
+  if ([...learnJobs.values()].some((job) => job.view.state === "running")) throw new Error("A template is already being learned; wait for it to finish");
+
+  const id = `learn-${Date.now().toString(36)}`;
+  const child = utilityProcess.fork(path.join(app.getAppPath(), "src", "main", "learn-host.ts"), [], { serviceName: "moco-learn", stdio: "pipe" });
+  const view: LearnJob = { id, name, sources, state: "running", step: "fetch", log: [], startedAt: new Date().toISOString() };
+  learnJobs.set(id, { view, process: child });
+  const note = (line: string) => {
+    view.log = [...view.log, line].slice(-200);
+    send("learn", view);
+  };
+  child.stdout?.on("data", (chunk) => process.stdout.write(`[learn] ${chunk}`));
+  child.stderr?.on("data", (chunk) => process.stderr.write(`[learn] ${chunk}`));
+  child.on("message", (message: LearnHostMessage) => {
+    if (message.type === "event") {
+      view.step = message.step;
+      note(message.message);
+    } else if (message.type === "done") {
+      Object.assign(view, { state: "done", step: "done", templateId: message.templateId });
+      note(`Done: ${message.calls} agent calls, about $${message.costUsd.toFixed(2)} of plan usage${message.leaks ? `; ${message.leaks} phrase(s) may still echo the videos` : ""}`);
+    } else {
+      Object.assign(view, { state: "error", error: message.message });
+      send("learn", view);
+    }
+  });
+  child.on("exit", (code) => {
+    if (view.state !== "running") return;
+    Object.assign(view, { state: "error", error: `The learning process stopped (code ${code})` });
+    send("learn", view);
+  });
+  const config: LearnHostInput = { name, sources, stylesDir: stylesDir() };
+  child.postMessage(config);
+  send("learn", view);
+  return id;
+}
+
 // An artifact's { meta, data }, or null when the stage that makes it hasn't run yet.
 async function artifact<T>(
   seriesId: string,
@@ -214,6 +267,7 @@ async function summarize(id: string): Promise<SeriesSummary> {
     premise: plan?.data.premise ?? "",
     language: status.series.language,
     episodes: status.series.episodes,
+    template: status.series.template,
     createdAt: status.series.createdAt,
     cast: (bible?.data.cast ?? []).map((member) => member.kitCharacterId),
     finals,
@@ -373,6 +427,26 @@ app
     });
 
     handle("kit.catalog", () => catalog);
+    handle("templates.list", () => [...TEMPLATES, ...learnedTemplates(stylesDir())]);
+    handle("templates.learn", (input: { name: string; sources: string[] }) => startLearning(input));
+    handle("templates.jobs", () => [...learnJobs.values()].map((job) => job.view));
+    handle("templates.cancelLearn", (jobId: string) => {
+      const job = learnJobs.get(jobId);
+      if (!job || job.view.state !== "running") return;
+      job.view.state = "cancelled";
+      job.process.kill();
+      send("learn", job.view);
+    });
+    handle("templates.openFolder", async (id: string) => {
+      const template = learnedTemplates(stylesDir()).find((candidate) => candidate.id === id);
+      if (template?.learned) await shell.openPath(template.learned.dir);
+    });
+    handle("templates.remove", async (id: string) => {
+      const template = learnedTemplates(stylesDir()).find((candidate) => candidate.id === id);
+      if (!template?.learned) throw new Error("Only learned templates can be removed");
+      if (path.dirname(template.learned.dir) !== stylesDir()) throw new Error("That template is outside the styles folder");
+      await rm(template.learned.dir, { recursive: true, force: true });
+    });
 
     handle("series.list", async () => {
       const infos = await engine().listSeries();
@@ -387,7 +461,7 @@ app
     });
     handle(
       "series.create",
-      async (input: { idea: string; language: string; episodes: number }) => {
+      async (input: { idea: string; language: string; episodes: number; template?: string }) => {
         const id = await engine().createSeries(input);
         await engine().runStage({ seriesId: id });
         send("library", { seriesId: id });

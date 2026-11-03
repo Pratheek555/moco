@@ -25,6 +25,14 @@ process.stdout.write(${JSON.stringify(JSON.stringify(output))});
   return { bin, readLog: async () => JSON.parse(await readFile(log, "utf8")) as { args: string[]; cwd: string; stdin: string } };
 }
 
+// Same, but prints one JSON event per line, like `--output-format stream-json`.
+async function fakeClaudeLines(events: object[]) {
+  const fake = await fakeClaude({});
+  const script = await readFile(fake.bin, "utf8");
+  await writeFile(fake.bin, script.replace(/process\.stdout\.write\(.*\);/, `process.stdout.write(${JSON.stringify(events.map((event) => JSON.stringify(event)).join("\n"))});`));
+  return fake;
+}
+
 const request = { system: "sys", prompt: "hello", jsonSchema: { type: "object" }, timeoutMs: 10_000 };
 
 describe("claude-cli", () => {
@@ -41,6 +49,23 @@ describe("claude-cli", () => {
     expect(args[args.indexOf("--tools") + 1]).toBe("");
     expect(args[args.indexOf("--disallowedTools") + 1]).toBe("mcp__*");
     expect(args[args.indexOf("--json-schema") + 1]).toBe('{"type":"object"}');
+  });
+
+  it("sends images inside one stream-json message, still with no tools, and reads the final result event", async () => {
+    const stream = [{ type: "system", subtype: "init" }, { type: "result", result: "", structured_output: { seen: true }, total_cost_usd: 0.02 }];
+    const { bin, readLog } = await fakeClaudeLines(stream);
+    const image = join(await mkdtemp(join(tmpdir(), "img-")), "tile.png");
+    await writeFile(image, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
+    const result = await claudeCli({ bin }).generate({ ...request, images: [image] });
+    expect(result.json).toEqual({ seen: true });
+
+    const { args, stdin } = await readLog();
+    expect(args[args.indexOf("--input-format") + 1]).toBe("stream-json");
+    expect(args[args.indexOf("--output-format") + 1]).toBe("stream-json");
+    expect(args[args.indexOf("--tools") + 1]).toBe("");
+    const message = JSON.parse(stdin) as { message: { content: { type: string; source?: { media_type: string; data: string }; text?: string }[] } };
+    expect(message.message.content[0]).toMatchObject({ type: "image", source: { media_type: "image/png", data: "iVBORw==" } });
+    expect(message.message.content.at(-1)).toEqual({ type: "text", text: "hello" });
   });
 
   it("reports a missing structured output as a refusal", async () => {

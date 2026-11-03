@@ -3,15 +3,18 @@ import {
   ArrowRightIcon,
   CheckIcon,
   FilmIcon,
+  LayoutTemplateIcon,
+  XIcon,
   PlusIcon,
   SearchIcon,
   SparklesIcon,
   TriangleAlertIcon,
   WandSparklesIcon,
 } from "lucide-react";
-import type { SeriesSummary } from "@/lib/api.ts";
+import type { SeriesSummary, TemplateInfo } from "@/lib/api.ts";
 import { api } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
+import { cn } from "@/lib/utils";
 import { newSeries, report, useApp } from "@/lib/store.ts";
 import { EPISODE_COUNTS, IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
@@ -49,6 +52,7 @@ import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip
 import { CastArt } from "../components/CastArt.tsx";
 import { Page, PageHeader } from "../components/Page.tsx";
 import { SeriesCard } from "../components/SeriesCard.tsx";
+import { TemplateCover, TemplateSheet } from "../components/Templates.tsx";
 import { voiceLanguageProblem } from "../../../shared/voice-availability.ts";
 
 // Quick starts under the idea box: a label and the idea it fills in.
@@ -64,8 +68,13 @@ export function Studio() {
     idea = useApp((s) => s.composerIdea),
     setIdea = useApp((s) => s.setComposerIdea),
     ai = useApp((s) => s.ai),
-    go = useApp((s) => s.go);
-  const [episodes, setEpisodes] = useState(settings.defaults.episodes),
+    go = useApp((s) => s.go),
+    templates = useApp((s) => s.templates),
+    templateId = useApp((s) => s.composerTemplate),
+    setTemplateId = useApp((s) => s.setComposerTemplate);
+  const template = templates.find((t) => t.id === templateId);
+  const [details, setDetails] = useState<TemplateInfo | null>(null);
+  const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
 
@@ -90,8 +99,9 @@ export function Studio() {
     if (selectedVoiceProblem) { report(`Narration unavailable: ${selectedVoiceProblem}. Check Voice & narration in Settings.`); return; }
     setStarting(true);
     try {
-      const id = await api.series.create({ idea: idea.trim(), episodes, language });
+      const id = await api.series.create({ idea: idea.trim(), episodes, language, ...(template && { template: template.id }) });
       setIdea("");
+      setTemplateId(null);
       go({ name: "series", id });
     } catch (e) {
       report(e);
@@ -110,9 +120,18 @@ export function Studio() {
         action: { label: "Undo", run: () => setIdea(previous) },
       });
   };
+  // With a template, the sparks and "Surprise me" draw from ideas that suit it.
+  const sparks: readonly (readonly [string, string])[] = template ? template.ideas.map((i) => [i.label, i.idea] as const) : SPARKS;
   const surprise = () => {
-    const others = IDEAS.filter((text) => text !== idea);
-    pickIdea(others[Math.floor(Math.random() * others.length)]!);
+    const pool = template ? template.ideas.map((i) => i.idea) : IDEAS;
+    const others = pool.filter((text) => text !== idea);
+    if (others.length) pickIdea(others[Math.floor(Math.random() * others.length)]!);
+  };
+
+  // Picking a template sets its usual episode count; the user can still change it.
+  const chooseTemplate = (next: TemplateInfo | undefined) => {
+    setTemplateId(next?.id ?? null);
+    setEpisodes(next ? next.defaults.episodes : settings.defaults.episodes);
   };
 
   return (
@@ -172,6 +191,28 @@ export function Studio() {
               }}
             />
             <InputGroupAddon align="block-end" className="border-t">
+              {templates.length > 0 && (
+                <Select
+                  value={template?.id ?? "none"}
+                  onValueChange={(v) => chooseTemplate(templates.find((t) => t.id === v))}
+                  disabled={starting}
+                >
+                  <SelectTrigger size="sm" aria-label="Template">
+                    <LayoutTemplateIcon />
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectGroup>
+                      <SelectItem value="none">No template</SelectItem>
+                      {templates.map((t) => (
+                        <SelectItem key={t.id} value={t.id}>
+                          {t.name}
+                        </SelectItem>
+                      ))}
+                    </SelectGroup>
+                  </SelectContent>
+                </Select>
+              )}
               <Select value={String(episodes)} onValueChange={(v) => setEpisodes(Number(v))} disabled={starting}>
                 <SelectTrigger size="sm" aria-label="Number of episodes">
                   <SelectValue />
@@ -216,9 +257,25 @@ export function Studio() {
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
-          <FieldDescription>
-            Any story works: Moco builds a cast and world for it. It plans the series, then stops so you can review each step.
-          </FieldDescription>
+          {template ? (
+            <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2 pr-3">
+              <TemplateCover template={template} className="h-12 w-16 shrink-0 overflow-hidden rounded-md border" />
+              <div className="flex min-w-0 flex-1 flex-col">
+                <span className="text-sm font-medium">Using “{template.name}”</span>
+                <span className="truncate text-xs text-muted-foreground">{template.tagline}</span>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => setDetails(template)}>
+                Details
+              </Button>
+              <Button variant="ghost" size="icon-sm" aria-label="Remove template" onClick={() => chooseTemplate(undefined)}>
+                <XIcon />
+              </Button>
+            </div>
+          ) : (
+            <FieldDescription>
+              Any story works: Moco builds a cast and world for it. It plans the series, then stops so you can review each step.
+            </FieldDescription>
+          )}
           {selectedVoiceProblem && <FieldDescription>
             Narration unavailable: {selectedVoiceProblem}.
             <Button variant="link" size="sm" onClick={() => go({ name: "settings", section: "voice" })}>Open voice settings</Button>
@@ -226,7 +283,7 @@ export function Studio() {
         </Field>
         <div className="flex flex-wrap items-center gap-2">
           <span className="mr-1 text-sm text-muted-foreground">Need a spark?</span>
-          {SPARKS.map(([label, text]) => (
+          {sparks.map(([label, text]) => (
             <Button key={label} variant="outline" size="sm" onClick={() => pickIdea(text)}>
               {label}
             </Button>
@@ -241,6 +298,47 @@ export function Studio() {
           </Tooltip>
         </div>
       </section>
+
+      {templates.length > 0 && (
+        <section className="flex flex-col gap-4">
+          <div className="flex items-end justify-between gap-4">
+            <div className="flex flex-col gap-1">
+              <h2 className="text-lg font-semibold tracking-tight">Start from a template</h2>
+              <p className="text-sm text-muted-foreground">A proven style for the story, the world and the cut. Just bring the idea.</p>
+            </div>
+            <Button variant="ghost" size="sm" onClick={() => go({ name: "templates" })}>
+              All templates
+              <ArrowRightIcon data-icon="inline-end" />
+            </Button>
+          </div>
+          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
+            {templates.slice(0, 3).map((t) => {
+              const active = t.id === template?.id;
+              return (
+                <button
+                  key={t.id}
+                  type="button"
+                  aria-pressed={active}
+                  disabled={starting}
+                  onClick={() => chooseTemplate(active ? undefined : t)}
+                  className={cn(
+                    "group flex items-center gap-3 rounded-xl border bg-card p-2 pr-3 text-left transition-shadow outline-none hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50",
+                    active && "ring-2 ring-primary",
+                  )}
+                >
+                  <TemplateCover template={t} className="h-16 w-20 shrink-0 overflow-hidden rounded-lg border" />
+                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
+                    <span className="truncate text-sm font-medium">{t.name}</span>
+                    <span className="line-clamp-2 text-xs text-muted-foreground">{t.tagline}</span>
+                  </span>
+                  {active && <CheckIcon className="size-4 shrink-0 text-primary" />}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+      )}
+      <TemplateSheet template={details} onOpenChange={(open) => !open && setDetails(null)} />
 
       <section className="flex flex-col gap-4">
         <div className="flex items-end justify-between gap-4">
