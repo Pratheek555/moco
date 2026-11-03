@@ -13,6 +13,7 @@ export * from "./define.ts";
 export * from "./rig.ts";
 export * from "./looks.ts";
 export { worldStage } from "./stages/world/World.tsx";
+export { setLibraryUrl } from "./stages/world/library.tsx";
 
 // Every installed kit entry. Packs (Ramayana, Shiva, …) add entries here.
 export const registry = {

@@ -24,6 +24,7 @@ import { ArtifactStore } from "./store/artifacts.ts";
 import { Ledger, type Decision, type JobRecord, type StageRecord } from "./store/ledger.ts";
 import { assertSafeId, exists, readJson, seriesDir, slugify, writeJsonAtomic } from "./store/workspace.ts";
 import { meteredAi } from "./usage/meter.ts";
+import { lookupTemplate, setStylesDir } from "./templates/registry.ts";
 
 export { EngineError } from "./errors.ts";
 export type { EngineErrorCode } from "./errors.ts";
@@ -31,6 +32,8 @@ export type { EngineEvent, EngineEventType, Unsubscribe } from "./events/bus.ts"
 export type { AudioPort, RenderPort, RenderError, RenderCheck } from "./ports.ts";
 export type { EngineConfig, EngineLimits } from "./config.ts";
 export { defaultConfig } from "./config.ts";
+export { TEMPLATES, findTemplate, type TemplateInfo } from "./templates/index.ts";
+export { allTemplates, learnedTemplates } from "./templates/registry.ts";
 
 export const ENGINE_VERSION = "0.1.0";
 
@@ -71,7 +74,7 @@ export interface SeriesStatus {
 }
 
 export interface Engine {
-  createSeries(input: { idea: string; language: string; episodes?: number }): Promise<SeriesId>;
+  createSeries(input: { idea: string; language: string; episodes?: number; template?: string }): Promise<SeriesId>;
   // Plan `episodes` more after the approved ones, steered by an optional note. The longer plan waits for approval.
   extendSeries(seriesId: SeriesId, input: { episodes: number; note?: string }): Promise<JobId>;
   listSeries(): Promise<SeriesInfo[]>;
@@ -103,6 +106,7 @@ export interface CreateEngineOptions {
   audio: AudioPort;
   catalog?: Catalog; // defaults to the installed kit catalog
   config?: Partial<EngineConfig>;
+  stylesDir?: string; // styles learned from reference videos (@moco/learn); each one is also a template
 }
 
 // One series loaded in memory.
@@ -118,6 +122,7 @@ interface OpenSeries {
 export function createEngine(options: CreateEngineOptions): Engine {
   const config: EngineConfig = { ...defaultConfig(options.projectsDir), ...options.config };
   const catalog = options.catalog ?? defaultCatalog;
+  setStylesDir(options.stylesDir);
   const bus = new EventBus(config.projectsDir);
   const aiSlots = new Semaphore(config.limits.aiConcurrency);
   const renderSlots = new Semaphore(1); // rendering is CPU-heavy
@@ -262,9 +267,19 @@ export function createEngine(options: CreateEngineOptions): Engine {
       if (!idea || idea.length > 4000) throw new EngineError("invalid_id", "the idea must be 1–4000 characters");
       if (!/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(input.language)) throw new EngineError("invalid_id", `"${input.language}" is not a language code like "en" or "hi"`);
       if (!Number.isInteger(episodes) || episodes < 1 || episodes > 30) throw new EngineError("invalid_id", "episodes must be 1–30");
+      if (input.template !== undefined && !lookupTemplate(input.template)) throw new EngineError("invalid_id", `unknown template "${input.template}"`);
 
       const id = await uniqueSeriesId(config.projectsDir, slugify(idea.split(/\s+/).slice(0, 6).join(" ")));
-      const info: SeriesInfo = { id, idea, language: input.language, episodes, createdAt: new Date().toISOString(), engineVersion: ENGINE_VERSION, specVersion: SPEC_VERSION };
+      const info: SeriesInfo = {
+        id,
+        idea,
+        language: input.language,
+        episodes,
+        ...(input.template && { template: input.template }),
+        createdAt: new Date().toISOString(),
+        engineVersion: ENGINE_VERSION,
+        specVersion: SPEC_VERSION,
+      };
       await writeJsonAtomic(join(seriesDir(config.projectsDir, id), "series.json"), info);
       await load(id);
       return id;

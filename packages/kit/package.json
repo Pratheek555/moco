@@ -7,11 +7,14 @@
   "exports": {
     ".": "./src/index.ts",
     "./components": "./src/components.ts",
-    "./assets": "./src/assets.ts"
+    "./assets": "./src/assets.ts",
+    "./library": "./src/library.ts"
   },
   "dependencies": {
     "@moco/spec": "workspace:*",
     "@react-three/fiber": "^9.8.2",
+    "n8ao": "1.10.3",
+    "postprocessing": "6.37.4",
     "react": "19.3.1",
     "three": "0.170.0"
   },

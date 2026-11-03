@@ -6,10 +6,13 @@ import { Fragment } from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
 import { ThreeCanvas } from "@remotion/three";
-import { IMAGE_LAYER_BOX, registry, rigStateAt, worldStage, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef, type StageDef } from "@moco/kit/components";
+import { IMAGE_LAYER_BOX, registry, rigStateAt, setLibraryUrl, worldStage, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef, type StageDef } from "@moco/kit/components";
 import { FRAME_HEIGHT, FRAME_WIDTH, type Caption, type SceneActor, type SceneSpec, type SceneStage } from "@moco/spec";
 import { cameraAt, layerTransform, type CameraState, type Point } from "../camera.ts";
 import { Atmosphere, Finish, Grade, TimeOfDayTint } from "./Look.tsx";
+
+// The asset library lives in the kit's assets folder, which is this bundle's public folder.
+setLibraryUrl(staticFile);
 
 // Thrown errors carry "[moco:path=…]" so the RenderPort can map them to a JSON path.
 export function specError(path: string, message: string): Error {
@@ -77,13 +80,18 @@ const BLUR_SAMPLES = 6;
 function StageView({ scene, def, timeOfDay }: { scene: SceneSpec; def: StageDef; timeOfDay: string }) {
   if (!scene.stage) throw specError("stage", `background "${scene.background.id}" needs a stage`);
   const stage = scene.stage;
+  const canvas = (
+    <AbsoluteFill>
+      <ThreeCanvas width={FRAME_WIDTH} height={FRAME_HEIGHT} shadows>
+        <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} world={scene.world} />
+      </ThreeCanvas>
+    </AbsoluteFill>
+  );
+  // A generated world blurs its own camera motion in one pass (see the kit's world finish).
+  if (scene.world) return canvas;
   return (
     <CameraMotionBlur samples={BLUR_SAMPLES} shutterAngle={180}>
-      <AbsoluteFill>
-        <ThreeCanvas width={FRAME_WIDTH} height={FRAME_HEIGHT} shadows>
-          <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} world={scene.world} />
-        </ThreeCanvas>
-      </AbsoluteFill>
+      {canvas}
     </CameraMotionBlur>
   );
 }

@@ -19,7 +19,9 @@ export type EngineEventType =
   | "job.finished"
   | "usage.updated"
   | "usage.rate_limited"
-  | "render.progress";
+  | "render.progress"
+  | "look.models"
+  | "look.shots";
 
 export interface EngineEvent {
   type: EngineEventType;

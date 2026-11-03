@@ -8,7 +8,9 @@
     ".": "./src/index.ts",
     "./host": "./src/host.ts",
     "./client": "./src/client.ts",
-    "./testing": "./src/testing/fakes.ts"
+    "./templates": "./src/templates/index.ts",
+    "./testing": "./src/testing/fakes.ts",
+    "./templates/registry": "./src/templates/registry.ts"
   },
   "dependencies": {
     "@moco/ai": "workspace:*",

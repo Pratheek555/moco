@@ -31,6 +31,14 @@ const api: MocoApi = {
     preview: call("voice.preview"),
   } as MocoApi["voice"],
   kit: { catalog: call("kit.catalog") } as MocoApi["kit"],
+  templates: {
+    list: call("templates.list"),
+    learn: call("templates.learn"),
+    jobs: call("templates.jobs"),
+    cancelLearn: call("templates.cancelLearn"),
+    openFolder: call("templates.openFolder"),
+    remove: call("templates.remove"),
+  } as MocoApi["templates"],
   series: {
     list: call("series.list"),
     create: call("series.create"),

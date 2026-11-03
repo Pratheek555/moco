@@ -5,6 +5,7 @@ import {
   CircleHelpIcon,
   ClapperboardIcon,
   FilmIcon,
+  LayoutTemplateIcon,
   LibraryIcon,
   MoonIcon,
   PlusIcon,
@@ -73,12 +74,14 @@ import { Studio, LibraryPage } from "./routes/Studio.tsx";
 import { SeriesPage } from "./routes/Series.tsx";
 import { EpisodePage } from "./routes/Episode.tsx";
 import { KitPage } from "./routes/Kit.tsx";
+import { TemplatesPage } from "./routes/Templates.tsx";
 import { QueuePage } from "./routes/Queue.tsx";
 import { SettingsPage } from "./routes/Settings.tsx";
 
 const NAV = [
   { name: "studio", label: "Studio", icon: SparklesIcon },
   { name: "library", label: "My series", icon: LibraryIcon },
+  { name: "templates", label: "Templates", icon: LayoutTemplateIcon },
   { name: "kit", label: "Creative kit", icon: ShapesIcon },
   { name: "renders", label: "Activity", icon: ClapperboardIcon },
 ] as const;
@@ -183,6 +186,8 @@ export function App() {
                     seriesId={route.seriesId}
                     episodeId={route.episodeId}
                   />
+                ) : route.name === "templates" ? (
+                  <TemplatesPage id={route.id} />
                 ) : route.name === "kit" ? (
                   <KitPage />
                 ) : route.name === "renders" ? (

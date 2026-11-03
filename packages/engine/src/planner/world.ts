@@ -7,6 +7,8 @@ import { feedbackSection, joinSections, jsonSection, promptRef } from "../genera
 import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
+import { loadLibrary, type Library } from "@moco/kit/library";
+import { lookAtModels } from "../review/look.ts";
 import { planWithAi, previousSection } from "./common.ts";
 
 // Building a whole world is one long answer: a real one took 14 minutes, so this leaves room for a bigger story.
@@ -20,18 +22,34 @@ export async function runWorld(ctx: StageContext, plan: SeriesPlan, feedback?: s
     timeoutMs: WORLD_TIMEOUT_MS,
     prompt: joinSections([
       jsonSection("Series plan", plan),
+      librarySection(loadLibrary()),
       await previousSection(ctx, files.world, "World", feedback),
       feedbackSection(feedback),
     ]),
     check: checkWorld,
   });
-  await ctx.store.save(files.world, "World", world, {
+  // A described character is a humanoid whatever rig was written: the designer gives it the joints.
+  const rigged = { ...world, models: world.models.map((model) => (model.character ? { ...model, rig: "humanoid" as const } : model)) };
+  // Built blind: each model is rendered and looked at, and the ones that don't read are rebuilt once.
+  const { world: looked } = await lookAtModels(ctx, plan, rigged);
+  await ctx.store.save(files.world, "World", looked, {
     producedBy: "ai",
     backend: ctx.ai.backendId,
-    inputs: [ctx.store.inputRef(files.seriesPlan), promptRef("world")],
+    inputs: [ctx.store.inputRef(files.seriesPlan), promptRef("world", ctx.series.template)],
   });
-  return world;
+  return looked;
 }
+
+// The library as the prompt shows it: one line per model and material, short enough to list them all.
+function librarySection(library: Library): string {
+  if (library.models.length === 0 && library.textures.length === 0) return "";
+  const models = library.models.map((model) => `${model.id}: ${model.name}, ${model.size.map((metres) => metres.toFixed(2)).join("×")} m (${model.tags.slice(0, 4).join(", ")})`);
+  const textures = library.textures.map((texture) => `${texture.id}: ${texture.name} (${texture.tags.slice(0, 3).join(", ")})`);
+  return [`## Asset library: models (id: name, width×height×depth)`, ...models, "", "## Asset library: materials", ...textures].join("\n");
+}
+
+const libraryModelIds = () => new Set(loadLibrary().models.map((model) => model.id));
+const libraryTextureIds = () => new Set(loadLibrary().textures.map((texture) => texture.id));
 
 // ---------- checks the schema can't make ----------
 
@@ -40,14 +58,15 @@ function duplicates(ids: string[]): string[] {
 }
 
 // What each shape needs beyond its size.
-const SHAPE_NEEDS: Partial<Record<WorldPart["shape"], "profile" | "outline" | "path">> = { lathe: "profile", extrude: "outline", tube: "path" };
+const SHAPE_NEEDS: Partial<Record<WorldPart["shape"], "profile" | "outline" | "path" | "asset">> = { lathe: "profile", extrude: "outline", tube: "path", asset: "asset" };
 
 function checkPart(part: WorldPart, path: string, model: WorldModel, ids: Set<string>): Issue[] {
   const issues: Issue[] = [];
   if (part.parent !== undefined && !ids.has(part.parent)) issues.push({ path: `${path}.parent`, problem: `"${part.parent}" is not a part of ${model.id}` });
   if (!(part.surface in model.surfaces)) issues.push({ path: `${path}.surface`, problem: `"${part.surface}" is not a surface of ${model.id}`, allowed: Object.keys(model.surfaces) });
   const needs = SHAPE_NEEDS[part.shape];
-  if (needs && !part[needs]) issues.push({ path, problem: `a ${part.shape} needs \`${needs}\`` });
+  if (needs && !part[needs]) issues.push({ path, problem: `${/^[aeiou]/.test(part.shape) ? "an" : "a"} ${part.shape} needs \`${needs}\`` });
+  if (part.shape === "asset" && part.asset && !libraryModelIds().has(part.asset)) issues.push({ path: `${path}.asset`, problem: `"${part.asset}" is not in the asset library`, fix: "Use an id from the asset library list, or build it from shapes." });
   return issues;
 }
 
@@ -74,12 +93,15 @@ function checkMoves(model: WorldModel, path: string, ids: Set<string>): Issue[] 
   });
 }
 
-function checkModel(model: WorldModel, index: number): Issue[] {
+export function checkModel(model: WorldModel, index: number): Issue[] {
   const path = `models[${index}]`;
   const ids = new Set(model.parts.map((part) => part.id));
   const loops = loopingParts(model);
-  const missing = model.rig === "humanoid" ? HUMANOID_JOINTS.filter((joint) => !ids.has(joint)) : [];
+  // A described character gets its joints from the kit's designer.
+  const missing = model.rig === "humanoid" && !model.character ? HUMANOID_JOINTS.filter((joint) => !ids.has(joint)) : [];
+  const materials = Object.entries(model.surfaces).filter(([, surface]) => surface.material && !libraryTextureIds().has(surface.material));
   return [
+    ...materials.map(([name, surface]) => ({ path: `${path}.surfaces.${name}.material`, problem: `"${surface.material}" is not a library material`, fix: "Use a material id from the asset library list, or leave it out." })),
     ...duplicates(model.parts.map((part) => part.id)).map((id) => ({ path: `${path}.parts`, problem: `part id "${id}" is used twice` })),
     ...model.parts.flatMap((part, partIndex) => checkPart(part, `${path}.parts[${partIndex}]`, model, ids)),
     ...(loops.length > 0 ? [{ path: `${path}.parts`, problem: `${loops.join(", ")} form a loop of parents` }] : []),
@@ -146,5 +168,5 @@ export function worldForShot(world: World, spec: Pick<SceneSpec, "background" | 
   const location = world.locations.find((candidate) => candidate.id === spec.background.id);
   if (!location) return undefined;
   const used = new Set([...location.set, ...location.scatter, ...(spec.stage?.players ?? [])].map((item) => item.model));
-  return { location, models: world.models.filter((model) => used.has(model.id)) };
+  return { location, models: world.models.filter((model) => used.has(model.id)), look: world.look };
 }

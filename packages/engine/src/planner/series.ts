@@ -17,7 +17,7 @@ type PlanExtension = z.infer<typeof PlanExtension>;
 
 export async function runSeriesPlan(ctx: StageContext, feedback?: string): Promise<string> {
   const plan = ctx.ledger.data.planExtension ? await extendPlan(ctx, ctx.ledger.data.planExtension, feedback) : await newPlan(ctx, feedback);
-  const saved = await ctx.store.save(files.seriesPlan, "SeriesPlan", plan, { producedBy: "ai", backend: ctx.ai.backendId, inputs: [promptRef(ctx.ledger.data.planExtension ? "series_extend" : "series")] });
+  const saved = await ctx.store.save(files.seriesPlan, "SeriesPlan", plan, { producedBy: "ai", backend: ctx.ai.backendId, inputs: [promptRef(ctx.ledger.data.planExtension ? "series_extend" : "series", ctx.series.template)] });
   ctx.ledger.data.episodeIds = plan.episodes.map((episode) => episode.id);
   return saved.meta.contentHash;
 }
