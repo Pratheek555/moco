@@ -23,6 +23,9 @@ importers:
       '@moco/renderer':
         specifier: workspace:*
         version: link:packages/renderer
+      '@moco/spec':
+        specifier: workspace:*
+        version: link:packages/spec
       '@types/node':
         specifier: ^22.20.5
         version: 22.20.5
