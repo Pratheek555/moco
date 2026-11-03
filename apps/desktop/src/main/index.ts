@@ -273,6 +273,7 @@ async function summarize(id: string): Promise<SeriesSummary> {
     finals,
     next: status.next,
     running: status.activeJob !== undefined,
+    usage: status.usage,
   };
 }
 

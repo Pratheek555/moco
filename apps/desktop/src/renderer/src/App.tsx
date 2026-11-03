@@ -2,6 +2,7 @@ import { Component, Fragment, useEffect, useRef, useState, type ReactNode } from
 import {
   ArrowLeftIcon,
   ArrowRightIcon,
+  ChartColumnIcon,
   CircleHelpIcon,
   ClapperboardIcon,
   FilmIcon,
@@ -77,6 +78,7 @@ import { KitPage } from "./routes/Kit.tsx";
 import { TemplatesPage } from "./routes/Templates.tsx";
 import { QueuePage } from "./routes/Queue.tsx";
 import { SettingsPage } from "./routes/Settings.tsx";
+import { UsagePage } from "./routes/Usage.tsx";
 
 const NAV = [
   { name: "studio", label: "Studio", icon: SparklesIcon },
@@ -84,6 +86,12 @@ const NAV = [
   { name: "templates", label: "Templates", icon: LayoutTemplateIcon },
   { name: "kit", label: "Creative kit", icon: ShapesIcon },
   { name: "renders", label: "Activity", icon: ClapperboardIcon },
+] as const;
+
+// Pages in the sidebar footer, below the workspace.
+const FOOTER_NAV = [
+  { name: "settings", label: "Settings", icon: Settings2Icon },
+  { name: "usage", label: "Usage", icon: ChartColumnIcon },
 ] as const;
 
 let boot: Promise<void> | undefined;
@@ -192,6 +200,8 @@ export function App() {
                   <KitPage />
                 ) : route.name === "renders" ? (
                   <QueuePage />
+                ) : route.name === "usage" ? (
+                  <UsagePage />
                 ) : (
                   <SettingsPage />
                 )}
@@ -277,16 +287,18 @@ function AppSidebar({ busy }: { busy: number }) {
               <Shortcut keys={[MOD_KEY, "K"]} />
             </SidebarMenuBadge>
           </SidebarMenuItem>
-          <SidebarMenuItem>
-            <SidebarMenuButton
-              isActive={route.name === "settings"}
-              tooltip="Settings"
-              onClick={() => go({ name: "settings" })}
-            >
-              <Settings2Icon />
-              <span>Settings</span>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
+          {FOOTER_NAV.map((item) => (
+            <SidebarMenuItem key={item.name}>
+              <SidebarMenuButton
+                isActive={route.name === item.name}
+                tooltip={item.label}
+                onClick={() => go({ name: item.name })}
+              >
+                <item.icon />
+                <span>{item.label}</span>
+              </SidebarMenuButton>
+            </SidebarMenuItem>
+          ))}
         </SidebarMenu>
       </SidebarFooter>
       <SidebarRail />
@@ -383,7 +395,7 @@ function Crumbs() {
             { label: seriesTitle(route.seriesId), to: { name: "series", id: route.seriesId } },
             { label: `Episode ${Number(route.episodeId.replace(/\D/g, ""))}` },
           ]
-        : [{ label: NAV.find((n) => n.name === route.name)?.label ?? "Settings" }];
+        : [{ label: [...NAV, ...FOOTER_NAV].find((n) => n.name === route.name)?.label ?? "Settings" }];
   return (
     <Breadcrumb className="min-w-0">
       <BreadcrumbList className="flex-nowrap">
@@ -452,7 +464,7 @@ function Palette({ onHelp }: { onHelp(): void }) {
         </CommandGroup>
         <CommandSeparator />
         <CommandGroup heading="Go to">
-          {[...NAV, { name: "settings", label: "Settings", icon: Settings2Icon } as const].map((item) => (
+          {[...NAV, ...FOOTER_NAV].map((item) => (
             <CommandItem key={item.name} onSelect={() => run(() => go({ name: item.name } as Route))}>
               <item.icon />
               {item.label}

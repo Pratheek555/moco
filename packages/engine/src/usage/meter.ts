@@ -36,16 +36,26 @@ export function meteredAi(
       }
       callsThisJob[scope] = calls + 1;
       ledger.data.usage.aiCalls[scope] = (ledger.data.usage.aiCalls[scope] ?? 0) + 1;
+      const day = ledger.today();
+      day.calls += 1;
 
       try {
         const result = await aiSlots.run(async () => {
           request.signal?.throwIfAborted(); // calls still queued when a job is stopped must not start
           return ai.generate({ ...request, timeoutMs: request.timeoutMs ?? config.limits.aiTimeoutMs });
         });
-        ledger.data.usage.costUsdEstimate += result.usage?.costUsdEstimate ?? 0;
+        const { inputTokens = 0, outputTokens = 0, costUsdEstimate = 0 } = result.usage ?? {};
+        const tokens = (ledger.data.usage.tokens ??= { input: 0, output: 0 });
+        tokens.input += inputTokens;
+        tokens.output += outputTokens;
+        ledger.data.usage.costUsdEstimate += costUsdEstimate;
+        day.inputTokens += inputTokens;
+        day.outputTokens += outputTokens;
+        day.costUsdEstimate += costUsdEstimate;
         return result;
       } catch (err) {
         if (err instanceof RateLimitError) {
+          day.rateLimits += 1;
           await bus.emit(seriesId, "usage.rate_limited", { message: err.message });
           throw new EngineError("rate_limited", "Your AI plan limit was reached. Resume later.");
         }
