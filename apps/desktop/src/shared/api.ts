@@ -20,12 +20,14 @@ export interface VoiceModelStatus {
 }
 
 export interface Settings {
+  aiProvider: "claude-cli" | "codex-cli";
   onboarded: boolean;
   theme: Theme;
   projectsDir: string;
   voice: {
     backend?: "chatterbox" | "system";
     reference?: string; // local performance reference WAV
+    characterVoices?: { id: string; reference: string }[];
     expressiveness?: number;
     voice: string; // an installed OS voice; "" = the system default
     rate: number; // 1 = normal speed

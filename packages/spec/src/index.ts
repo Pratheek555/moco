@@ -13,7 +13,11 @@ import * as z from "zod";
 //   0.6.0: ScriptLine.delivery (optional performance directions; old scripts parse as-is).
 //   0.7.0: WorldPart shape "asset" + asset, WorldSurface.material (the asset library), WorldModel.character (a designed
 //          character built by the kit from a description), World.look (film or toon). All optional: old worlds parse as-is.
-export const SPEC_VERSION = "0.7.0";
+//   0.8.0: ShowBible (new artifact kind: the series' own rules, written by the AI; nothing existing changed).
+//   0.9.0: optional cast voice ids, timed speakers, per-speaker scene speech and 3D face controls.
+//   0.10.0: optional camera/motion/pose timelines, sequence references and per-series Vocabulary artifacts.
+//   0.11.0: Critique (per episode), Playbook (per series) and CanonAddition (per episode): new artifact kinds only.
+export const SPEC_VERSION = "0.11.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -219,6 +223,45 @@ export const SeriesBible = z.object({
 });
 export type SeriesBible = z.infer<typeof SeriesBible>;
 
+// The series' own rules, written by the AI before anything is built: tone, format, look, cast and places, and what a
+// great shot means for this show. Every later stage reads the part of it that it needs, so the style of a series lives
+// here and not in the engine's prompts. Prose on purpose: a comedy and a devotional series need different words, not
+// different values of the same fields.
+const Slug = z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase with dashes");
+export const ShowBible = z.object({
+  logline: z.string().min(1),
+  genre: z.string().min(1),
+  tone: z.string().min(1), // how it should feel, and how it must never feel
+  narration: z.string().min(1), // who tells it and how: person, register, rhythm
+  format: z.object({
+    targetSeconds: z.number().min(15).max(90), // per episode; the engine holds it to its own window
+    shotSeconds: z.object({ min: z.number().positive(), max: z.number().positive() }),
+    pacing: z.string().min(1),
+  }),
+  rules: z.array(z.string().min(1)).max(12), // this series' do and don't
+  rubric: z.array(z.string().min(1)).min(3).max(10), // what a 5/5 shot is for this show; the critic scores against it
+  look: z.object({
+    statement: z.string().min(1), // the visual identity in a few sentences
+    palette: z.array(z.object({ token: Slug, hex: Colour, use: z.string().min(1) })).min(3).max(10),
+    lighting: z.array(z.object({ token: Slug, recipe: z.string().min(1) })).max(6),
+    camera: z.string().min(1), // the camera grammar: which shots, lenses and moves, and when
+    captions: z.string().min(1),
+  }),
+  cast: z.array(z.object({
+    id: Slug,
+    name: z.string().min(1),
+    role: z.string().min(1),
+    personality: z.string().min(1),
+    appearance: z.string().min(1), // body, face, anatomy (tails, wings, extra arms…), costume, colours
+    movement: z.string().min(1), // how they move and hold themselves
+    signature: z.array(z.string().min(1)).max(6), // gestures, poses or props that make them instantly them
+    voice: z.string().min(1),
+    voiceId: z.string().min(1).optional(), // a real id offered by the configured audio backend
+  })).max(12),
+  places: z.array(z.object({ id: Slug, name: z.string().min(1), description: z.string().min(1), mood: z.string().min(1) })).max(8),
+});
+export type ShowBible = z.infer<typeof ShowBible>;
+
 // Grows after every approved episode (harness 7).
 export const ContinuityFact = z.object({
   entity: z.string().min(1), // cast id or location id
@@ -283,6 +326,7 @@ export const VoiceoverTrack = z.object({
   durationSeconds: z.number().positive(),
   words: z.array(TimedWord).min(1),
   visemes: VisemeTrack.default([]), // whole-episode frames, computed from the audio by the audio package
+  speakers: z.array(z.object({ speaker: z.string(), start: z.number().nonnegative(), end: z.number().positive() })).optional(),
 });
 export type VoiceoverTrack = z.infer<typeof VoiceoverTrack>;
 
@@ -348,6 +392,19 @@ export const Caption = z.object({
 export type Caption = z.infer<typeof Caption>;
 
 // One model in a shot of a generated world, placed in metres from the shot's mark.
+export const FaceKey = z.object({
+  atFrame: z.number().int().nonnegative(),
+  mouthOpen: z.number().min(0).max(1).optional(),
+  smile: z.number().min(-1).max(1).optional(),
+  brow: z.number().min(-1).max(1).optional(),
+  eyeOpen: z.number().min(0).max(1).optional(),
+});
+export const SpeechTrack = z.array(z.object({ speaker: z.string(), visemes: VisemeTrack }));
+export const TimelineEase = z.enum(["linear", "smooth", "hold"]);
+const FrameKey = { atFrame: z.number().int().nonnegative(), easing: TimelineEase.optional() };
+export const CameraKey = z.object({ ...FrameKey, eye: Vec3, target: Vec3, fov: z.number().min(10).max(110) });
+export const MotionKey = z.object({ ...FrameKey, at: Vec3, facing: z.number().finite() });
+export const PoseKey = z.object({ ...FrameKey, turn: z.record(z.string(), Vec3) });
 export const ScenePlayer = z.object({
   id: z.string(), // a cast id, or a model id for a thing
   model: z.string(), // the model that plays it (set by the engine for cast members)
@@ -356,12 +413,19 @@ export const ScenePlayer = z.object({
   arriveFrame: z.number().int().positive().optional(), // default: the end of the shot
   facing: Metres.default(0), // degrees, 0 faces +z, the camera's usual side
   actions: z.array(SceneAction).default([]),
+  motionKeys: z.array(MotionKey).min(2).max(32).optional(),
+  poseKeys: z.array(PoseKey).min(2).max(32).optional(),
+  sequence: z.string().optional(),
+  speak: z.boolean().optional(), // defaults to following this player's own timed lines; false suppresses lip sync
+  face: z.array(FaceKey).optional(),
 });
 export type ScenePlayer = z.infer<typeof ScenePlayer>;
 
 // A shot on a 3D stage (a background whose catalog entry has `stage`): real lenses and depth instead of layers.
 export const SceneStage = z.object({
-  camera: z.string(), // one of the stage's camera rigs
+  cameraKeys: z.array(CameraKey).min(2).max(32).optional(),
+  sequence: z.string().optional(),
+  camera: z.string(), // preset shortcut when no cameraKeys are supplied
   place: z.string(), // where in the world the shot happens
   subject: z.string(), // who the camera follows
   // Metres the subject is ahead of the other one, at the start and end of the shot. Negative is behind, and a
@@ -391,6 +455,7 @@ export const SceneSpec = z.object({
     .default([]),
   // Engine-filled, never by the AI:
   visemes: VisemeTrack.default([]), // shot frames, copied from the voiceover
+  speech: SpeechTrack.optional(), // engine-filled; absent on old projects
   world: z.object({ location: WorldLocation, models: z.array(WorldModel), look: z.enum(WORLD_LOOKS).default("film") }).optional(), // a generated world: what this shot needs of it
   grade: z.string().default("none"), // the series grade, copied from the bible
   finish: z.object({ vignette: z.boolean().default(true), grain: z.boolean().default(true) }).default({ vignette: true, grain: true }),
@@ -398,7 +463,74 @@ export const SceneSpec = z.object({
 export type SceneSpec = z.infer<typeof SceneSpec>;
 
 // What the AI is asked to write: a SceneSpec minus the fields the engine fills in.
-export const AiSceneSpec = SceneSpec.omit({ visemes: true, grade: true, finish: true, world: true });
+export const AiSceneSpec = SceneSpec.omit({ visemes: true, speech: true, grade: true, finish: true, world: true });
+
+export const Vocabulary = z.object({ entries: z.array(z.object({
+  id: z.string().min(1), durationFrames: z.number().int().min(2), source: z.string(),
+  cameraKeys: z.array(CameraKey).min(2).max(32).optional(),
+  motionKeys: z.array(MotionKey).min(2).max(32).optional(),
+  poseKeys: z.array(PoseKey).min(2).max(32).optional(),
+})).max(100) });
+export type Vocabulary = z.infer<typeof Vocabulary>;
+
+// ---------- Learning (v2 phase 4) ----------
+
+// What the critic saw in one episode: every shot's first-pass score and, for repaired shots, the repair's score and
+// whether it was kept. This is the evidence playbook lessons are drawn from and measured against.
+const Score = z.number().int().min(1).max(5);
+export const Critique = z.object({
+  episodeId: z.string().min(1),
+  shots: z.array(z.object({
+    shotId: z.string().min(1),
+    score: Score,
+    problems: z.array(z.string()),
+    fix: z.string(),
+    repaired: z.object({ score: Score, kept: z.boolean() }).optional(),
+  })),
+  overall: z.string(),
+});
+export type Critique = z.infer<typeof Critique>;
+
+// The series' lessons, written by the episode retro from the critique and the user's notes. A lesson is checked
+// against every later episode: `held` when no shot broke it, `broken` when one did. Lessons that keep breaking retire.
+export const PLAYBOOK_STAGES = ["script", "shots", "scene", "world"] as const;
+export const PlaybookLesson = z.object({
+  id: z.string().regex(/^L\d{3}$/),
+  rule: z.string().min(1),
+  stage: z.enum(PLAYBOOK_STAGES),
+  source: z.enum(["critic", "user"]),
+  since: z.string().min(1), // the episode it was learned in
+  evidence: z.array(z.object({
+    episodeId: z.string().min(1),
+    shotId: z.string().optional(),
+    note: z.string().min(1),
+    before: Score.optional(), // first-pass score of the shot it came from
+    after: Score.optional(), // the repair's score, when the shot was repaired
+  })).max(12),
+  held: z.number().int().nonnegative().default(0),
+  broken: z.number().int().nonnegative().default(0),
+  status: z.enum(["active", "retired"]).default("active"),
+});
+export type PlaybookLesson = z.infer<typeof PlaybookLesson>;
+export const Playbook = z.object({ lessons: z.array(PlaybookLesson).max(60) });
+export type Playbook = z.infer<typeof Playbook>;
+
+// ---------- Growing canon (v2 phase 5) ----------
+
+// What one episode added to the series' canon: new cast sheets and places, and the world models and locations built
+// for them. Append-only: it never changes an existing id, so episodes already made keep exactly what they were made with.
+export const CanonAddition = z.object({
+  episodeId: z.string().min(1),
+  reason: z.string().min(1),
+  cast: ShowBible.shape.cast,
+  places: ShowBible.shape.places,
+  world: z.object({
+    models: z.array(WorldModel).max(20),
+    locations: z.array(WorldLocation).max(4),
+    cast: z.array(z.object({ id: z.string().regex(/^[a-z0-9][a-z0-9-]*$/, "lowercase with dashes"), model: z.string().min(1), description: z.string() })),
+  }),
+});
+export type CanonAddition = z.infer<typeof CanonAddition>;
 
 // ---------- Episode assembly + render ----------
 
@@ -523,6 +655,11 @@ export function checkYoutube(meta: Pick<YoutubeMetadata, "title" | "description"
 // Every artifact kind the engine can store, by name. Meta.kind is one of these keys.
 export const ArtifactSchemas = {
   SeriesPlan,
+  Vocabulary,
+  Critique,
+  Playbook,
+  CanonAddition,
+  ShowBible,
   SeriesBible,
   SeriesMemory,
   World,

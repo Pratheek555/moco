@@ -4,13 +4,21 @@ import type { InputRef } from "@moco/spec";
 import { sha256 } from "../store/hash.ts";
 import { isTemplateStage, templateGuide } from "../templates/guide.ts";
 
-export type PromptName = "series" | "series_extend" | "bible" | "world" | "script" | "shots" | "scene" | "memory" | "publish" | "look_models" | "look_shots" | "fix_model";
+export type PromptName = "series" | "series_extend" | "show" | "bible" | "world" | "script" | "shots" | "scene" | "memory" | "publish" | "look_models" | "look_shots" | "fix_model" | "retro" | "canon" | "world_extend";
 
 // With a template, its guidance for this stage follows the base prompt, so it can override the general style advice.
 export function loadPrompt(name: PromptName, template?: string): string {
   const base = readFileSync(new URL(`./prompts/${name}.md`, import.meta.url), "utf8");
   const guide = template && isTemplateStage(name) ? templateGuide(template, name) : "";
   return guide ? `${base.trimEnd()}\n\n${guide}\n` : base;
+}
+
+// A prompt can hold blocks for different situations, "<!-- when: <kind> -->…<!-- end -->": keeps the blocks for `kind`
+// and drops the rest, so the AI only reads the rules that apply (a built world's shot never hears about race cars).
+export function selectBlocks(text: string, kind: string): string {
+  return text
+    .replace(/<!-- when: (\w+) -->\n?([\s\S]*?)<!-- end -->\n?/g, (_block, when: string, body: string) => (when === kind ? body : ""))
+    .replace(/\n{3,}/g, "\n\n");
 }
 
 // Recorded in every artifact's inputs, so we know which prompt produced it and caches miss when a prompt

@@ -15,6 +15,7 @@ export interface Line {
   id: string;
   text: string;
   delivery?: Delivery;
+  voiceId?: string;
 }
 
 export interface PlaceholderOptions {

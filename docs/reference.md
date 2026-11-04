@@ -182,7 +182,7 @@ Two levels: **series** (once) and **episode** (per episode).
 | Level | Stage | Produces (spec artifact) | Gate (user approves in UI) | Notes |
 |---|---|---|---|---|
 | series | `series_plan` | `SeriesPlan` (episode list, arc, tone) | Yes | From the idea. |
-| series | `bible` | `SeriesBible` (cast → kit character ids, style, palette, narrator voice, language) | Yes | Locks consistency inputs (harness 2 & 7). |
+| series | `bible` | `ShowBible` (the series' own rules, §13 V2) then `SeriesBible` (cast → kit character ids or a built `World`, style, palette, narrator voice, language) | Yes | Locks consistency inputs (harness 2 & 7). |
 | episode | `script` | `EpisodeScript` (narration lines + beats, target 30–60 s) | Yes | Word budget by language (§4.6). |
 | episode | `voiceover` | `VoiceoverTrack` (audio files + **word timings**) | No (preview in UI) | **Proposed change to README flow:** VO is generated *before* shot specs so timing is real (harness 5). |
 | episode | `shot_list` | `ShotList` (shots with start/end from VO timings, intent, characters, location) | Optional (default off) | Planner fits shots to measured VO. |
@@ -736,6 +736,91 @@ Each milestone ends with a demo-able check. E0–E4 need **no real AI and no rea
 - [x] Learned styles are templates: `@moco/engine/templates/registry` reads `<userData>/styles/*/moco-template.{json,md}` on every lookup (built-in ids win); the app lists them with a "Learned" badge, and **Learn from videos** runs `learnStyle` in its own utility process (`apps/desktop/src/main/learn-host.ts`, from source) with live progress on the `learn` channel.
 - [ ] Engine-enforced numbers from the skill (camera creep, gesture lead, caption chunking, TTS rate) instead of prompt guidance only.
 - [ ] Frame-exact word timing (forced alignment, e.g. wav2vec2) instead of whisper DTW (±2–3 frames); face-change detection; dissolve detection.
+
+### V2 — Series-first architecture (design 2026-11-03, branch `feat/new-arch`)
+The v1 pipeline put taste in the engine: fixed prompt text (one tone line for every series, ±0.9 m conversation staging,
+race-car rules on every 3D shot), a fixed 45 s episode, fixed 1.5–6 s shots, menus as the only vocabulary. v2 moves every
+choice of taste into the series itself, written by the AI, locked by the user, improved with evidence. **The test for
+what stays in the engine: does breaking it make the reel invalid?** Timing, 9:16, captions = the spoken words in sync,
+safe area, ids that resolve, a render that works → engine. Tone, look, camera grammar, pacing → the series.
+
+Three loops around one per-series bible:
+1. **Build** (once, and whenever canon grows): Showrunner → Casting & Design → Asset Forge (build → render → critique)
+   → Review & Lock. Output: **canon**: show rules, cast sheets, voices, places, style tokens, all revisioned.
+2. **Make** (every episode): Writers' Room → Director (storyboard in prose) → Compiler (intent → macros → primitives)
+   → Render → Critic (scores against the show's own rubric, with reference renders) → fix. Each stage gets a **context
+   pack**: only the slice of the bible it needs. A shot that needs something canon lacks sends an asset request to Build.
+3. **Learn**: critic notes + user feedback → episode retro → **playbook** lessons with evidence (kept while they keep
+   raising scores, pruned after misses) → lessons proven in 3+ series go to a global craft notebook, offered (never
+   forced) to new series.
+
+Shot specs mix levels freely: free intent (prose) → series vocabulary (macros the show invented) → engine presets
+(today's enums, now shortcuts) → primitives (camera keyframes, joint keyframes, face values, lights, particles) →
+engine checks. Consistency: locked canon with pinned revisions, reference images in every critique, style tokens instead
+of hex, a continuity check before scripts, a voice per character.
+
+Phases (each measured with `pnpm bench`, below):
+- [x] **1. Show bible + context packs** (no renderer change). `ShowBible` (`@moco/spec` 0.8.0): logline, genre, tone,
+  narration, format (episode seconds and shot range, held to the engine's window: `config.targetSeconds`,
+  `config.shotSecondsBounds`), rules, rubric, look (statement, palette tokens, lighting recipes, camera grammar,
+  captions), cast sheets (appearance incl. non-human anatomy, movement, signature gestures, voice), places. Written by
+  `planner/show.ts` at the start of the bible stage (`prompts/show.md`; templates can guide it with a `# show` section);
+  saved to `artifacts/show.json` and recorded as an input of everything built from it. Packs (`scriptPack`,
+  `shotsPack`, `scenePack`, `worldPack`, `biblePack`, `critiquePack`) feed each stage; the kit cast and the world must
+  play exactly the show's cast ids; the critic scores against the rubric and logs every score (`look.*` events,
+  `scores`). The scene prompt keeps only the block for the shot's stage (`<!-- when: kit|race|world -->`,
+  `selectBlocks`). Series made before v2 have no show bible and run as before.
+- [x] **2. Dialogue and faces**: script speakers are `narrator` or validated cast ids. The showrunner sees the
+  configured backend's real voice list and can lock an optional `voiceId` per cast member in `show.json`; absent
+  assignments use the configured narrator. TTS selects voices per line, joins once, and retains measured word timing
+  and speaker intervals in `VoiceoverTrack.speakers`. Shot-local `speech` tracks mask visemes by speaker, so narration
+  does not animate characters and cuts mid-line keep the correct mouth shape. Legacy audio without speaker metadata
+  keeps its prior rendering. 3D players accept `speak: false` to suppress automatic lip sync and interpolated `face`
+  keys (`atFrame`, `mouthOpen`, `smile`, `brow`, `eyeOpen`). Designed characters have mouth/eye/brow parts; raw models
+  opt in with `mouth`, `mouth_open`, `eye_L/R`, `brow_L/R` parts. Face keys outside a shot are rejected.
+  System voices and Supertonic offer named presets. Chatterbox uses trusted configured reference WAVs, not invented
+  paths or voice ids: Settings ? Voice & narration ? Character voices adds named recordings. The show bible review
+  displays assigned voices; keep ids and recordings available for later episodes. If only the narrator is configured,
+  dialogue shares that voice. Voice descriptions guide casting; they do not create new voices. Timing remains the
+  backend's measured clip timing with estimated words, rather than phoneme-level forced alignment.
+- [x] **3. Primitives, Compiler, vocabulary**: generated-world shots accept `stage.cameraKeys` (eye/target/fov),
+  player `motionKeys` (position/facing) and `poseKeys` (joint rotations relative to rest). Keys use integer shot frames,
+  with linear/smooth/hold easing; named rigs and actions remain shortcuts. Camera coordinates and movement are relative
+  to the location mark. Pose channels override only the specified action/idle joints. The compiler expands `sequence`
+  references from `artifacts/vocabulary.json` to shot duration, checks ordering, bounds, joints and conflicting controls,
+  and sends errors through the existing repair loop. Runtime camera checks report blocked lines of sight at rendered
+  frames; this is not a full swept-volume collision or framing guarantee. After scene review, successful timelines
+  are stored with source-shot evidence under stable episode/shot/player ids (up to 100 sequences). Later episodes see
+  these in their context pack; incompatible joint names are rejected. Presets still execute their established rig/action
+  implementations; they are not baked into saved timelines. Reuse is explicit and series-local, not quality learning.
+- [x] **4. Learning** (`review/look.ts`, `learn/playbook.ts`, `@moco/spec` 0.11.0). The shot critic sees each shot at
+  its start, middle and end (`critiqueFrames`; whole shots packed into calls of at most 12 images) and judges movement,
+  not one still (`look_shots` v2). The weakest shots are repaired, rendered and scored again; a repair is kept only if it
+  scores at least as well, otherwise the previous spec is saved back as a new revision. Every first-pass score, problem,
+  fix and repair outcome is saved as the episode's `Critique` (`episodes/<ep>/artifacts/critique.json`). After the
+  episode's memory update, the retro (`prompts/retro.md`) reads the critique, the critic's overall note and the user's
+  review notes (`reject()` now records them as `feedback` decisions) and keeps `artifacts/playbook.json`: every active
+  lesson is checked (`held` / `broken` / `untested`), new lessons need evidence (shot ids, which carry their before/after
+  scores), and a lesson retires once it has broken twice and more often than it held. Active lessons reach the script,
+  shot list and scene prompts (`lessonsSection`; scene lessons are part of each shot's reuse hash). Lessons that held
+  twice in a series go into `<projectsDir>/craft-notebook.json`; ones that held in 3+ series are offered to new
+  showrunners. The notebook matches lessons by normalised wording, so differently phrased lessons don't merge yet.
+  Retro failure never fails the episode (`learn` decision). Events: `look.repairs`, `learn.retro`.
+- [x] **5. Growing canon** (`canon/grow.ts`, `canon/merge.ts`). Before a later episode's script, the canon keeper
+  (`prompts/canon.md`) compares its synopsis with the cast and places built so far and returns only what's missing (at
+  most 3 characters and 2 places, ids that don't exist yet). The world is extended with only the new models, locations
+  and cast (`prompts/world_extend.md` framing the full world guide), checked as a merged world, and only the new models
+  go through model review. The result is that episode's append-only `CanonAddition` (`artifacts/canon/<ep>.json`); the
+  approved show bible, bible and world are never rewritten, so no approval re-opens and episodes already made keep
+  their assets (their specs carry their own world slice). Every stage reads canon through `readShow` / `readBible` /
+  the series' loaded world, which merge additions in episode order. An episode grows the canon once (a script redo
+  reuses its addition). Kit-cast series have no world to grow. Event: `canon.grown`; `canon` decisions.
+
+**Measuring a change** (`scripts/benchmark.ts`): `pnpm bench run "<idea>" <label> [projectsDir]` generates one episode
+exactly as the desktop app does (your Chatterbox voice settings, every gate auto-approved) and writes
+`<series>/benchmark/run.json` (minutes, AI calls, fallbacks, critic decisions and scores) and a 12-frame contact sheet;
+`pnpm bench judge <a> <b>` scores two finished videos blind on a fixed rubric, in both orders. Run the same idea on the
+old and new code (a worktree of the old commit) and keep both folders.
 
 ---
 

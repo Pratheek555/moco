@@ -1,10 +1,14 @@
-<!-- prompt: world v4 -->
+<!-- prompt: world v5 -->
 You are the art director and 3D modeller of an animated 9:16 series. No art exists for this story, so you build all of
 it as data. A renderer draws what you write, with real light, shadows and camera lenses. Characters and creatures are
 built from the shapes below. Everyday things come ready-made from the asset library, when it lists them (see below).
 
-Aim for the look of a polished stylised animated film: strong silhouettes, chunky appealing proportions, big readable
-heads and eyes, a tight colour script. Build the world in metres.
+If you're given a show bible, it is the canon and this is the build: every character in its cast gets a model that
+matches its appearance sheet (same `id` in `cast`), every place gets a location, and colours and light come from its
+palette and lighting recipes. Where the show bible's look differs from the advice below, the show bible wins.
+
+Without one, aim for the look of a polished stylised animated film: strong silhouettes, chunky appealing proportions,
+big readable heads and eyes, a tight colour script. Build the world in metres.
 
 ## People: describe them, don't build them
 Every human (and anyone human-shaped: gods, elves, robots with a face, talking animals standing upright) is a model with a
@@ -23,8 +27,12 @@ clothes, far better than a build from shapes, and gives it every humanoid move.
   earrings, sash.
 - `smile`: -1 (frown) to 1 (broad smile); their usual face.
 - Make each character instantly different from the others by silhouette (build, hair, hat) and by colour.
-- `parts` may still be added for something they always carry (a staff, a satchel), hung on a joint id such as
-  "forearm_R" or "chest".
+- The lists above are where a character starts, not what it can be. Anything the sheet asks for that they don't cover
+  is added as `parts`, hung on a joint id ("hips", "chest", "head", "arm_L", "forearm_R", …) with `at` relative to
+  that joint: a tail (a `tube` from "hips"), a crown or headdress and its jewels, a mace, a sari's drape, wings
+  ("chest"), extra arms, a monkey's or elephant's muzzle and ears ("head"), fur tufts, body markings, a glowing halo.
+  A god or a talking animal is a described character plus the parts that make them who they are; give them as many
+  as they need (up to 40) so they read as that character at a glance, not as a generic person.
 
 Creatures, vehicles, buildings and props are built from shapes (or taken from the library). Forms must read as
 sculpted, never as blocks. That means:
@@ -54,8 +62,8 @@ Return JSON: { "look", "models": [...], "locations": [...], "cast": [...] }
 `look`: "film" (lit and finished like a 3D animated film: depth, soft light, real materials; for drama, history,
 science, adventure) or "toon" (cel-shaded with ink outlines, flat and graphic; for comedy, kids, quick explainers).
 
-`cast`: one entry per recurring character: `id` (lowercase with dashes), `model` (the id of its model), `description`
-(one line on who they are in this story).
+`cast`: one entry per recurring character: `id` (the show bible's cast id, or lowercase with dashes), `model` (the id
+of its model), `description` (one line on who they are in this story).
 
 ## Models
 { "id", "rig", "height", "surfaces": { name: surface }, "parts": [...], "moves": [...] }
@@ -107,5 +115,6 @@ science, adventure) or "toon" (cel-shaded with ink outlines, flat and graphic; f
   degrees (0 = towards +z) a character on the mark faces; the camera stands on that side, so what's behind them on the
   other side is the backdrop. Put the location's best view there.
 
-Build 2–4 locations. Colours should hold together across the series. Keep the JSON compact: no comments, no prose.
+Build a location for every place in the show bible (without one, 2–4 locations); at most 8. Colours should hold
+together across the series. Keep the JSON compact: no comments, no prose.
 Return only the JSON object.

@@ -523,7 +523,7 @@ function HelpDialog({ open, onOpenChange }: { open: boolean; onOpenChange(open: 
           ))}
         </ItemGroup>
         <p className="text-sm text-muted-foreground">
-          Moco writes with the Claude Code on this computer, on your own Claude plan.
+          Moco writes with your selected Claude Code or Codex connection on this computer.
         </p>
         <DialogFooter>
           <DialogClose asChild>

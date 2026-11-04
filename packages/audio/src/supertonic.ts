@@ -35,8 +35,10 @@ interface Models {
 export function supertonicAudio(options: SupertonicOptions) {
   // Loaded on the first line and kept: the four sessions take a few seconds to open.
   let loaded: Promise<Models> | undefined;
+  const styles = new Map<string, Promise<Models["style"]>>();
 
   return {
+    async voices() { return ["F1", "F2", "F3", "F4", "F5", "M1", "M2", "M3", "M4", "M5"].map((id) => ({ id, name: id })); },
     async tts(lines: Line[], _voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal) {
       const code = language.split("-")[0]!;
       if (!SUPERTONIC_LANGUAGES.includes(code)) throw new Error(`Supertonic has no ${language} voice.`);
@@ -46,7 +48,10 @@ export function supertonicAudio(options: SupertonicOptions) {
       const spoken: Pcm[] = [];
       for (const line of lines) {
         signal?.throwIfAborted();
-        spoken.push(await speakLine(models, line.text, code, options));
+        const id = line.voiceId && line.voiceId !== "default" ? line.voiceId : options.voice ?? "M1";
+        if (!/^[FM][1-5]$/.test(id)) throw new Error(`Unknown Supertonic voice: ${id}`);
+        if (!styles.has(id)) styles.set(id, loadStyle(options.modelDir, id));
+        spoken.push(await speakLine({ ...models, style: await styles.get(id)! }, line.text, code, options));
       }
       const joined = joinLines(lines, spoken);
       await mkdir(outDir, { recursive: true });
@@ -71,9 +76,14 @@ async function loadModels(options: SupertonicOptions): Promise<Models> {
   );
   const config = JSON.parse(await readFile(join(onnx, "tts.json"), "utf8")) as Models["config"];
   const indexer = JSON.parse(await readFile(join(onnx, "unicode_indexer.json"), "utf8")) as number[];
-  const preset = JSON.parse(await readFile(join(options.modelDir, "voice_styles", `${options.voice ?? "M1"}.json`), "utf8")) as Record<"style_ttl" | "style_dp", { data: unknown[]; dims: number[] }>;
+  const style = await loadStyle(options.modelDir, options.voice ?? "M1");
+  return { duration: duration!, textEncoder: textEncoder!, vectorEstimator: vectorEstimator!, vocoder: vocoder!, config, indexer, style };
+}
+
+async function loadStyle(modelDir: string, voice: string): Promise<Models["style"]> {
+  const preset = JSON.parse(await readFile(join(modelDir, "voice_styles", `${voice}.json`), "utf8")) as Record<"style_ttl" | "style_dp", { data: unknown[]; dims: number[] }>;
   const tensor = (entry: { data: unknown[]; dims: number[] }) => new ort.Tensor("float32", Float32Array.from(entry.data.flat(Infinity) as number[]), entry.dims);
-  return { duration: duration!, textEncoder: textEncoder!, vectorEstimator: vectorEstimator!, vocoder: vocoder!, config, indexer, style: { ttl: tensor(preset.style_ttl), dp: tensor(preset.style_dp) } };
+  return { ttl: tensor(preset.style_ttl), dp: tensor(preset.style_dp) };
 }
 
 // Punctuation the model doesn't know, in the plain form it does.

@@ -12,6 +12,7 @@
     "test": "vitest run",
     "typecheck": "tsc -p tsconfig.json --noEmit && pnpm --filter @moco/desktop typecheck",
     "live": "tsx scripts/live-episode.ts",
+    "bench": "tsx scripts/benchmark.ts",
     "dev": "pnpm --filter @moco/desktop dev",
     "test:desktop": "pnpm --filter @moco/desktop test:smoke",
     "library:setup": "tsx scripts/setup-library.ts",

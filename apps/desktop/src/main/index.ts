@@ -1,4 +1,4 @@
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { systemVoices } from "@moco/audio";
 import { narrationAudio } from "./narration.ts";
 import { createVoiceModelManager, voiceRuntimePaths } from "./voice-models.ts";
@@ -149,6 +149,7 @@ function startEngineHost(): Engine {
 
   const { port1, port2 } = new MessageChannelMain();
   const config: EngineHostConfig = {
+    aiProvider: settings.aiProvider,
     projectsDir: settings.projectsDir,
     stylesDir: stylesDir(),
     voice: { ...settings.voice },
@@ -232,7 +233,7 @@ function startLearning(input: { name: string; sources: string[] }): string {
     Object.assign(view, { state: "error", error: `The learning process stopped (code ${code})` });
     send("learn", view);
   });
-  const config: LearnHostInput = { name, sources, stylesDir: stylesDir() };
+  const config: LearnHostInput = { name, sources, stylesDir: stylesDir(), aiProvider: settings.aiProvider };
   child.postMessage(config);
   send("learn", view);
   return id;
@@ -387,8 +388,9 @@ app
     handle("settings.get", () => settings);
     handle("settings.set", async (patch: DeepPartial<Settings>) => {
       // The engine is built with these, so changing them restarts it, which would cut a running job short.
-      const engineInputs = (s: Settings) => JSON.stringify([s.projectsDir, s.voice, s.render]);
-      const touchesEngine = patch.projectsDir !== undefined || patch.voice !== undefined || patch.render !== undefined;
+      const engineInputs = (s: Settings) => JSON.stringify([s.projectsDir, s.voice, s.render, s.aiProvider]);
+      if (patch.aiProvider !== undefined && !["claude-cli", "codex-cli"].includes(patch.aiProvider)) throw new Error("Unknown AI provider");
+      const touchesEngine = patch.aiProvider !== undefined || patch.projectsDir !== undefined || patch.voice !== undefined || patch.render !== undefined;
       if (touchesEngine && running.size > 0)
         throw new Error("Wait for the running jobs to finish before changing these settings");
       const before = engineInputs(settings);
@@ -403,7 +405,7 @@ app
       return settings;
     });
 
-    handle("ai.status", () => claudeCli().available());
+    handle("ai.status", () => aiBackend(settings.aiProvider).available());
 
     handle("voice.list", () => systemVoices().catch(() => []));
     handle("voice.models", () => voiceModels.list());

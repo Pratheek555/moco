@@ -9,10 +9,11 @@ import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
 import { planWithAi } from "./common.ts";
+import { readBible } from "../canon/merge.ts";
 
 export async function runPublish(ctx: StageContext, episodeId: string, feedback?: string): Promise<string> {
   const plan = (await ctx.store.read(files.seriesPlan, "SeriesPlan")).data;
-  const bible = (await ctx.store.read(files.bible, "SeriesBible")).data;
+  const bible = await readBible(ctx);
   const script = (await ctx.store.read(files.script(episodeId), "EpisodeScript")).data;
   const defaults = await readPublishDefaults(ctx);
   const shots = (await ctx.store.read(files.shotList(episodeId), "ShotList")).data.shots;

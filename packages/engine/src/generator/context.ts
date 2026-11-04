@@ -39,6 +39,28 @@ export function shotVisemes(shot: Shot, voiceover: VoiceoverTrack): VisemeTrack 
   return keys.map((key) => ({ frame: Math.max(0, key.frame - startFrame), viseme: key.viseme }));
 }
 
+// Mask the audio's mouth shapes by the measured speaker intervals, including cuts mid-line.
+// Undefined preserves the legacy behaviour for audio generated before speaker metadata existed.
+export function shotSpeech(shot: Shot, voiceover: VoiceoverTrack) {
+  if (!voiceover.speakers) return undefined;
+  const start = toFrame(shot.start);
+  const duration = toFrame(shot.end) - start;
+  return [...new Set(voiceover.speakers.map((span) => span.speaker))].map((speaker) => {
+    const spans = voiceover.speakers!.filter((span) => span.speaker === speaker);
+    const visemes: VisemeTrack = [];
+    let index = 0;
+    for (let frame = 0; frame < duration; frame++) {
+      const absolute = frame + start;
+      while (index + 1 < voiceover.visemes.length && voiceover.visemes[index + 1]!.frame <= absolute) index++;
+      const key = voiceover.visemes[index];
+      const active = spans.some((span) => absolute >= toFrame(span.start) && absolute < toFrame(span.end));
+      const viseme = active && key && key.frame <= absolute ? key.viseme : "X";
+      if (visemes.at(-1)?.viseme !== viseme) visemes.push({ frame, viseme });
+    }
+    return { speaker, visemes };
+  });
+}
+
 // Only the kit entries this shot can use.
 export function catalogSlice(catalog: Catalog, bible: SeriesBible, shot: Shot) {
   const castInShot = bible.cast.filter((member) => shot.characters.includes(member.id));

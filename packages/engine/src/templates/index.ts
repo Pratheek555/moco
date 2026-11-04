@@ -3,7 +3,7 @@
 // This file is plain data so the desktop UI can list templates without loading the engine.
 
 // The planning stages a template can guide; each is a "# <stage>" section of the template's .md file.
-export const TEMPLATE_STAGES = ["series", "series_extend", "bible", "world", "script", "shots", "scene", "publish"] as const;
+export const TEMPLATE_STAGES = ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "publish"] as const;
 export type TemplateStage = (typeof TEMPLATE_STAGES)[number];
 
 export interface TemplateInfo {

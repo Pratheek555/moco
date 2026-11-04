@@ -6,9 +6,11 @@ import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { planWithAi } from "../planner/common.ts";
 import { files } from "../pipeline/stages.ts";
+import { readBible } from "../canon/merge.ts";
+import { runRetro } from "../learn/playbook.ts";
 
 export async function runMemoryUpdate(ctx: StageContext, episodeId: string): Promise<string> {
-  const bible = (await ctx.store.read(files.bible, "SeriesBible")).data;
+  const bible = await readBible(ctx);
   const script = (await ctx.store.read(files.script(episodeId), "EpisodeScript")).data;
   const memory: SeriesMemory = ctx.store.has(files.memory)
     ? (await ctx.store.read(files.memory, "SeriesMemory")).data
@@ -32,6 +34,11 @@ export async function runMemoryUpdate(ctx: StageContext, episodeId: string): Pro
     producedBy: "ai",
     backend: ctx.ai.backendId,
     inputs: [ctx.store.inputRef(files.script(episodeId)), promptRef("memory")],
+  });
+  // The episode retro keeps the playbook. Learning is a bonus: if it fails, the episode is still done.
+  await runRetro(ctx, episodeId).catch((err: unknown) => {
+    if (ctx.signal.aborted) throw err;
+    ctx.ledger.decide("learn", episodeId, `retro skipped: ${err instanceof Error ? err.message : String(err)}`);
   });
   return saved.meta.contentHash;
 }

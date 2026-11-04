@@ -1,19 +1,25 @@
+import { expandModel } from "@moco/kit";
 // Shot → SceneSpec via the AI, through the validate → render-check → fix loop.
 // After the attempt cap, a deterministic fallback shot is saved instead and flagged for the user.
 // Each spec records a "SceneInput" hash of everything it was generated from; if that hash is unchanged
 // on the next run, the spec is reused without calling the AI (partial regeneration).
 import { join } from "node:path";
-import { AiSceneSpec, SceneSpec, toAiJsonSchema, type InputRef, type SeriesBible, type SeriesMemory, type Shot, type World, type VoiceoverTrack } from "@moco/spec";
+import { AiSceneSpec, SceneSpec, toAiJsonSchema, type InputRef, type SeriesBible, type Playbook, type SeriesMemory, type Shot, type ShowBible, type World, type VoiceoverTrack, type Vocabulary } from "@moco/spec";
 import type { Issue } from "../loop/feedback.ts";
 import { generateValidated } from "../loop/loop.ts";
 import { avoidFor, repeatedLook, shotLook, validateScene, type SceneBrief, type ShotLook } from "../loop/validate.ts";
 import type { StageContext } from "../pipeline/context.ts";
+import { readShow, scenePack } from "../planner/show.ts";
 import { worldForShot } from "../planner/world.ts";
 import { files } from "../pipeline/stages.ts";
 import { lookAtShots } from "../review/look.ts";
 import { hashData } from "../store/hash.ts";
-import { catalogSlice, fallbackScene, goldenScene, relevantFacts, shotBrief, shotVisemes } from "./context.ts";
-import { feedbackSection, joinSections, jsonSection, loadPrompt, promptRef } from "./prompts.ts";
+import { catalogSlice, fallbackScene, goldenScene, relevantFacts, shotBrief, shotSpeech, shotVisemes } from "./context.ts";
+import { feedbackSection, joinSections, jsonSection, loadPrompt, promptRef, selectBlocks } from "./prompts.ts";
+
+import { compileScene, checkTimelines, sequencesFrom } from "./compiler.ts";
+import { readBible } from "../canon/merge.ts";
+import { lessonsSection, readPlaybook } from "../learn/playbook.ts";
 
 const sceneJsonSchema = toAiJsonSchema(AiSceneSpec);
 
@@ -24,6 +30,9 @@ export interface SceneInputs {
   bible: SeriesBible;
   memory?: SeriesMemory;
   world?: World; // this series' generated world, if it has one
+  show?: ShowBible; // this series' own rules, if it was made with a show bible
+  vocabulary?: Vocabulary;
+  playbook?: Playbook; // the series' lessons so far (learn/playbook.ts)
   feedback?: string; // from reject() on the sample or regenerateShot()
   force?: boolean; // regenerate even if an up-to-date spec exists
   avoid?: ShotLook; // camera presets and shot sizes its neighbours already repeat (no 3 in a row)
@@ -55,7 +64,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     scope: episodeId,
     schema: SceneSpec,
     jsonSchema: sceneJsonSchema,
-    system: loadPrompt("scene", ctx.series.template),
+    system: selectBlocks(loadPrompt("scene", ctx.series.template), stageKind(ctx, shot)),
     prompt: scenePrompt(ctx, inputs, brief, previous),
     maxAttempts: ctx.config.limits.maxAttemptsPerShot,
     signal: ctx.signal,
@@ -95,10 +104,15 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
     shot: shotContent,
     durationFrames: brief.durationFrames,
     words: brief.words,
+    speech: shotSpeech(inputs.shot, inputs.voiceover),
     kit: catalogSlice(ctx.catalog, inputs.bible, brief.shot),
     kitVersion: ctx.catalog.kitVersion,
     style: inputs.bible.style,
+    vocabulary: inputs.vocabulary,
+    lessons: inputs.playbook && lessonsSection(inputs.playbook, "scene"),
+    worldLayout: inputs.world,
     facts: relevantFacts(inputs.memory, brief.shot),
+    show: inputs.show && scenePack(inputs.show, brief.shot),
     prompt: promptRef("scene", ctx.series.template).contentHash,
   });
   return { kind: "SceneInput", revision: 0, contentHash: key };
@@ -116,7 +130,7 @@ async function upToDate(ctx: StageContext, specFile: string, sceneInput: InputRe
 // and the lip-sync track (from the audio).
 function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
   const visemes = shotVisemes(inputs.shot, inputs.voiceover);
-  return { ...withBibleVariants(spec, inputs.bible), visemes, grade: inputs.bible.style.grade, world: inputs.world && worldForShot(inputs.world, spec) };
+  return { ...withBibleVariants(spec, inputs.bible), visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: inputs.world && worldForShot(inputs.world, spec) };
 }
 
 function withBibleVariants(spec: SceneSpec, bible: SeriesBible): SceneSpec {
@@ -136,6 +150,11 @@ async function refreshEngineFields(ctx: StageContext, specFile: string, inputs: 
 
 // L2, then L3 (render a few stills) only when L2 is clean: no point rendering a spec we already know is wrong.
 async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief, inputs: SceneInputs, shotDir: string): Promise<Issue[]> {
+  const compiled = compileScene(spec, inputs.vocabulary);
+  if (compiled.issues.length) return compiled.issues;
+  Object.assign(spec, compiled.spec);
+  const timing = checkTimelines(spec, inputs.world);
+  if (timing.length) return timing;
   const semantic = validateScene(spec, { brief, bible: inputs.bible, catalog: ctx.catalog });
   if (semantic.length > 0) return semantic;
 
@@ -152,8 +171,15 @@ async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief,
   }));
 }
 
+// Which rules of the scene prompt apply: the 2D kit, the race circuit, or a world built for this series.
+function stageKind(ctx: StageContext, shot: Shot): "kit" | "race" | "world" {
+  const stage = ctx.catalog.backgrounds.find((background) => background.id === shot.location)?.stage;
+  return !stage ? "kit" : stage.things ? "world" : "race";
+}
+
 function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, previous: unknown): string {
   return joinSections([
+    inputs.show ? jsonSection("Show bible — this series' rules for this shot", scenePack(inputs.show, brief.shot)) : "",
     jsonSection("Shot brief", {
       shotId: brief.shot.id,
       durationFrames: brief.durationFrames,
@@ -162,9 +188,18 @@ function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, 
       location: brief.shot.location,
       cameraHint: brief.shot.cameraHint,
       voiceoverWords: brief.words,
+      speakers: inputs.voiceover.speakers?.filter((span) => span.start < inputs.shot.end && span.end > inputs.shot.start)
+        .map((span) => ({ speaker: span.speaker, startFrame: Math.max(0, Math.round((span.start - inputs.shot.start) * 30)), endFrame: Math.min(brief.durationFrames, Math.round((span.end - inputs.shot.start) * 30)) })),
       avoid: brief.avoid, // left out of the JSON when unset
     }),
     jsonSection("Kit you can use", catalogSlice(ctx.catalog, inputs.bible, brief.shot)),
+    inputs.world ? jsonSection("World layout for timeline coordinates", {
+      location: inputs.world.locations.find((location) => location.id === inputs.shot.location),
+      setModels: inputs.world.models.filter((model) => inputs.world!.locations.find((location) => location.id === inputs.shot.location)?.set.some((item) => item.model === model.id)).map(({id,height,parts}) => ({id,height,parts})),
+      joints: inputs.world.models.filter((model) => inputs.world!.cast.some((member) => member.model === model.id && inputs.shot.characters.includes(member.id))).map((model) => ({ model: model.id, ids: expandModel(model).parts.map((part) => part.id) })),
+    }) : "",
+    jsonSection("Series vocabulary ? reusable validated timelines", inputs.vocabulary?.entries ?? []),
+    inputs.playbook ? lessonsSection(inputs.playbook, "scene") : "",
     jsonSection("Series style", inputs.bible.style),
     jsonSection("Continuity to respect", relevantFacts(inputs.memory, brief.shot)),
     // The example shows the kit's 2D layout, which a generated world doesn't use.
@@ -196,6 +231,13 @@ export async function runScenes(ctx: StageContext, episodeId: string, feedback?:
   await breakRepeatedLooks(ctx, episodeId, shotList.shots, shared);
   // Every shot was written blind: the director looks at the cut and the weakest shots get one more go.
   await lookAtShots(ctx, episodeId, shotList.shots, shared);
+  const finalSpecs = await specsOf(ctx, episodeId, shotList.shots);
+  const entries = finalSpecs.flatMap((spec) => sequencesFrom(spec, episodeId));
+  if (entries.length) {
+    const previous = ctx.store.has("artifacts/vocabulary.json") ? (await ctx.store.read("artifacts/vocabulary.json", "Vocabulary")).data.entries : [];
+    const kept = previous.filter((entry) => !entry.source.startsWith(`${episodeId}/`));
+    await ctx.store.save("artifacts/vocabulary.json", "Vocabulary", { entries: [...kept, ...entries].slice(-100) }, { producedBy: "engine", inputs: shotList.shots.map((shot) => ctx.store.inputRef(files.shotSpec(episodeId, shot.id))) });
+  }
   return scenesHash(ctx, episodeId);
 }
 
@@ -232,9 +274,10 @@ export async function neighbourAvoid(ctx: StageContext, episodeId: string, shots
 // Voiceover, bible and memory: the same for every shot in an episode.
 export async function sceneSharedInputs(ctx: StageContext, episodeId: string): Promise<Omit<SceneInputs, "shot">> {
   const voiceover = (await ctx.store.read(files.voiceover(episodeId), "VoiceoverTrack")).data;
-  const bible = (await ctx.store.read(files.bible, "SeriesBible")).data;
+  const bible = await readBible(ctx);
   const memory = ctx.store.has(files.memory) ? (await ctx.store.read(files.memory, "SeriesMemory")).data : undefined;
-  return { episodeId, voiceover, bible, memory, world: ctx.world };
+  const vocabulary = ctx.store.has("artifacts/vocabulary.json") ? (await ctx.store.read("artifacts/vocabulary.json", "Vocabulary")).data : undefined;
+  return { episodeId, voiceover, bible, memory, world: ctx.world, show: await readShow(ctx), playbook: await readPlaybook(ctx), vocabulary: vocabulary && { entries: vocabulary.entries.filter((entry) => !entry.source.startsWith(`${episodeId}/`)) } };
 }
 
 // Stage hash recomputed from the specs on disk (after a single shot was regenerated).

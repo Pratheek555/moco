@@ -141,6 +141,7 @@ export function designCharacter(model: WorldModel): WorldModel {
   const curve = c.smile;
   const mouth = (x: number): Vec => [x * hw * 0.17, hh * 0.47 - hh * 0.3 + (Math.abs(x) ** 2) * curve * hh * 0.06, hd * 0.44 - Math.abs(x) * hd * 0.04];
   add({ id: "mouth", parent: "head", shape: "tube", size: [hh * 0.022, 1, 1], surface: "lip", path: [mouth(-1), mouth(-0.5), mouth(0), mouth(0.5), mouth(1)] });
+  add({ id: "mouth_open", parent: "head", shape: "sphere", size: [hw * 0.28, hh * 0.18, hd * 0.04], surface: "pupil", at: face(0, -0.3, 0.45) });
 
   addHair(add, c, face, hw, hh, hd);
   addHat(add, c, face, hw, hh, hd);

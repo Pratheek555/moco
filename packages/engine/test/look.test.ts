@@ -4,13 +4,22 @@ import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 import type { AiRequest } from "@moco/ai";
 import { taskOf } from "../src/testing/fakes.ts";
-import { advance, approveNext, setup, testWorld } from "./helpers.ts";
+import { advance, approveNext, sceneFor, setup, testWorld } from "./helpers.ts";
 
-// A director who scores `weak` low and everything else 5, by the ids the prompt lists for the images.
-function director(weak: string, problem: string) {
+// The ids a review prompt lists for its images: "image 1 = crate" for models, "images 1–3 = s01 (…)" for shots.
+const idsOf = (request: AiRequest) => [...request.prompt.matchAll(/images? [\d–]+ = ([\w-]+)/g)].map((match) => match[1]!);
+
+// A director who scores `weak` low and everything else 5. `again` is the weak one's score when it is looked at again.
+function director(weak: string, problem: string, again = 4) {
+  const seen = new Set<string>();
   return (request: AiRequest) => {
-    const ids = [...request.prompt.matchAll(/image \d+ = ([\w-]+)/g)].map((match) => match[1]!);
-    return { verdicts: ids.map((id) => (id === weak ? { id, score: 2, problems: [problem], fix: "Change it." } : { id, score: 5, problems: [], fix: "" })), overall: "" };
+    const verdicts = idsOf(request).map((id) => {
+      if (id !== weak) return { id, score: 5, problems: [], fix: "" };
+      const first = !seen.has(id);
+      seen.add(id);
+      return first ? { id, score: 2, problems: [problem], fix: "Change it." } : { id, score: again, problems: [], fix: "" };
+    });
+    return { verdicts, overall: "Shots keep losing their subject at the edge of frame." };
   };
 }
 
@@ -31,12 +40,39 @@ describe("looking at shots", () => {
 
     const looks = ai.requests.filter((request) => taskOf(request) === "look_shots");
     const shots = ai.requests.filter((request) => taskOf(request) === "scene" && !request.prompt.includes("asked for changes")).length;
-    // 12 images a call at most.
-    expect(looks.map((request) => request.images!.length)).toEqual([12, shots - 12]);
+    // Three frames a shot (start, middle, end), whole shots packed into calls of at most 12 images; then the repair
+    // is looked at again on its own.
+    const firstPass = looks.slice(0, -1).map((request) => request.images!.length);
+    expect(firstPass.every((count) => count <= 12 && count % 3 === 0)).toBe(true);
+    expect(firstPass.reduce((a, b) => a + b, 0)).toBe(shots * 3);
+    expect(idsOf(looks.at(-1)!)).toEqual(["s02"]);
     const redos = ai.requests.filter((request) => taskOf(request) === "scene" && request.prompt.includes("the subject is out of frame"));
     expect(redos).toHaveLength(1);
     expect(redos[0]!.prompt).toContain('"shotId": "s02"');
     expect((await engine.status(seriesId)).decisions.some((decision) => decision.category === "look" && decision.subject === "ep-01/s02")).toBe(true);
+  });
+
+  it("keeps a repair only if it scores at least as well, and saves every score as the episode's critique", async () => {
+    // The repair is marked (a camera amount nothing else uses), so the test can tell which version was kept.
+    const scene = (request: AiRequest) => {
+      const spec = sceneFor(request.prompt);
+      if (request.prompt.includes("the subject is out of frame")) spec.camera[0]!.amount = 0.33;
+      return spec;
+    };
+    const { engine, ai, dir } = await setup({ look_shots: director("s02", "the subject is out of frame", 1), scene });
+    ai.seesImages = true;
+    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 1 });
+    await toPreview(engine, seriesId);
+
+    // The repair scored 1, worse than the 2 it replaced: the old shot is back, as a newer revision.
+    const spec = JSON.parse(await readFile(join(dir, seriesId, "episodes/ep-01/shots/s02/spec.json"), "utf8")).data;
+    expect(spec.camera[0].amount).not.toBe(0.33);
+    expect((await engine.history({ seriesId, file: "episodes/ep-01/shots/s02/spec.json" })).length).toBeGreaterThanOrEqual(3);
+    const critique = JSON.parse(await readFile(join(dir, seriesId, "episodes/ep-01/artifacts/critique.json"), "utf8")).data;
+    expect(critique.shots.find((shot: { shotId: string }) => shot.shotId === "s02")).toMatchObject({ score: 2, problems: ["the subject is out of frame"], repaired: { score: 1, kept: false } });
+    expect(critique.shots.filter((shot: { score: number }) => shot.score === 5).length).toBe(critique.shots.length - 1);
+    expect(critique.overall).toContain("edge of frame");
+    expect((await engine.status(seriesId)).decisions.some((decision) => decision.subject === "ep-01/s02" && decision.detail.includes("reverted"))).toBe(true);
   });
 
   it("never asks a backend that can't see", async () => {

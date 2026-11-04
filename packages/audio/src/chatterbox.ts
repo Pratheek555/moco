@@ -16,6 +16,7 @@ export interface ChatterboxOptions {
   modelDir?: string;
   device?: "auto" | "cpu" | "cuda" | "mps";
   reference?: string;
+  voices?: Record<string, string>; // trusted, configured speaker id -> reference WAV
   // A performance reference for an emotion gives more control than exaggeration alone.
   emotionReferences?: Partial<Record<NonNullable<Line["delivery"]>["emotion"], string>>;
   expressiveness?: number;
@@ -39,6 +40,7 @@ export function performance(line: Line, expressiveness = 0.65) {
 
 export function chatterboxAudio(options: ChatterboxOptions = {}) {
   return {
+    async voices() { return [{ id: "default", name: "Configured narrator" }, ...Object.keys(options.voices ?? {}).map((id) => ({ id, name: id }))]; },
     async tts(lines: Line[], _voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal) {
       signal?.throwIfAborted();
       if (!lines.length || lines.some((line) => !line.text.trim())) throw new Error("Narration must contain non-empty lines");
@@ -46,14 +48,17 @@ export function chatterboxAudio(options: ChatterboxOptions = {}) {
       try {
         const cacheDir = join(outDir, ".voice-cache");
         await mkdir(cacheDir, { recursive: true });
-        const references = [options.reference, ...Object.values(options.emotionReferences ?? {})].filter((path): path is string => Boolean(path));
+        for (const line of lines) {
+          if (line.voiceId && line.voiceId !== "default" && !options.voices?.[line.voiceId]) throw new Error(`Unknown Chatterbox voice: ${line.voiceId}`);
+        }
+        const references = [options.reference, ...Object.values(options.voices ?? {}), ...Object.values(options.emotionReferences ?? {})].filter((path): path is string => Boolean(path));
         const referenceHashes = Object.fromEntries(await Promise.all(references.map(async (path) => [path, createHash("sha256").update(await readFile(path)).digest("hex")])));
         const request = {
           language: language.split(/[-_]/)[0]!.toLowerCase(), device: options.device ?? "auto", seed: options.seed ?? 42,
           reference: options.reference || undefined, rate: options.rate ?? 1,
           modelDir: options.modelDir,
           lines: lines.map((line, index) => ({ text: line.text, ...performance(line, options.expressiveness),
-            reference: options.emotionReferences?.[line.delivery?.emotion ?? "neutral"], seed: (options.seed ?? 42) + index, file: join(work, `${index}.wav`) })),
+            reference: line.voiceId && line.voiceId !== "default" ? options.voices![line.voiceId] : options.emotionReferences?.[line.delivery?.emotion ?? "neutral"], seed: (options.seed ?? 42) + index, file: join(work, `${index}.wav`) })),
         };
         const cached = await Promise.all(request.lines.map(async (line) => {
           const { file: _file, ...performance } = line;

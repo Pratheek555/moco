@@ -33,7 +33,9 @@ interface PlacedAtmosphere {
   key: string;
 }
 
-export function Scene({ scene }: { scene: SceneSpec }) {
+// `strict`: set by the render check, where a camera the set blocks is an error for the AI to fix. In an episode render it
+// is pulled in until it can see, so one blocked frame never stops a whole episode.
+export function Scene({ scene, strict = false }: { scene: SceneSpec; strict?: boolean }) {
   const frame = useCurrentFrame();
   // A generated world brings its own place, so the id means nothing to the kit.
   const background = scene.world ? worldStage : registry.backgrounds.find((candidate) => candidate.id === scene.background.id);
@@ -49,7 +51,7 @@ export function Scene({ scene }: { scene: SceneSpec }) {
 
   return (
     <AbsoluteFill style={{ backgroundColor: "#000", overflow: "hidden" }}>
-      {background.stage ? <StageView scene={scene} def={background.stage} timeOfDay={timeOfDay} /> : null}
+      {background.stage ? <StageView scene={scene} def={background.stage} timeOfDay={timeOfDay} strict={strict} /> : null}
       {background.layers.map((layer) => (
         <Fragment key={layer.id}>
           <AbsoluteFill style={{ transform: layerTransform(camera, depthOf(layer)) }}>
@@ -77,13 +79,13 @@ export function Scene({ scene }: { scene: SceneSpec }) {
 
 // A 3D shot. The frame is read inside the blur, because the blur works by re-rendering its children at nearby times.
 const BLUR_SAMPLES = 6;
-function StageView({ scene, def, timeOfDay }: { scene: SceneSpec; def: StageDef; timeOfDay: string }) {
+function StageView({ scene, def, timeOfDay, strict }: { scene: SceneSpec; def: StageDef; timeOfDay: string; strict: boolean }) {
   if (!scene.stage) throw specError("stage", `background "${scene.background.id}" needs a stage`);
   const stage = scene.stage;
   const canvas = (
     <AbsoluteFill>
       <ThreeCanvas width={FRAME_WIDTH} height={FRAME_HEIGHT} shadows>
-        <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} world={scene.world} />
+        <StageFrame def={def} stage={stage} durationFrames={scene.durationFrames} timeOfDay={timeOfDay} world={scene.world} speech={scene.speech} strict={strict} />
       </ThreeCanvas>
     </AbsoluteFill>
   );
@@ -96,9 +98,9 @@ function StageView({ scene, def, timeOfDay }: { scene: SceneSpec; def: StageDef;
   );
 }
 
-function StageFrame({ def, stage, durationFrames, timeOfDay, world }: { def: StageDef; stage: SceneStage; durationFrames: number; timeOfDay: string; world: SceneSpec["world"] }) {
+function StageFrame({ def, stage, durationFrames, timeOfDay, world, speech, strict }: { def: StageDef; stage: SceneStage; durationFrames: number; timeOfDay: string; world: SceneSpec["world"]; speech: SceneSpec["speech"]; strict: boolean }) {
   const frame = useCurrentFrame();
-  return <def.Component stage={stage} frame={frame} durationFrames={durationFrames} timeOfDay={timeOfDay} world={world} />;
+  return <def.Component stage={stage} frame={frame} durationFrames={durationFrames} timeOfDay={timeOfDay} world={world} speech={speech} strict={strict} />;
 }
 
 function BackgroundLayer({ layer, frame, timeOfDay }: { layer: BackgroundLayerDef; frame: number; timeOfDay: string }) {
@@ -159,7 +161,7 @@ function World({ scene, frame, camera }: { scene: SceneSpec; frame: number; came
         <PropView key={`p${index}`} prop={prop} path={`props[${index}]`} frame={frame} />
       ))}
       {scene.actors.map((actor, index) => (
-        <ActorView key={`a${index}`} actor={actor} path={`actors[${index}]`} frame={frame} visemes={scene.visemes} />
+        <ActorView key={`a${index}`} actor={actor} path={`actors[${index}]`} frame={frame} visemes={scene.speech ? scene.speech.find((track) => track.speaker === actor.castId)?.visemes ?? [{ frame: 0, viseme: "X" }] : scene.visemes} />
       ))}
     </AbsoluteFill>
   );

@@ -38,7 +38,12 @@ export class FakeAi implements AiBackend {
 export class FakeRenderPort implements RenderPort {
   checks = 0;
   renders = 0;
+  releases = 0;
   thumbnails: { shotId: string; frame: number; text: string }[] = [];
+
+  async release() {
+    this.releases += 1;
+  }
 
   private readonly failFor: (spec: SceneSpec) => RenderError[];
 

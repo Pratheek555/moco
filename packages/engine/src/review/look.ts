@@ -2,9 +2,10 @@
 // and the ones that don't read get one more go with the notes. Models are reviewed when the world is built, shots
 // once every shot of an episode exists. Only for a backend that can see images; a review that fails is skipped, never
 // fatal: the work it would have polished is already valid.
+import { existsSync } from "node:fs";
 import { join } from "node:path";
 import { HUMANOID_JOINTS } from "@moco/kit";
-import { SceneSpec, World, WorldLocation, WorldModel, toAiJsonSchema, type SeriesPlan, type Shot } from "@moco/spec";
+import { SceneSpec, World, WorldLocation, WorldModel, toAiJsonSchema, type Critique, type SeriesPlan, type Shot, type ShowBible } from "@moco/spec";
 import * as z from "zod";
 import { shotBrief } from "../generator/context.ts";
 import { generateScene, type SceneInputs } from "../generator/generate.ts";
@@ -12,6 +13,7 @@ import { joinSections, jsonSection, loadPrompt } from "../generator/prompts.ts";
 import { generateValidated } from "../loop/loop.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
+import { appearanceOf, critiquePack } from "../planner/show.ts";
 import { checkModel } from "../planner/world.ts";
 
 // A score at or under this is sent back.
@@ -33,30 +35,66 @@ export interface LookOutcome {
   fixed: string[]; // ids sent back
 }
 
-async function look(ctx: StageContext, scope: string, prompt: "look_models" | "look_shots", items: { id: string; image: string; brief: unknown }[]): Promise<Verdict[]> {
+// One thing to judge: a model's single render, or a shot's frames from start to end so movement can be judged.
+interface LookItem {
+  id: string;
+  images: string[];
+  brief: unknown;
+}
+
+// Items packed into calls of at most PER_CALL images, never splitting one item's frames across calls.
+function batches(items: LookItem[]): LookItem[][] {
+  const out: LookItem[][] = [];
+  for (const item of items) {
+    const last = out.at(-1);
+    if (last && last.reduce((total, entry) => total + entry.images.length, 0) + item.images.length <= PER_CALL) last.push(item);
+    else out.push([item]);
+  }
+  return out;
+}
+
+// Which images belong to which item, in the order they're attached: "images 1–3 = s01 (start, middle, end)".
+function imageKey(batch: LookItem[]): string {
+  let next = 1;
+  return batch.map((item) => {
+    const first = next;
+    next += item.images.length;
+    if (item.images.length === 1) return `image ${first} = ${item.id}`;
+    return `images ${first}–${next - 1} = ${item.id} (${item.images.length === 3 ? "start, middle, end" : "in time order"})`;
+  }).join(", ");
+}
+
+// `standard`: a prompt section on what good looks like for this show, judged on top of the prompt's general scale.
+async function look(ctx: StageContext, scope: string, prompt: "look_models" | "look_shots", items: LookItem[], standard = ""): Promise<{ verdicts: Verdict[]; overall: string }> {
   const verdicts: Verdict[] = [];
-  for (let start = 0; start < items.length; start += PER_CALL) {
-    const batch = items.slice(start, start + PER_CALL);
+  const overall: string[] = [];
+  for (const batch of batches(items)) {
     const result = await ctx.ai.generate(
       {
         system: loadPrompt(prompt),
         prompt: joinSections([
-          `The ${batch.length} images above are, in order: ${batch.map((item, index) => `image ${index + 1} = ${item.id}`).join(", ")}.`,
+          `The images above are, in order: ${imageKey(batch)}.`,
+          standard,
           jsonSection("What each one is meant to be", batch.map(({ id, brief }) => ({ id, ...(brief as object) }))),
-          "Return one verdict per image, with its id.",
+          "Return one verdict per id.",
         ]),
-        images: batch.map((item) => item.image),
+        images: batch.flatMap((item) => item.images),
         jsonSchema: toAiJsonSchema(Review),
         signal: ctx.signal,
       },
       scope,
     );
     const parsed = Review.safeParse(result.json);
-    if (parsed.success) verdicts.push(...parsed.data.verdicts.filter((verdict) => batch.some((item) => item.id === verdict.id)));
+    if (parsed.success) {
+      verdicts.push(...parsed.data.verdicts.filter((verdict) => batch.some((item) => item.id === verdict.id)));
+      overall.push(parsed.data.overall);
+    }
   }
-  return verdicts;
+  return { verdicts, overall: overall.join(" ") };
 }
 
+// Every score, not only the failures: how a cut scored is how a pipeline change gets measured.
+const scoresOf = (verdicts: Verdict[]) => Object.fromEntries(verdicts.map((verdict) => [verdict.id, verdict.score]));
 const worst = (verdicts: Verdict[], limit: number) => verdicts.filter((verdict) => verdict.score <= FIX_AT).sort((a, b) => a.score - b.score).slice(0, limit);
 const notes = (verdict: Verdict) => [...verdict.problems.map((problem) => `- ${problem}`), `Fix: ${verdict.fix}`].join("\n");
 
@@ -84,7 +122,7 @@ function modelShot(model: WorldModel, camera: string): SceneSpec {
 }
 
 // Renders each model on its own and has the AI rebuild the ones that don't read. Returns the world with them replaced.
-export async function lookAtModels(ctx: StageContext, plan: SeriesPlan, world: World, maxFixes = 6): Promise<{ world: World; outcome: LookOutcome }> {
+export async function lookAtModels(ctx: StageContext, plan: SeriesPlan, world: World, show?: ShowBible, maxFixes = 6): Promise<{ world: World; outcome: LookOutcome }> {
   if (!ctx.ai.seesImages) return { world, outcome: { reviewed: 0, fixed: [] } };
   try {
     const cast = new Map(world.cast.map((member) => [member.model, member]));
@@ -96,13 +134,15 @@ export async function lookAtModels(ctx: StageContext, plan: SeriesPlan, world: W
       const check = await ctx.renderSlots.run(() => ctx.render.check(modelShot(model, camera), { frames: [15], outDir: join(dir, model.id) }));
       if (!check.ok) continue;
       const member = cast.get(model.id);
-      items.push({ id: model.id, image: check.stills[0]!, brief: { heightMetres: model.height, ...(member ? { character: member } : {}) } });
+      const appearance = appearanceOf(show, member?.id);
+      items.push({ id: model.id, image: check.stills[0]!, brief: { heightMetres: model.height, ...(member ? { character: member } : {}), ...(appearance ? { modelSheet: appearance } : {}) } });
     }
-    const verdicts = await look(ctx, "series", "look_models", items.map((item) => ({ ...item, brief: { ...(item.brief as object), story: plan.title } })));
+    const standard = show ? jsonSection("The show's look — judge against it as well", { look: show.look.statement, palette: show.look.palette }) : "";
+    const { verdicts } = await look(ctx, "series", "look_models", items.map((item) => ({ id: item.id, images: [item.image], brief: { ...(item.brief as object), story: plan.title } })), standard);
     const toFix = worst(verdicts, maxFixes);
-    await ctx.bus.emit(ctx.seriesId, "look.models", { reviewed: verdicts.length, fixing: toFix.map((verdict) => verdict.id) });
+    await ctx.bus.emit(ctx.seriesId, "look.models", { reviewed: verdicts.length, fixing: toFix.map((verdict) => verdict.id), scores: scoresOf(verdicts) });
 
-    const fixed = await Promise.all(toFix.map((verdict) => fixModel(ctx, world.models.find((model) => model.id === verdict.id)!, items.find((item) => item.id === verdict.id)!.image, verdict)));
+    const fixed = await Promise.all(toFix.map((verdict) => fixModel(ctx, world.models.find((model) => model.id === verdict.id)!, items.find((item) => item.id === verdict.id)!, verdict)));
     const replaced = new Map(fixed.filter((model): model is WorldModel => model !== undefined).map((model) => [model.id, model]));
     for (const verdict of toFix) ctx.ledger.decide("look", `model ${verdict.id}`, `scored ${verdict.score}/5${replaced.has(verdict.id) ? ", rebuilt" : ", rebuild failed, kept"}: ${verdict.problems.join("; ")}`);
     return { world: { ...world, models: world.models.map((model) => replaced.get(model.id) ?? model) }, outcome: { reviewed: verdicts.length, fixed: [...replaced.keys()] } };
@@ -113,7 +153,8 @@ export async function lookAtModels(ctx: StageContext, plan: SeriesPlan, world: W
   }
 }
 
-async function fixModel(ctx: StageContext, model: WorldModel, image: string, verdict: Verdict): Promise<WorldModel | undefined> {
+async function fixModel(ctx: StageContext, model: WorldModel, item: { image: string; brief: unknown }, verdict: Verdict): Promise<WorldModel | undefined> {
+  const { image } = item;
   const joints = new Map(model.parts.map((part) => [part.id, part.at]));
   const result = await generateValidated({
     ai: { ...ctx.ai, generate: (request, scope) => ctx.ai.generate({ ...request, images: [image] }, scope) },
@@ -140,34 +181,68 @@ async function fixModel(ctx: StageContext, model: WorldModel, image: string, ver
 
 // ---------- shots ----------
 
-// Looks at every shot's middle still against its brief and regenerates the weakest with the notes, once.
+// The frames a shot is judged on: near its start, its middle and near its end, so the critic sees what moves (a
+// subject walking out of frame, a camera arriving late, a pose that never changes), not one still.
+export function critiqueFrames(durationFrames: number): number[] {
+  const last = durationFrames - 1;
+  return [...new Set([Math.round(last * 0.12), Math.round(last / 2), Math.round(last * 0.88)])];
+}
+
+// A shot as the critic sees it, rendered now: a reused shot's stills can be from an older renderer, and the director
+// judges what ships. Undefined if nothing could be rendered or found for it.
+async function shotItem(ctx: StageContext, episodeId: string, shot: Shot, shared: Omit<SceneInputs, "shot">, pass: string) {
+  const spec = (await ctx.store.read(files.shotSpec(episodeId, shot.id), "SceneSpec")).data;
+  const frames = critiqueFrames(spec.durationFrames);
+  const words = shotBrief(shot, shared.voiceover).words.map((word) => word.text).join(" ");
+  const check = await ctx.renderSlots.run(() => ctx.render.check(spec, { frames, outDir: join(ctx.dir, "cache", "look", episodeId, shot.id, pass) }));
+  const images = check.ok ? check.stills : frames.map((frame) => join(ctx.dir, files.shotDir(episodeId, shot.id), "stills", `${frame}.png`)).filter((file) => existsSync(file));
+  if (images.length === 0) return undefined;
+  const brief = { intent: shot.intent, spoken: words || undefined, camera: spec.stage?.camera, place: spec.stage?.place, subject: spec.stage?.subject, fallback: spec.fallback || undefined };
+  return { id: shot.id, images, brief, fallback: spec.fallback };
+}
+
+// Looks at every shot against its brief, repairs the weakest with the notes, then looks at each repair: a repair is
+// kept only if it scores at least as well as the shot it replaced. Every score is saved as the episode's critique,
+// the evidence the episode retro learns from (learn/playbook.ts).
 export async function lookAtShots(ctx: StageContext, episodeId: string, shots: Shot[], shared: Omit<SceneInputs, "shot">, maxFixes = Math.ceil(shots.length / 3)): Promise<LookOutcome> {
   if (!ctx.ai.seesImages) return { reviewed: 0, fixed: [] };
   try {
-    const items = await Promise.all(
-      shots.map(async (shot) => {
-        const spec = (await ctx.store.read(files.shotSpec(episodeId, shot.id), "SceneSpec")).data;
-        const middle = Math.floor((spec.durationFrames - 1) / 2);
-        const words = shotBrief(shot, shared.voiceover).words.map((word) => word.text).join(" ");
-        // Rendered now: a reused shot's stills can be from an older renderer, and the director judges what ships.
-        const check = await ctx.renderSlots.run(() => ctx.render.check(spec, { frames: [middle], outDir: join(ctx.dir, "cache", "look", episodeId, shot.id) }));
-        return {
-          id: shot.id,
-          image: check.ok ? check.stills[0]! : join(ctx.dir, files.shotDir(episodeId, shot.id), "stills", `${middle}.png`),
-          brief: { intent: shot.intent, spoken: words || undefined, camera: spec.stage?.camera, place: spec.stage?.place, subject: spec.stage?.subject, fallback: spec.fallback || undefined },
-          fallback: spec.fallback,
-        };
-      }),
-    );
-    const verdicts = await look(ctx, episodeId, "look_shots", items);
+    const items = (await Promise.all(shots.map((shot) => shotItem(ctx, episodeId, shot, shared, "first")))).filter((item) => item !== undefined);
+    const standard = shared.show ? jsonSection("What a 5/5 shot is for this show — score against this rubric", critiquePack(shared.show)) : "";
+    const first = await look(ctx, episodeId, "look_shots", items, standard);
     // Fallback shots already failed the AI: another go won't help.
-    const toFix = worst(verdicts.filter((verdict) => !items.find((item) => item.id === verdict.id)?.fallback), maxFixes);
-    await ctx.bus.emit(ctx.seriesId, "look.shots", { episodeId, reviewed: verdicts.length, fixing: toFix.map((verdict) => verdict.id) });
-    for (const verdict of toFix) ctx.ledger.decide("look", `${episodeId}/${verdict.id}`, `scored ${verdict.score}/5, regenerated: ${verdict.problems.join("; ")}`);
+    const toFix = worst(first.verdicts.filter((verdict) => !items.find((item) => item.id === verdict.id)?.fallback), maxFixes);
+    await ctx.bus.emit(ctx.seriesId, "look.shots", { episodeId, reviewed: first.verdicts.length, fixing: toFix.map((verdict) => verdict.id), scores: scoresOf(first.verdicts) });
+
+    const shotOf = (id: string) => shots.find((shot) => shot.id === id)!;
+    const before = new Map(await Promise.all(toFix.map(async (verdict) => [verdict.id, await ctx.store.read(files.shotSpec(episodeId, verdict.id), "SceneSpec")] as const)));
     await Promise.all(
-      toFix.map((verdict) => generateScene(ctx, { ...shared, shot: shots.find((shot) => shot.id === verdict.id)!, force: true, keepOnFailure: true, feedback: `The director saw this shot rendered and asked for changes:\n${notes(verdict)}` })),
+      toFix.map((verdict) => generateScene(ctx, { ...shared, shot: shotOf(verdict.id), force: true, keepOnFailure: true, feedback: `The director saw this shot rendered and asked for changes:
+${notes(verdict)}` })),
     );
-    return { reviewed: verdicts.length, fixed: toFix.map((verdict) => verdict.id) };
+    const again = (await Promise.all(toFix.map((verdict) => shotItem(ctx, episodeId, shotOf(verdict.id), shared, "repair")))).filter((item) => item !== undefined);
+    const second = again.length > 0 ? await look(ctx, episodeId, "look_shots", again, standard) : { verdicts: [], overall: "" };
+
+    const repaired = new Map<string, { score: number; kept: boolean }>();
+    for (const verdict of toFix) {
+      const after = second.verdicts.find((candidate) => candidate.id === verdict.id);
+      if (!after) continue;
+      const kept = after.score >= verdict.score;
+      const old = before.get(verdict.id)!;
+      // Worse than before: put the old shot back, as a new revision, so the history shows both.
+      if (!kept) await ctx.store.save(files.shotSpec(episodeId, verdict.id), "SceneSpec", old.data, { producedBy: old.meta.producedBy, backend: old.meta.backend, inputs: old.meta.inputs });
+      repaired.set(verdict.id, { score: after.score, kept });
+      ctx.ledger.decide("look", `${episodeId}/${verdict.id}`, `scored ${verdict.score}/5, repair scored ${after.score}/5, ${kept ? "kept" : "reverted"}: ${verdict.problems.join("; ")}`);
+    }
+    await ctx.bus.emit(ctx.seriesId, "look.repairs", { episodeId, repairs: Object.fromEntries(repaired) });
+
+    const critique: Critique = {
+      episodeId,
+      shots: first.verdicts.map(({ id, score, problems, fix }) => ({ shotId: id, score, problems, fix, repaired: repaired.get(id) })),
+      overall: first.overall,
+    };
+    await ctx.store.save(files.critique(episodeId), "Critique", critique, { producedBy: "ai", backend: ctx.ai.backendId, inputs: shots.map((shot) => ctx.store.inputRef(files.shotSpec(episodeId, shot.id))) });
+    return { reviewed: first.verdicts.length, fixed: [...repaired].filter(([, repair]) => repair.kept).map(([id]) => id) };
   } catch (err) {
     if (ctx.signal.aborted) throw err;
     ctx.ledger.decide("look", episodeId, `review skipped: ${err instanceof Error ? err.message : String(err)}`);

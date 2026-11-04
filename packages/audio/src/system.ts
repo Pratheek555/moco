@@ -27,13 +27,17 @@ export interface VoiceInfo {
 // Same shape as the engine's AudioPort.
 export function systemAudio(options: SystemAudioOptions = {}) {
   return {
+    async voices(language: string) {
+      return (await systemVoices()).filter((voice) => voice.locale.split("-")[0] === language.split("-")[0]).map(({ id, name }) => ({ id, name }));
+    },
     async tts(lines: Line[], _voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal) {
       const voice = pickVoice(await systemVoices(), language, options.voice);
       const work = await mkdtemp(join(tmpdir(), "moco-tts-"));
       try {
         const spoken: Pcm[] = [];
         for (const [index, line] of lines.entries()) {
-          spoken.push(parseWav(await speak(line.text, join(work, `line-${index}.wav`), { ...options, voice }, signal)));
+          const chosen = line.voiceId && line.voiceId !== "default" ? line.voiceId : voice;
+          spoken.push(parseWav(await speak(line.text, join(work, `line-${index}.wav`), { ...options, voice: chosen }, signal)));
         }
         const joined = joinLines(lines, spoken);
         await mkdir(outDir, { recursive: true });

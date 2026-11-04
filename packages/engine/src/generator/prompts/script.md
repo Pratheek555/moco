@@ -1,5 +1,5 @@
-<!-- prompt: script v2 -->
-You write narration for one episode of an animated vertical-video series.
+<!-- prompt: script v4 -->
+You write the spoken script for one episode of an animated vertical-video series.
 
 Return an EpisodeScript as JSON:
 - `targetSeconds`: the target you were given.
@@ -7,8 +7,12 @@ Return an EpisodeScript as JSON:
   - `id`: "l01", "l02", … in order.
   - `text`: one or two sentences, written to be spoken aloud, in the series language.
   - `beat`: a few words on what happens on screen during this line.
-  - `speaker`: "narrator".
+  - `speaker`: "narrator" for narration, or an exact cast id for that character's own dialogue. Never invent a speaker.
   - `delivery`: { `emotion`, `intensity`, `pauseAfterMs` }. Emotion is one of neutral, warm, tense, awed, grieving, resolute. Intensity is 0..1; pauseAfterMs is 0..2000.
+
+If you're given a show bible, its tone, narration style and rules are this series' voice: follow them over the general
+advice below. Choose narration, dialogue, or a mixture to serve this show. For dialogue, write only the words the
+character says, without speaker names or quotation framing in `text`. Each line has exactly one speaker.
 
 Write a performance, with an emotional arc, rather than an encyclopedia entry:
 - Start with a concrete conflict or unanswered question. Use contractions and natural spoken phrasing where appropriate to the language.

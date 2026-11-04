@@ -164,7 +164,7 @@ export function UsagePage() {
     <Page>
       <PageHeader
         title="Usage"
-        description="How much of your Claude plan Moco has used. Moco runs on your own plan, so nothing here is billed by Moco."
+        description="How much of your AI plan Moco has used. Moco runs on your own plan, so nothing here is billed by Moco."
         actions={
           everUsed && (
             <>
@@ -202,9 +202,9 @@ export function UsagePage() {
             <EmptyMedia variant="icon">
               <ChartColumnIcon />
             </EmptyMedia>
-            <EmptyTitle>No Claude usage yet</EmptyTitle>
+            <EmptyTitle>No AI usage yet</EmptyTitle>
             <EmptyDescription>
-              Each time Moco plans, writes or fixes a scene it asks Claude. Those requests show up here.
+              Each time Moco plans, writes or fixes a scene it asks your selected AI provider. Those requests show up here.
             </EmptyDescription>
           </EmptyHeader>
           <EmptyContent>
@@ -217,7 +217,7 @@ export function UsagePage() {
       ) : (
         <>
           <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Stat label="Claude requests" value={whole.format(totals.calls)} note="Plans, scripts, scenes and fixes" />
+            <Stat label="AI requests" value={whole.format(totals.calls)} note="Plans, scripts, scenes and fixes" />
             <Stat
               label="Tokens"
               value={compact.format(totals.inputTokens + totals.outputTokens)}
@@ -231,7 +231,7 @@ export function UsagePage() {
             <Stat
               label="Pay-as-you-go value"
               value={usd.format(totals.costUsdEstimate)}
-              note="Claude’s estimate at API prices; your plan covers it"
+              note="Estimate reported by your AI provider"
             />
           </div>
 

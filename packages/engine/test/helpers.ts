@@ -29,6 +29,29 @@ export function scriptData(lines = LINES) {
   };
 }
 
+// A valid show bible whose cast matches the default kit bible below.
+export function showData() {
+  const member = (id: string, name: string) => ({ id, name, role: "lead", personality: "steady", appearance: "tall, blue skin, gold crown", movement: "calm", signature: ["raised palm"], voice: "warm" });
+  return {
+    logline: "Krishna guides Arjuna.",
+    genre: "mythological drama",
+    tone: "Reverent and warm.",
+    narration: "A calm storyteller in the third person.",
+    format: { targetSeconds: 45, shotSeconds: { min: 1.5, max: 6 }, pacing: "Hook, build, quiet landing." },
+    rules: ["Krishna never hurries."],
+    rubric: ["faces read at phone size", "gold only on the divine", "the frame is full"],
+    look: { statement: "Painted epic.", palette: [{ token: "gold", hex: "#f4c430", use: "the divine" }, { token: "night", hex: "#1b1b3a", use: "sky" }, { token: "earth", hex: "#8a5a2b", use: "ground" }], lighting: [{ token: "dawn", recipe: "low warm sun" }], camera: "Wide to open, close on feeling.", captions: "Short and bold." },
+    cast: [member("krishna", "Krishna"), member("arjuna", "Arjuna")],
+    places: [{ id: "kurukshetra", name: "Kurukshetra", description: "A vast plain of armies.", mood: "tense" }],
+  };
+}
+
+function showFor(world: unknown) {
+  const show = showData();
+  const cast = (world as { cast?: { id: string }[] }).cast ?? [];
+  return { ...show, cast: cast.map(({ id }) => ({ ...show.cast[0]!, id, name: id })) };
+}
+
 interface Brief {
   shotId: string;
   durationFrames: number;
@@ -88,6 +111,12 @@ export function validAnswer(request: AiRequest, task: string): unknown {
       const first = Number(firstId.slice(3));
       return { episodes: Array.from({ length: episodes }, (_, i) => ({ id: `ep-${String(first + i).padStart(2, "0")}`, title: `Episode ${first + i}`, synopsis: "A later beat." })) };
     }
+    case "show":
+      return showData();
+    case "retro": // every active lesson held; nothing new learned
+      return { checks: section<{ id: string }[]>(request.prompt, "Active lessons to check").map(({ id }) => ({ id, outcome: "held", note: "No shot broke it." })), lessons: [] };
+    case "canon": // the canon already covers every episode
+      return { reason: "The canon already covers this episode.", cast: [], places: [] };
     case "bible":
       return {
         cast: [
@@ -124,7 +153,10 @@ export function validAnswer(request: AiRequest, task: string): unknown {
 
 export async function setup(overrides: Partial<Record<string, (request: AiRequest) => unknown>> = {}, projectsDir?: string, secondsPerWord = 0.4) {
   const dir = projectsDir ?? (await mkdtemp(join(tmpdir(), "moco-test-")));
-  const ai = new FakeAi((request, task) => (overrides[task] ? overrides[task]!(request) : validAnswer(request, task)));
+  // A test that builds a world gets a show bible with that world's cast, as the real AI would write them in that order.
+  const world = overrides.world;
+  const answers = world && !overrides.show ? { ...overrides, show: (request: AiRequest) => showFor(world(request)) } : overrides;
+  const ai = new FakeAi((request, task) => (answers[task] ? answers[task]!(request) : validAnswer(request, task)));
   const render = new FakeRenderPort();
   const audio = new FakeAudio(secondsPerWord);
   const engine: Engine = createEngine({ projectsDir: dir, ai, render, audio });

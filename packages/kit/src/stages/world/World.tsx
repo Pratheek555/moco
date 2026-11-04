@@ -14,6 +14,8 @@ import { LibraryModel, LookContext, ScatteredLibraryModel, useLibraryTextures } 
 import { isBlinking, poseAt, seedOf, spinAt, type Pose } from "./moves.ts";
 import { WORLD_CAMERAS, isSubject } from "./options.ts";
 import { placePlayer, type Placed } from "./shots.ts";
+import { sampleKeys, blendVector } from "./timeline.ts";
+import { faceAt, type FaceState } from "./face.ts";
 
 const radians = THREE.MathUtils.degToRad;
 const NO_ACTIONS: SceneAction[] = [];
@@ -42,38 +44,55 @@ interface PartProps {
   pose: Pose;
   frame: number;
   blinking: boolean;
+  face?: FaceState;
 }
 
 // A part hinges on its parent at `at`; its children hang off the same hinge, so they move with it.
-function PartNode({ part, built, pose, frame, blinking }: PartProps) {
+function PartNode({ part, built, pose, frame, blinking, face }: PartProps) {
   const added = pose[part.id] ?? [0, 0, 0];
   const spin = part.spin ?? [0, 0, 0];
   const rotation = [0, 1, 2].map((axis) => radians(part.turn[axis]! + added[axis]! + spinAt(spin[axis]!, frame))) as [number, number, number];
+  if (face && part.id.startsWith("brow_")) rotation[2] += face.brow * (part.id.endsWith("L") ? 0.35 : -0.35);
+  const smile = face?.smile ?? 0;
+  const mouthGeometry = useMemo(() => {
+    if (part.id !== "mouth" || !part.path || smile === 0) return undefined;
+    const width = Math.max(...part.path.map((point) => Math.abs(point[0])));
+    return geometryOf({ ...part, path: part.path.map(([x, y, z]) => [x, y + (width ? (x / width) ** 2 * width * smile * 0.35 : 0), z]) });
+  }, [part, smile]);
+  useEffect(() => () => mouthGeometry?.dispose(), [mouthGeometry]);
+  const open = face?.mouthOpen ?? 0;
+  const eye = part.id.startsWith("eye_") ? face?.eyeOpen ?? 1 : 1;
   return (
-    <group position={part.at} rotation={rotation}>
+    <group position={part.at} rotation={rotation} scale={[1, eye, 1]}>
       {part.shape === "asset" && part.asset ? (
         <group position={part.offset}>
           <LibraryModel id={part.asset} size={part.size} />
         </group>
       ) : (
-        <mesh geometry={built.geometry.get(part.id)} material={built.materials.get(part.surface)} position={part.offset} scale={[1, blinking && part.blinks ? 0.08 : 1, 1]} castShadow receiveShadow />
+        <mesh visible={part.id === "mouth_open" ? open > 0.01 : part.id !== "mouth" || open < 0.15} geometry={mouthGeometry ?? built.geometry.get(part.id)} material={built.materials.get(part.surface)} position={part.offset} scale={[1, part.id === "mouth_open" ? Math.max(0.01, open) : blinking && part.blinks ? 0.08 : 1, 1]} castShadow receiveShadow />
       )}
       {(built.children.get(part.id) ?? []).map((child) => (
-        <PartNode key={child.id} part={child} built={built} pose={pose} frame={frame} blinking={blinking} />
+        <PartNode key={child.id} part={child} built={built} pose={pose} frame={frame} blinking={blinking} face={face} />
       ))}
     </group>
   );
 }
 
-function ModelView({ model, actions, frame, seed }: { model: WorldModel; actions: SceneAction[]; frame: number; seed: number }) {
+function ModelView({ model, actions, frame, seed, face, poseKeys }: { model: WorldModel; actions: SceneAction[]; frame: number; seed: number; face?: FaceState; poseKeys?: ScenePlayer["poseKeys"] }) {
   const look = useContext(LookContext);
   const built = useMemo(() => buildModel(model, look), [model, look]);
   const pose = poseAt(model, actions, frame, seed);
+  if (poseKeys) {
+    const { previous, next, amount } = sampleKeys(poseKeys, frame);
+    for (const joint of new Set(poseKeys.flatMap((key) => Object.keys(key.turn)))) {
+      pose[joint] = blendVector(previous.turn[joint] ?? [0,0,0], next.turn[joint] ?? [0,0,0], amount);
+    }
+  }
   const blinking = isBlinking(seed, frame);
   return (
     <>
       {(built.children.get(undefined) ?? []).map((part) => (
-        <PartNode key={part.id} part={part} built={built} pose={pose} frame={frame} blinking={blinking} />
+        <PartNode key={part.id} part={part} built={built} pose={pose} frame={frame} blinking={blinking} face={face} />
       ))}
     </>
   );
@@ -283,7 +302,7 @@ function ContactShadow({ width }: { width: number }) {
 const STAND_IN: WorldModel = { id: "mark", rig: "none", height: 2, surfaces: {}, parts: [], moves: [] };
 const STAND_IN_PLAYER: ScenePlayer = { id: "mark", model: "mark", at: [0, 0, 0], facing: 0, actions: [] };
 
-function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
+function WorldShot({ stage, frame, durationFrames, world, speech, strict = false }: StageProps) {
   if (!world) throw new Error("the generated world is missing from this shot");
   const { location } = world;
   // Described characters become their designed parts here, once per model.
@@ -308,8 +327,8 @@ function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
   const framed = framing(frame);
   // The camera works out its whole path through the set, so it never ends up behind a wall.
   const blockers = blockersOf(location, models);
-  const lens = steadyLens(stage, framing, frame, durationFrames, blockers);
-  const previous = steadyLens(stage, framing, Math.max(0, frame - 0.5), durationFrames, blockers); // for motion blur
+  const lens = steadyLens(stage, framing, frame, durationFrames, blockers, mark.at, strict);
+  const previous = steadyLens(stage, framing, Math.max(0, frame - 0.5), durationFrames, blockers, mark.at, strict); // for motion blur
   const subject = framed.find((item) => isSubject(item.player, stage.subject)) ?? framed[0]!;
   const focus = subject.position;
   const light = useMemo(() => skyLight(location.sky), [location]);
@@ -352,7 +371,7 @@ function WorldShot({ stage, frame, durationFrames, world }: StageProps) {
             {player.at[1] < 0.05 ? <ContactShadow width={measureModel(model).height * 0.72} /> : null}
             {/* Lifted by its lowest point, so feet meet the ground whatever the model's own numbers said. */}
             <group position={[0, -measureModel(model).bottom, 0]}>
-              <ModelView model={model} actions={player.actions} frame={frame} seed={seedOf(player.id)} />
+              <ModelView model={model} actions={player.actions} poseKeys={player.poseKeys} frame={frame} seed={seedOf(player.id)} face={faceAt(player, frame, speech?.find((track) => track.speaker === player.id)?.visemes)} />
             </group>
           </group>
         );

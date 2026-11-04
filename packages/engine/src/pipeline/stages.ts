@@ -116,9 +116,14 @@ export function dependants(key: string, episodeIds: string[]): string[] {
 // Where each artifact lives, relative to the series folder.
 export const files = {
   seriesPlan: "artifacts/series_plan.json",
+  show: "artifacts/show.json",
   bible: "artifacts/bible.json",
   world: "artifacts/world.json",
   memory: "artifacts/memory.json",
+  playbook: "artifacts/playbook.json", // the series' lessons (v2 phase 4)
+  canonDir: "artifacts/canon", // one CanonAddition per episode that grew the canon (v2 phase 5)
+  canon: (ep: string) => `artifacts/canon/${ep}.json`,
+  critique: (ep: string) => `episodes/${ep}/artifacts/critique.json`,
   script: (ep: string) => `episodes/${ep}/artifacts/script.json`,
   voiceover: (ep: string) => `episodes/${ep}/artifacts/voiceover.json`,
   shotList: (ep: string) => `episodes/${ep}/artifacts/shot_list.json`,
