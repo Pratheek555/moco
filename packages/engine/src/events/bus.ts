@@ -21,7 +21,10 @@ export type EngineEventType =
   | "usage.rate_limited"
   | "render.progress"
   | "look.models"
-  | "look.shots";
+  | "look.shots"
+  | "look.repairs" // each repaired shot's new score, and whether the repair was kept
+  | "learn.retro" // the episode retro: lessons learned, held and broken
+  | "canon.grown"; // an episode added cast, places or world models to the canon
 
 export interface EngineEvent {
   type: EngineEventType;

@@ -16,7 +16,7 @@ import {
   LayoutTemplateIcon,
   TriangleAlertIcon,
 } from "lucide-react";
-import type { EpisodeScript, SeriesBible, SeriesPlan } from "@moco/spec";
+import type { CanonAddition, EpisodeScript, Playbook, SeriesBible, SeriesPlan, ShowBible } from "@moco/spec";
 import { api, type SeriesStatus } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
 import { report, stageLabel, useApp } from "@/lib/store.ts";
@@ -87,6 +87,8 @@ type Stage = SeriesStatus["stages"][number];
 const PLAN = "artifacts/series_plan.json";
 const MAX_EPISODES = 99; // episode ids run "ep-01" … "ep-99"
 const BIBLE = "artifacts/bible.json";
+const SHOW = "artifacts/show.json"; // the series' own rules, approved with the bible
+const PLAYBOOK = "artifacts/playbook.json"; // what the series learned from its own shots
 
 // Which artifact a gate asks you to review. Sample and preview are reviewed as pictures, not JSON.
 function reviewFile(key: string): string | undefined {
@@ -109,15 +111,24 @@ export function SeriesPage({ id }: { id: string }) {
     progress = useApp((s) => s.progress[id]);
   const { data, error } = useAsync(
     async () => {
-      const [status, plan, bible] = await Promise.all([
+      const [status, plan, bible, show, playbook] = await Promise.all([
         api.series.status(id),
         api.series.artifact(id, PLAN),
         api.series.artifact(id, BIBLE),
+        api.series.artifact(id, SHOW),
+        api.series.artifact(id, PLAYBOOK),
       ]);
+      // Characters later episodes added to the canon, each with the episode it joined in.
+      const episodes = (plan?.data as SeriesPlan | undefined)?.episodes ?? [];
+      const additions = (await Promise.all(episodes.map((ep) => api.series.artifact(id, `artifacts/canon/${ep.id}.json`).catch(() => null))))
+        .flatMap((artifact) => (artifact ? [artifact.data as CanonAddition] : []));
       return {
         status,
         plan: plan?.data as SeriesPlan | undefined,
         bible: bible?.data as SeriesBible | undefined,
+        show: show?.data as ShowBible | undefined,
+        playbook: playbook?.data as Playbook | undefined,
+        additions,
       };
     },
     [id, version],
@@ -132,7 +143,9 @@ export function SeriesPage({ id }: { id: string }) {
       />
     );
   if (!data) return <PageLoading label="Opening series…" />;
-  const { status, plan, bible } = data;
+  const { status, plan, bible, show, playbook, additions } = data;
+  const joined = additions.flatMap((addition) => addition.world.cast.map((member) => ({ id: member.id, kitCharacterId: member.model, description: member.description, episodeId: addition.episodeId })));
+  const lessons = playbook?.lessons.filter((lesson) => lesson.status === "active") ?? [];
   const running = status.activeJob !== undefined;
   const stage = (key: string) => status.stages.find((s) => s.key === key);
   const current = status.stages.find((s) => s.status === "running");
@@ -267,7 +280,7 @@ export function SeriesPage({ id }: { id: string }) {
         </Alert>
       )}
       {!running && waiting && (
-        <Review key={waiting.key} seriesId={id} stage={waiting} plan={plan} bible={bible} />
+        <Review key={waiting.key} seriesId={id} stage={waiting} plan={plan} bible={bible} show={show} />
       )}
       {status.next.kind === "finished" && (
         <Alert>
@@ -327,13 +340,16 @@ export function SeriesPage({ id }: { id: string }) {
             <h2 className="text-sm font-semibold">Cast</h2>
             {bible ? (
               <ItemGroup className="gap-4">
-                {bible.cast.map((c) => (
+                {[...bible.cast, ...joined].map((c) => (
                   <Item key={c.id} role="listitem" size="sm" className="p-0">
                     <ItemMedia>
                       <CastAvatar character={c.kitCharacterId} />
                     </ItemMedia>
                     <ItemContent>
-                      <ItemTitle>{humanize(c.id)}</ItemTitle>
+                      <ItemTitle>
+                        {humanize(c.id)}
+                        {"episodeId" in c && <Badge variant="outline">Joined in episode {Number(String(c.episodeId).slice(3))}</Badge>}
+                      </ItemTitle>
                       <ItemDescription className="line-clamp-3">{c.description}</ItemDescription>
                     </ItemContent>
                   </Item>
@@ -345,6 +361,25 @@ export function SeriesPage({ id }: { id: string }) {
               <p className="text-sm text-muted-foreground">The cast is chosen with the series bible.</p>
             )}
           </section>
+          {lessons.length > 0 && (
+            <>
+              <Separator />
+              <section className="flex flex-col gap-3">
+                <h2 className="text-sm font-semibold">What this series learned</h2>
+                <ul className="flex flex-col gap-2.5 text-sm select-text">
+                  {lessons.map((lesson) => (
+                    <li key={lesson.id} className="flex flex-col gap-0.5">
+                      <span className="text-pretty">{lesson.rule}</span>
+                      <span className="text-xs text-muted-foreground">
+                        From episode {Number(lesson.since.slice(3))} · {lesson.source === "user" ? "your note" : "the critic"}
+                        {lesson.held + lesson.broken > 0 && ` · held ${lesson.held} of ${lesson.held + lesson.broken}`}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </section>
+            </>
+          )}
           {status.decisions.length > 0 && (
             <>
               <Separator />
@@ -582,17 +617,66 @@ function EpisodeState({ status, episodeId }: { status: SeriesStatus; episodeId: 
   return <Badge variant="outline">Not started</Badge>;
 }
 
+// The show bible as the user approves it: what the show is, its look and rules, and who is in it.
+function ShowRules({ show }: { show: ShowBible }) {
+  return (
+    <div className="flex flex-col gap-4 select-text">
+      <div className="flex flex-col gap-1">
+        <p className="text-sm font-medium text-pretty">{show.logline}</p>
+        <p className="text-sm text-pretty text-muted-foreground">{show.tone}</p>
+      </div>
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="mr-1 text-sm font-medium">Palette</span>
+        {show.look.palette.map((colour) => (
+          <Badge key={colour.token} variant="outline" title={colour.use}>
+            <span className="size-3 rounded-full border" style={{ background: colour.hex }} />
+            {humanize(colour.token).toLowerCase()}
+          </Badge>
+        ))}
+      </div>
+      <div className="grid gap-4 sm:grid-cols-2">
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">Rules</span>
+          <ul className="list-disc pl-4 text-sm text-pretty text-muted-foreground">
+            {show.rules.map((rule) => <li key={rule}>{rule}</li>)}
+          </ul>
+        </div>
+        <div className="flex flex-col gap-1.5">
+          <span className="text-sm font-medium">What a great shot looks like</span>
+          <ul className="list-disc pl-4 text-sm text-pretty text-muted-foreground">
+            {show.rubric.map((check) => <li key={check}>{check}</li>)}
+          </ul>
+        </div>
+      </div>
+      <div className="flex flex-col gap-3">
+        <span className="text-sm font-medium">Cast sheets</span>
+        {show.cast.map((member) => (
+          <div key={member.id} className="flex flex-col gap-0.5 text-sm">
+            <span className="font-medium">
+              {member.name} <span className="font-normal text-muted-foreground">· {member.role}</span>
+            </span>
+            <span className="text-pretty text-muted-foreground">{member.appearance}</span>
+            <span className="text-pretty text-muted-foreground">Voice: {member.voice} · {member.voiceId ?? "Configured narrator"}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
 // The step waiting for you: what it made, and approve or ask for changes.
 function Review({
   seriesId,
   stage,
   plan,
   bible,
+  show,
 }: {
   seriesId: string;
   stage: Stage;
   plan?: SeriesPlan;
   bible?: SeriesBible;
+  show?: ShowBible;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null),
     [busy, setBusy] = useState<"approve" | "redo" | null>(null);
@@ -659,6 +743,7 @@ function Review({
             ))}
           </ol>
         )}
+        {stage.key === "bible" && show && <ShowRules show={show} />}
         {stage.key === "bible" && bible && (
           <div className="flex flex-col gap-4">
             <ItemGroup className="gap-4">

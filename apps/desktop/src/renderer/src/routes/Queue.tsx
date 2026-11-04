@@ -65,7 +65,7 @@ const EVENTS: Record<string, { icon: ComponentType; text(event: EngineEvent): st
   "shot.attempt": { icon: RefreshCwIcon, text: (e) => `${shotOf(e)}: attempt ${String(e.data.attempt ?? "")}` },
   "shot.fallback": { icon: ShieldCheckIcon, text: (e) => `${shotOf(e)} used a safe fallback` },
   "script.sent_back": { icon: Undo2Icon, text: () => "The script went back to be fitted to the voiceover" },
-  "usage.rate_limited": { icon: HourglassIcon, text: () => "Claude is rate limited, so Moco is waiting" },
+  "usage.rate_limited": { icon: HourglassIcon, text: () => "Your AI provider is rate limited, so Moco is waiting" },
   "job.finished": {
     icon: FlagIcon,
     text: (e) =>

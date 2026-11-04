@@ -16,6 +16,15 @@ This series uses the "Cartoon 3D story short" template.
 Keep the "Cartoon 3D story short" formula: one true, visual cause-and-effect story per episode, each with an everyday
 analogy that explains it. Don't repeat a story already told.
 
+# show
+This series uses the "Cartoon 3D story short" template. Build the show bible around its formula:
+- `tone`: deadpan, curious storybook narration over absurd true events; playful, never mocking the people who were hurt.
+- `format.targetSeconds` 40–55, `format.shotSeconds` about 1.5–5: quick, readable cuts with the snap on its own short shot.
+- `look`: flat, simple cartoon figures (bean heads, stick limbs, dot eyes) in a painted storybook world; saturated
+  storybook colours (sky blue, brick, cream, ochre, terracotta), never lemon yellow or lavender; matte, like paint.
+- `rubric` should include: the absurd fact is visible in the frame, the cause and effect reads without the caption, and
+  every hold creeps.
+
 # bible
 This series uses the "Cartoon 3D story short" template, which always builds its own world: return an empty `cast`.
 - `style.palette`: saturated storybook colours, e.g. sky blue #3e7fd2, brick #a5523f, cream #efe2c4, ochre #d39a3a,

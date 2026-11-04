@@ -1,6 +1,7 @@
 // Where a player is and where the lens is on one frame of a shot in a generated world. Pure maths, like moves.ts.
 import * as THREE from "three";
 import type { ScenePlayer, SceneStage, WorldLocation, WorldModel } from "@moco/spec";
+import { sampleKeys, blendVector } from "./timeline.ts";
 import { isSubject } from "./options.ts";
 
 const smooth = (value: number) => THREE.MathUtils.smoothstep(value, 0, 1);
@@ -24,6 +25,11 @@ const sizeFrom = (model: WorldModel): Size => ({ face: model.height * 0.86, widt
 // `at` and `to` are metres from the mark; a moving player turns to face its way, unless it's only drifting.
 export function placePlayer(player: ScenePlayer, model: WorldModel, mark: WorldLocation["marks"][number], frame: number, durationFrames: number, size: Size = sizeFrom(model)): Placed {
   const origin = new THREE.Vector3(...mark.at);
+  if (player.motionKeys) {
+    const { previous, next, amount } = sampleKeys(player.motionKeys, frame);
+    const delta = (((next.facing - previous.facing + 180) % 360 + 360) % 360) - 180;
+    return { player, model, position: new THREE.Vector3(...blendVector(previous.at, next.at, amount)).add(origin), facing: previous.facing + delta * amount, ...size };
+  }
   const start = new THREE.Vector3(...player.at).add(origin);
   if (!player.to) return { player, model, position: start, facing: player.facing, ...size };
   const end = new THREE.Vector3(...player.to).add(origin);

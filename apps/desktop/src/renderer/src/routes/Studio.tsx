@@ -161,7 +161,7 @@ export function Studio() {
         {ai && !ai.ok && (
           <Alert>
             <TriangleAlertIcon />
-            <AlertTitle>Claude Code isn’t ready yet</AlertTitle>
+            <AlertTitle>AI connection isn’t ready yet</AlertTitle>
             <AlertDescription>
               <p className="select-text">{ai.reason}</p>
               <Button
@@ -363,7 +363,7 @@ export function Studio() {
               </EmptyMedia>
               <EmptyTitle>Your next great story lives here</EmptyTitle>
               <EmptyDescription>
-                Start with an idea above. Moco writes it with your Claude Code and renders it on this
+                Start with an idea above. Moco writes it with your selected AI connection and renders it on this
                 computer.
               </EmptyDescription>
             </EmptyHeader>
@@ -374,7 +374,7 @@ export function Studio() {
       <div className="flex flex-col gap-6">
         <Separator />
         <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          {["Rendered on your device", "Uses your own Claude plan", "Ready for Reels and Shorts"].map((text) => (
+          {["Rendered on your device", "Uses your own AI plan", "Ready for Reels and Shorts"].map((text) => (
             <li key={text} className="flex items-center gap-2">
               <CheckIcon className="size-4" />
               {text}

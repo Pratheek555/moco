@@ -6,6 +6,7 @@ import type { DeepPartial, Settings } from "../shared/api.ts";
 
 export function defaultSettings(): Settings {
   return {
+    aiProvider: "claude-cli",
     onboarded: false,
     theme: "system",
     projectsDir: path.join(app.getPath("documents"), "Moco"),
@@ -43,7 +44,7 @@ export async function loadSettings(): Promise<Settings> {
   let stored: DeepPartial<Settings> = {};
   if (existsSync(file())) {
     try {
-      stored = JSON.parse(await readFile(file(), "utf8"));
+      stored = JSON.parse((await readFile(file(), "utf8")).replace(/^\uFEFF/, ""));
     } catch {
       stored = {};
     }
@@ -57,6 +58,11 @@ export async function saveSettings(
   patch: DeepPartial<Settings>,
 ): Promise<Settings> {
   const next = merge(await loadSettings(), patch);
+  const voices = next.voice.characterVoices ?? [];
+  const ids = voices.map((voice) => voice.id);
+  if (voices.some(({ id, reference }) => !/^[a-z0-9][a-z0-9-]*$/.test(id) || id === "default" || !reference.trim()) || new Set(ids).size !== ids.length) {
+    throw new Error("Character voices need unique lowercase ids (other than default) and a recording path.");
+  }
   await mkdir(path.dirname(file()), { recursive: true });
   await writeFile(file(), JSON.stringify(next, null, 2));
   cached = next;

@@ -24,12 +24,16 @@ export interface RenderPort {
     signal?: AbortSignal,
   ): Promise<{ path: string; durationSeconds: number }>;
   versions(): { kitVersion: string; rendererVersion: string };
+  // Frees what the renderer holds between renders (its browser), if nothing is using it. The next render reopens it.
+  // Called before narration: a neural voice model loading next to an idle browser can run Windows out of memory.
+  release?(): Promise<void>;
 }
 
 export interface AudioPort {
+  voices?(language: string): Promise<{ id: string; name: string }[]>;
   // Speak all lines into one file. `words` is filled when the TTS backend gives timings.
   tts(
-    lines: { id: string; text: string; delivery?: Delivery }[],
+    lines: { id: string; text: string; delivery?: Delivery; voiceId?: string }[],
     voice: { voiceId: string; backend: string },
     language: string,
     outDir: string,

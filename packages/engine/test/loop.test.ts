@@ -98,6 +98,7 @@ describe("scene loop", () => {
       scene.camera = [{ move: "pan_left", startFrame: 0, endFrame: scene.durationFrames, amount: 0.2 }];
       Object.assign(scene.captions[0]!, { emphasis: true });
     }, "captions[0].emphasis: the emphasised line \"word0x0\" (frames 0–11) has no push_in or focus_on during it. Allowed: push_in, focus_on."],
+    ["markdown in a caption", (scene) => (scene.captions[0]!.text = `**${scene.captions[0]!.text}**`), `captions[0].text: "**word0x0**" contains *, which is shown on screen as typed. Write the words plainly; use emphasis: true to stress a caption.`],
     ["an unknown atmosphere", (scene) => Object.assign(scene, { atmosphere: [{ id: "fog" }] }), `atmosphere[0].id: "fog" is not a known atmosphere. Allowed: ${catalog.atmosphere.map((entry) => entry.id).join(", ")}. Pick one.`],
     ["an atmosphere on a missing background layer", (scene) => Object.assign(scene, { atmosphere: [{ id: "dust", layer: "river" }] }), `atmosphere[0].layer: "river" is not a known kurukshetra layer. Allowed: ${catalog.backgrounds.find((background) => background.id === "kurukshetra")!.layers.map((layer) => layer.id).join(", ")}.`],
   ];

@@ -92,7 +92,7 @@ export const useApp = create<AppState>((set, get) => ({
   settings: null,
   async updateSettings(patch) {
     const settings = await api.settings.set(patch);
-    set({ settings });
+    set({ settings, ...(settings.aiProvider !== get().settings?.aiProvider ? { ai: null } : {}) });
   },
   library: [],
   libraryLoaded: false,
@@ -134,8 +134,9 @@ export const useApp = create<AppState>((set, get) => ({
   dark: false,
   ai: null,
   async checkAi() {
+    const provider = get().settings?.aiProvider;
     const ai = await api.ai.status();
-    set({ ai });
+    if (provider === get().settings?.aiProvider) set({ ai });
     return ai;
   },
 }));
@@ -188,7 +189,7 @@ function onEngineEvent(event: EngineEvent) {
     if (event.data.status === "failed" && !stageFailedInJob.has(event.seriesId))
       // Claude Code problems affect every series, so they don't name one.
       state.toast(
-        error?.code === "ai_unavailable" ? "Claude Code isn’t ready" : `${title} couldn’t start`,
+        error?.code === "ai_unavailable" ? "AI connection isn’t ready" : `${title} couldn’t start`,
         "error",
         {
           description:
@@ -237,7 +238,9 @@ export async function bootstrap() {
   useApp.setState({ learnJobs: await api.templates.jobs().catch(() => []) });
   api.on("learn", (payload) => onLearnJob(payload as LearnJob));
   api.on("settings", (s) => {
-    useApp.setState({ settings: s as Settings });
+    const next = s as Settings;
+    const changed = next.aiProvider !== useApp.getState().settings?.aiProvider;
+    useApp.setState({ settings: next, ...(changed ? { ai: null } : {}) });
     applyTheme(s as Settings);
   });
 }

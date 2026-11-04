@@ -114,6 +114,7 @@ export function SettingsPage() {
       const { theme: _theme, ...changes } = draft;
       await useApp.getState().updateSettings({ ...changes, onboarded: true });
       setDraft(structuredClone(useApp.getState().settings!));
+      await check();
       useApp.getState().toast("Settings saved", "success");
       return true;
     } catch (e) {
@@ -179,10 +180,21 @@ export function SettingsPage() {
 
         <TabsContent value="ai" className="max-w-xl">
           <Section
-            title="Claude Code"
-            description="Moco writes with the Claude Code installed on this computer, on your own Claude plan. No API keys."
+            title="AI connection"
+            description="Choose the CLI installed on this computer. Moco uses its existing login and your own plan."
           >
-            <AiStatusAlert ai={ai} />
+            <Field>
+              <FieldLabel htmlFor="ai-provider">AI provider</FieldLabel>
+              <Select value={draft.aiProvider} onValueChange={(value) => patch("aiProvider", value as Settings["aiProvider"])}>
+                <SelectTrigger id="ai-provider" className="w-full"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="claude-cli">Claude Code</SelectItem>
+                  <SelectItem value="codex-cli">Codex</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldDescription>Save changes to use this provider for story generation and template learning.</FieldDescription>
+            </Field>
+            <AiStatusAlert ai={ai} name={settings.aiProvider === "codex-cli" ? "Codex" : "Claude Code"} />
             <Button variant="outline" className="self-start" disabled={checking} onClick={() => void check()}>
               {checking ? <Spinner data-icon="inline-start" aria-hidden /> : <RefreshCwIcon data-icon="inline-start" />}
               Check again
@@ -226,6 +238,18 @@ export function SettingsPage() {
               {models.some((model) => model.state === "error" && model.message?.includes("Install uv")) && <Button variant="link" className="self-start" onClick={() => void api.app.openExternal("https://docs.astral.sh/uv/getting-started/installation/")}>Get the optional voice installer</Button>}
             </FieldSet>
             {draft.voice.backend === "chatterbox" && <>
+                <FieldSet>
+                  <FieldLegend>Character voices</FieldLegend>
+                  <FieldDescription>Add named recordings for Claude to assign in new show bibles. Existing series keep their assigned voice ids; keep those recordings available.</FieldDescription>
+                  {(draft.voice.characterVoices ?? []).map((entry, index) => (
+                    <div key={index} className="flex flex-col gap-2">
+                      <InputGroup><InputGroupInput aria-label={`Voice ${index + 1} id`} value={entry.id} placeholder="Voice id, e.g. warm-guide" onChange={(event) => patch("voice", { ...draft.voice, characterVoices: draft.voice.characterVoices!.map((voice, i) => i === index ? { ...voice, id: event.target.value } : voice) })} /></InputGroup>
+                      <InputGroup><InputGroupInput aria-label={`Voice ${index + 1} recording`} value={entry.reference} placeholder="Path to a clean 6–10 second recording" onChange={(event) => patch("voice", { ...draft.voice, characterVoices: draft.voice.characterVoices!.map((voice, i) => i === index ? { ...voice, reference: event.target.value } : voice) })} /></InputGroup>
+                      <Button variant="outline" onClick={() => patch("voice", { ...draft.voice, characterVoices: draft.voice.characterVoices!.filter((_, i) => i !== index) })}>Remove voice {index + 1}</Button>
+                    </div>
+                  ))}
+                  <Button variant="outline" onClick={() => patch("voice", { ...draft.voice, characterVoices: [...draft.voice.characterVoices ?? [], { id: "", reference: "" }] })}>Add character voice</Button>
+                </FieldSet>
               <Field>
                 <FieldLabel htmlFor="voice-reference">Performance reference (optional)</FieldLabel>
                 <InputGroup><InputGroupInput id="voice-reference" value={draft.voice.reference ?? ""} placeholder="Path to a clean 6–10 second voice recording" onChange={(event) => patch("voice", { ...draft.voice, reference: event.target.value })} /></InputGroup>
@@ -454,12 +478,12 @@ function Section({ title, description, children }: { title: string; description:
   );
 }
 
-function AiStatusAlert({ ai }: { ai: AiStatus | null }) {
+function AiStatusAlert({ ai, name }: { ai: AiStatus | null; name: string }) {
   if (!ai)
     return (
       <Alert>
         <Spinner aria-hidden />
-        <AlertTitle>Checking Claude Code…</AlertTitle>
+        <AlertTitle>Checking {name}…</AlertTitle>
         <AlertDescription>This takes a few seconds.</AlertDescription>
       </Alert>
     );
@@ -467,7 +491,7 @@ function AiStatusAlert({ ai }: { ai: AiStatus | null }) {
     return (
       <Alert>
         <CircleCheckIcon />
-        <AlertTitle>Claude Code {ai.version} is ready</AlertTitle>
+        <AlertTitle>{name} {ai.version} is ready</AlertTitle>
         <AlertDescription>
           {ai.authMethod ? `Signed in with ${ai.authMethod}.` : "Signed in."} Moco works within your plan’s limits.
         </AlertDescription>
@@ -476,7 +500,7 @@ function AiStatusAlert({ ai }: { ai: AiStatus | null }) {
   return (
     <Alert variant="destructive">
       <TriangleAlertIcon />
-      <AlertTitle>Claude Code isn’t ready</AlertTitle>
+      <AlertTitle>{name} isn’t ready</AlertTitle>
       <AlertDescription className="select-text">{ai.reason}</AlertDescription>
     </Alert>
   );

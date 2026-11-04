@@ -1,6 +1,7 @@
 // @moco/renderer — RenderPort on Remotion. Spec in, frames out; no AI here.
 // The engine never imports this package: the app wires it in (see apps/desktop/src/engine-host.ts).
-import { createReadStream } from "node:fs";
+import { createHash } from "node:crypto";
+import { createReadStream, realpathSync } from "node:fs";
 import { mkdir, readFile, stat } from "node:fs/promises";
 import { createServer, type Server } from "node:http";
 import { dirname, extname, join } from "node:path";
@@ -14,7 +15,26 @@ import { blankReason, decodePng } from "./pixels.ts";
 
 // Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
 // (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
-export const RENDERER_VERSION = "0.4.0"; // 0.4.0: worlds lit and finished like film, library assets, designed characters, flat subjects seen from above
+export const RENDERER_VERSION = "0.6.0"; // per-speaker lip sync and animated 3D face primitives
+
+// Remotion keeps a persistent webpack cache that doesn't notice a reinstall. When pnpm re-resolves a package under a new
+// peer-dependency folder, the cache still points at the old one and a bundle ends up with two copies of
+// @react-three/fiber ("R3F: Hooks can only be used within the Canvas component!"): every 3D render fails. Keying the
+// cache on the folders the 3D and React packages actually resolve to starts a fresh cache whenever they change.
+const DEPENDENCY_ROOTS = [fileURLToPath(new URL("../", import.meta.url)), safeRealpath(fileURLToPath(new URL("../node_modules/@moco/kit", import.meta.url)))];
+const STAMPED = ["@react-three/fiber", "@remotion/three", "three", "react", "react-dom", "remotion"];
+
+function safeRealpath(path: string): string {
+  try {
+    return realpathSync(path);
+  } catch {
+    return path;
+  }
+}
+
+export function dependencyStamp(): string {
+  return DEPENDENCY_ROOTS.flatMap((root) => STAMPED.map((name) => safeRealpath(join(root, "node_modules", name)))).join("|");
+}
 
 export interface RemotionRenderOptions {
   stillTimeoutMs?: number; // per still; a hung browser fails the check instead of blocking forever (default 60 s)
@@ -40,6 +60,7 @@ export interface RemotionRenderPort {
     signal?: AbortSignal,
   ): Promise<{ path: string; durationSeconds: number }>;
   versions(): { kitVersion: string; rendererVersion: string };
+  release(): Promise<void>; // closes the shared browser if no still or thumbnail is using it; the next one reopens it
   close(): Promise<void>;
 }
 
@@ -56,7 +77,13 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
   const getServeUrl = () => {
     serveUrl ??= options.serveUrl
       ? Promise.resolve(options.serveUrl)
-      : bundle({ entryPoint: fileURLToPath(new URL("./remotion/index.ts", import.meta.url)), publicDir: KIT_ASSETS_DIR });
+      : bundle({
+          entryPoint: fileURLToPath(new URL("./remotion/index.ts", import.meta.url)),
+          publicDir: KIT_ASSETS_DIR,
+          // Remotion names its cache after a hash of this config (and sets `cache` itself afterwards), so the stamp goes in
+          // the config's name.
+          webpackOverride: (config) => ({ ...config, name: `moco-${createHash("md5").update(dependencyStamp()).digest("hex").slice(0, 12)}` }),
+        });
     return serveUrl;
   };
   // One browser for all stills and renders; opening Chrome per call is slow.
@@ -71,10 +98,20 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
     void old?.then((instance) => instance.close({ silent: true })).catch(() => undefined);
   };
   const stillTimeoutMs = options.stillTimeoutMs ?? 60_000;
+  // Stills and thumbnails using the shared browser right now; release() leaves it open while any are.
+  let inUse = 0;
+  const using = async <T>(work: () => Promise<T>): Promise<T> => {
+    inUse += 1;
+    try {
+      return await work();
+    } finally {
+      inUse -= 1;
+    }
+  };
 
-  return {
+  const port: Omit<RemotionRenderPort, "release"> = {
     async check(spec, { frames, outDir }) {
-      const inputProps = { scene: spec };
+      const inputProps = { scene: spec, strict: true }; // see Scene: a blocked camera is reported, not worked around
       await mkdir(outDir, { recursive: true });
       const stills: string[] = [];
       const blank: ReturnType<typeof blankError>[] = [];
@@ -182,6 +219,14 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
     async close() {
       if (browser) await (await browser).close({ silent: true });
       browser = undefined;
+    },
+  };
+  return {
+    ...port,
+    check: (spec, opts) => using(() => port.check(spec, opts)),
+    thumbnail: (spec, opts) => using(() => port.thumbnail(spec, opts)),
+    async release() {
+      if (inUse === 0) resetBrowser();
     },
   };
 }

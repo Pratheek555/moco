@@ -25,7 +25,7 @@ const STEPS: { key: string; label: string }[] = [
   { key: "fetch", label: "Downloading" },
   { key: "measure", label: "Measuring every frame and word" },
   { key: "sheets", label: "Laying out frames" },
-  { key: "agents", label: "Claude is studying the videos" },
+  { key: "agents", label: "AI is studying the videos" },
   { key: "merge", label: "Writing the style rules" },
   { key: "template", label: "Turning them into a template" },
   { key: "done", label: "Done" },
@@ -58,7 +58,7 @@ export function LearnDialog({ open, onOpenChange }: { open: boolean; onOpenChang
         <DialogHeader>
           <DialogTitle>Learn a template from videos</DialogTitle>
           <DialogDescription>
-            Paste a few shorts in the style you want. Moco measures every frame, Claude studies how they are made, and you get a
+            Paste a few shorts in the style you want. Moco measures every frame, AI studies how they are made, and you get a
             template that copies the technique, never the content.
           </DialogDescription>
         </DialogHeader>
@@ -78,7 +78,7 @@ export function LearnDialog({ open, onOpenChange }: { open: boolean; onOpenChang
             />
             <FieldDescription>
               One per line, up to 10. Two to five from the same channel work best. It takes about 5 minutes per video and uses
-              your Claude plan (around 8 requests per video).
+              your selected AI plan (around 8 requests per video).
             </FieldDescription>
           </Field>
         </FieldGroup>

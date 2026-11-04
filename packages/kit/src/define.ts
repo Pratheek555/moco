@@ -84,6 +84,8 @@ export interface StageProps {
   durationFrames: number;
   timeOfDay: string;
   world?: SceneSpec["world"]; // a generated world, on its one generic stage
+  speech?: SceneSpec["speech"];
+  strict?: boolean; // a render check: problems the AI can fix (a blocked camera) are errors, not quietly worked around
 }
 
 // A 3D world. `Component` draws inside the renderer's Three canvas; the AI directs it through the options.

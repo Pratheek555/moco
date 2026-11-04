@@ -13,8 +13,10 @@ export interface EngineConfig {
   limits: EngineLimits;
   // Script fitting: target seconds of 30–60 per episode.
   targetSeconds: { min: number; max: number };
-  // Shot length bounds in seconds.
+  // Shot length bounds in seconds, for a series whose show bible doesn't set its own.
   shotSeconds: { min: number; max: number };
+  // The widest shot lengths a show bible may choose: shorter cuts can't be read, longer ones stall a reel.
+  shotSecondsBounds: { min: number; max: number };
   // Speaking rate per language (words per minute), used to budget script length.
   // shortcut: only English is a known rate; set Hindi etc. from the TTS spike results.
   wordsPerMinute: Record<string, number>;
@@ -30,10 +32,13 @@ export const defaultConfig = (projectsDir: string): EngineConfig => ({
     maxAiCallsPerEpisode: 60,
     maxSendBacks: 2,
     aiConcurrency: 2,
-    aiTimeoutMs: 180_000,
+    // Story planning and bible writing can take several minutes on subscription CLIs.
+    // This is per AI call; a series may need several calls and validation rounds.
+    aiTimeoutMs: 20 * 60_000,
   },
   targetSeconds: { min: 30, max: 60 },
   shotSeconds: { min: 1.5, max: 6 },
+  shotSecondsBounds: { min: 0.8, max: 10 },
   wordsPerMinute: { en: 150 },
   voice: { voiceId: "default", backend: "kokoro" },
 });

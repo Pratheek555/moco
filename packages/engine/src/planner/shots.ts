@@ -10,6 +10,9 @@ import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files } from "../pipeline/stages.ts";
 import { checkIds, planWithAi } from "./common.ts";
+import { readShow, shotSecondsFor, shotsPack } from "./show.ts";
+import { readBible } from "../canon/merge.ts";
+import { lessonsSection, readPlaybook } from "../learn/playbook.ts";
 
 // What the AI writes.
 const ShotDraft = z.object({
@@ -26,29 +29,33 @@ type ShotDraftList = z.infer<typeof ShotDraftList>;
 export async function runShotList(ctx: StageContext, episodeId: string, feedback?: string): Promise<string> {
   const voiceover = (await ctx.store.read(files.voiceover(episodeId), "VoiceoverTrack")).data;
   const script = (await ctx.store.read(files.script(episodeId), "EpisodeScript")).data;
-  const bible = (await ctx.store.read(files.bible, "SeriesBible")).data;
+  const bible = await readBible(ctx);
   const numberedWords = voiceover.words.map((word, index) => ({ index, text: word.text, start: word.start }));
   // When re-cutting after an edit, show the previous cut so unchanged shots stay the same (and their specs get reused).
   const previous = await previousShotList(ctx, episodeId);
+  const show = await readShow(ctx);
+  const shotSeconds = shotSecondsFor(ctx.config, show);
 
   const draft = await planWithAi(ctx, {
     scope: episodeId,
     promptName: "shots",
     schema: ShotDraftList,
     prompt: joinSections([
-      jsonSection("Shot length", { minSeconds: ctx.config.shotSeconds.min, maxSeconds: ctx.config.shotSeconds.max, totalSeconds: voiceover.durationSeconds }),
-      jsonSection("Narration beats", script.lines.map((line) => ({ id: line.id, beat: line.beat }))),
+      jsonSection("Shot length", { minSeconds: shotSeconds.min, maxSeconds: shotSeconds.max, totalSeconds: voiceover.durationSeconds }),
+      show ? jsonSection("Show bible — pacing, camera grammar and places", shotsPack(show)) : "",
+      lessonsSection(await readPlaybook(ctx), "shots"),
+      jsonSection("Narration beats", script.lines.map((line) => ({ id: line.id, beat: line.beat, speaker: line.speaker }))),
       jsonSection("Words", numberedWords),
       jsonSection("Cast ids", bible.cast.map((member) => member.id)),
       jsonSection("Locations", ctx.catalog.backgrounds.map(({ id, hint, stage }) => ({ id, hint, places: stage?.places, cameras: stage?.cameras }))),
       previous ? jsonSection("Previous cut — keep shots whose words didn't change exactly as they were", previous) : "",
       feedbackSection(feedback),
     ]),
-    check: (data) => checkShotDrafts(data, voiceover, bible, ctx.catalog, ctx.config),
+    check: (data) => checkShotDrafts(data, voiceover, bible, ctx.catalog, shotSeconds),
   });
 
   const shotList: ShotList = { shots: timeShots(draft, voiceover) };
-  const inputs = [ctx.store.inputRef(files.voiceover(episodeId)), ctx.store.inputRef(files.bible), promptRef("shots", ctx.series.template)];
+  const inputs = [ctx.store.inputRef(files.voiceover(episodeId)), ctx.store.inputRef(files.bible), ...(show ? [ctx.store.inputRef(files.show)] : []), promptRef("shots", ctx.series.template)];
   const saved = await ctx.store.save(files.shotList(episodeId), "ShotList", shotList, { producedBy: "ai", backend: ctx.ai.backendId, inputs });
   return saved.meta.contentHash;
 }
@@ -92,7 +99,7 @@ function uniqueLineIds(words: TimedWord[]): string[] {
   return [...new Set(words.map((word) => word.lineId))];
 }
 
-export function checkShotDrafts(draft: ShotDraftList, voiceover: VoiceoverTrack, bible: SeriesBible, catalog: Catalog, config: EngineConfig): Issue[] {
+export function checkShotDrafts(draft: ShotDraftList, voiceover: VoiceoverTrack, bible: SeriesBible, catalog: Catalog, shotSeconds: EngineConfig["shotSeconds"]): Issue[] {
   const cutIssues = checkCutPoints(draft, voiceover.words.length);
   // Only time the shots once the cut points are valid; otherwise lengths are meaningless.
   if (cutIssues.length > 0) return cutIssues;
@@ -102,7 +109,7 @@ export function checkShotDrafts(draft: ShotDraftList, voiceover: VoiceoverTrack,
   const timed = timeShots(draft, voiceover);
   return [
     ...checkIds(draft.shots.map((shot) => shot.id), "shots", /^s\d{2,3}$/, "s01"),
-    ...timed.flatMap((shot, index) => checkShot(shot, `shots[${index}]`, castIds, locations, config)),
+    ...timed.flatMap((shot, index) => checkShot(shot, `shots[${index}]`, castIds, locations, shotSeconds)),
   ];
 }
 
@@ -117,10 +124,10 @@ function checkCutPoints(draft: ShotDraftList, wordCount: number): Issue[] {
   });
 }
 
-function checkShot(shot: Shot, path: string, castIds: string[], locations: string[], config: EngineConfig): Issue[] {
+function checkShot(shot: Shot, path: string, castIds: string[], locations: string[], shotSeconds: EngineConfig["shotSeconds"]): Issue[] {
   const issues: Issue[] = [];
   const length = shot.end - shot.start;
-  const { min, max } = config.shotSeconds;
+  const { min, max } = shotSeconds;
   if (length < min || length > max) {
     issues.push({ path, problem: `lasts ${length.toFixed(2)} s, shots must be ${min}–${max} s`, fix: "Move the cut points." });
   }

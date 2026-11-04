@@ -3,6 +3,7 @@
 import catalogJson from "./catalog.json" with { type: "json" };
 
 export { DEFAULT_IDLE } from "./define.ts";
+export { expandModel } from "./stages/world/character.ts";
 export { movesOf } from "./stages/world/moves.ts";
 export { HUMANOID_JOINTS, WORLD_CAMERAS, isSubject } from "./stages/world/options.ts";
 

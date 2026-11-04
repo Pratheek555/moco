@@ -1,11 +1,12 @@
 // @moco/ai — one interface over the AI backends the engine can call.
-// For now only `claude-cli`: the user's own Claude Code session (`claude -p`), no API keys.
-// The AI is always called with tools disabled, in an empty temp folder: it can only return text/JSON.
-// Images, when given, travel inside the prompt message itself, so the model still needs no file access.
+// Claude Code and Codex use the user's installed CLI and existing login.
+// Calls run in an empty temp folder, with Claude's tools disabled and Codex restricted to read-only.
+// Images use Claude's prompt message or Codex's explicit image attachments.
 import { spawn } from "node:child_process";
+import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { extname, join } from "node:path";
+import { delimiter, extname, join } from "node:path";
 
 export interface AiRequest {
   system: string; // full system prompt (replaces the backend's default)
@@ -41,6 +42,91 @@ export class RateLimitError extends AiError {}
 export class SchemaRefusal extends AiError {} // asked for structured output, got none
 export class TimeoutError extends AiError {}
 export class BackendError extends AiError {}
+
+export type AiProvider = "claude-cli" | "codex-cli";
+
+export function aiBackend(provider: AiProvider = "claude-cli"): AiBackend {
+  return provider === "codex-cli" ? codexCli() : claudeCli();
+}
+
+// Codex's strict output schema cannot represent Moco's dynamic-key records.
+// Supply the original schema in the prompt; the engine validates and repairs the result.
+export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): AiBackend {
+  const command = options.bin ? { bin: options.bin, args: options.binArgs ?? [] } : codexCommand();
+  const bin = command.bin;
+  const run = (args: string[], stdin: string, timeout: number, signal?: AbortSignal, cwd?: string) =>
+    runProcess(bin, [...command.args, ...args], stdin, timeout, signal, cwd);
+  return {
+    id: "codex-cli",
+    seesImages: true,
+    async available() {
+      const versionRun = await run(["--version"], "", 15_000).catch(() => undefined);
+      const version = /(\d+\.\d+\.\d+)/.exec(versionRun?.stdout ?? "")?.[1];
+      if (!version || versionRun?.code !== 0) return { ok: false, reason: "Codex CLI is not installed. Install it with `npm install -g @openai/codex`." };
+      const status = await run(["login", "status"], "", 15_000).catch(() => undefined);
+      const detail = `${status?.stdout ?? ""}\n${status?.stderr ?? ""}`;
+      const ok = status?.code === 0 && !status.timedOut && /logged in/i.test(detail);
+      return { ok, version, authMethod: ok ? (/ChatGPT/i.test(detail) ? "ChatGPT" : "Codex CLI") : undefined,
+        reason: ok ? undefined : "Codex is not logged in. Run `codex login` and sign in." };
+    },
+    async generate(req) {
+      const cwd = await mkdtemp(join(tmpdir(), "moco-codex-"));
+      try {
+        const systemFile = join(cwd, "system.md");
+        await writeFile(systemFile, req.system);
+        const args = ["exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
+          "--sandbox", "read-only", "-c", 'approval_policy="never"',
+          "-c", `model_instructions_file=${JSON.stringify(systemFile)}`,
+          "-c", "features.shell_tool=false", "-c", "features.apply_patch_freeform=false",
+          "-c", "features.view_image=false", "-c", "project_doc_max_bytes=0",
+          "-c", 'web_search="disabled"'];
+        if (req.model) args.push("--model", req.model);
+        for (const image of req.images ?? []) args.push("--image", image);
+        args.push("--", "-");
+        const prompt = req.jsonSchema
+          ? `${req.prompt}\n\nReturn only a JSON value matching this JSON Schema, without Markdown fences:\n${JSON.stringify(req.jsonSchema)}`
+          : req.prompt;
+        const result = await run(args, prompt, req.timeoutMs, req.signal, cwd);
+        if (result.timedOut) throw new TimeoutError(`Codex did not finish within ${Math.round(req.timeoutMs / 60_000 * 10) / 10} minutes. This request was stopped. Try again to retry the unfinished stage.`);
+        let text = "", sessionId: string | undefined, usage: AiResult["usage"], failure = "", completed = false;
+        for (const line of result.stdout.split(/\r?\n/)) {
+          let event;
+          try { event = JSON.parse(line); } catch { continue; }
+          if (event.type === "thread.started") sessionId = event.thread_id;
+          if (event.type === "item.completed" && event.item?.type === "agent_message") text = event.item.text ?? "";
+          if (event.type === "turn.completed") {
+            completed = true;
+            usage = { inputTokens: event.usage?.input_tokens, outputTokens: event.usage?.output_tokens };
+          }
+          if (event.type === "turn.failed" || event.type === "error") failure = event.error?.message ?? event.message ?? "Codex request failed";
+        }
+        if (failure || result.code !== 0 || !completed) throw classifyFailure(failure || result.stderr.trim().slice(0, 500) || "Codex exited without completing a turn");
+        let json: unknown;
+        if (req.jsonSchema) {
+          try { json = JSON.parse(text.trim().replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/, "$1")); }
+          catch { throw new SchemaRefusal(text || "Codex returned no JSON for the requested schema"); }
+        }
+        return { text, json, usage, backend: "codex-cli", model: req.model, sessionId };
+      } finally {
+        await rm(cwd, { recursive: true, force: true });
+      }
+    },
+  };
+}
+
+// npm installs a .cmd shim on Windows, which spawn cannot execute directly.
+// Launch its JS entry with Node rather than putting prompts through cmd.exe.
+function codexCommand(): { bin: string; args: string[] } {
+  if (process.platform === "win32") {
+    for (const directory of (process.env.PATH ?? "").split(delimiter).filter(Boolean)) {
+      const native = join(directory, "codex.exe");
+      if (existsSync(native)) return { bin: native, args: [] };
+      const entry = join(directory, "node_modules", "@openai", "codex", "bin", "codex.js");
+      if (existsSync(entry)) return { bin: "node", args: [entry] };
+    }
+  }
+  return { bin: "codex", args: [] };
+}
 
 // ---------- claude-cli ----------
 
@@ -225,7 +311,8 @@ function runProcess(
   cwd?: string,
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
-    const child = spawn(bin, args, { cwd, stdio: ["pipe", "pipe", "pipe"] });
+    if (signal?.aborted) { reject(new AiError("cancelled")); return; }
+    const child = spawn(bin, args, { cwd, windowsHide: true, stdio: ["pipe", "pipe", "pipe"] });
     let stdout = "";
     let stderr = "";
     let timedOut = false;
@@ -245,6 +332,7 @@ function runProcess(
     child.stderr.on("data", (chunk) => (stderr += chunk));
     child.on("error", (err) => {
       clearTimeout(timer);
+      signal?.removeEventListener("abort", stop);
       reject(new BackendError(`could not start ${bin}: ${err.message}`));
     });
     child.on("close", (code) => {

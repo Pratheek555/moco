@@ -2,7 +2,7 @@
 // @moco/spec), and from then on the series runs on a catalog made from that world, so every later stage treats the
 // AI's models and locations just like installed kit entries.
 import { DEFAULT_IDLE, HUMANOID_JOINTS, WORLD_CAMERAS, movesOf, type Catalog, type CatalogCharacter } from "@moco/kit";
-import { World, type SceneSpec, type SeriesPlan, type WorldLocation, type WorldModel, type WorldPart } from "@moco/spec";
+import { World, type SceneSpec, type SeriesPlan, type ShowBible, type WorldLocation, type WorldModel, type WorldPart } from "@moco/spec";
 import { feedbackSection, joinSections, jsonSection, promptRef } from "../generator/prompts.ts";
 import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
@@ -10,11 +10,13 @@ import { files } from "../pipeline/stages.ts";
 import { loadLibrary, type Library } from "@moco/kit/library";
 import { lookAtModels } from "../review/look.ts";
 import { planWithAi, previousSection } from "./common.ts";
+import { worldPack } from "./show.ts";
 
 // Building a whole world is one long answer: a real one took 14 minutes, so this leaves room for a bigger story.
 const WORLD_TIMEOUT_MS = 30 * 60_000;
 
-export async function runWorld(ctx: StageContext, plan: SeriesPlan, feedback?: string): Promise<World> {
+// With a show bible, the world is built to its cast sheets, places and look: the show bible is the canon, this is the build.
+export async function runWorld(ctx: StageContext, plan: SeriesPlan, feedback?: string, show?: ShowBible): Promise<World> {
   const world = await planWithAi(ctx, {
     scope: "series",
     promptName: "world",
@@ -22,26 +24,27 @@ export async function runWorld(ctx: StageContext, plan: SeriesPlan, feedback?: s
     timeoutMs: WORLD_TIMEOUT_MS,
     prompt: joinSections([
       jsonSection("Series plan", plan),
+      show ? jsonSection("Show bible — build exactly this cast, these places and this look", worldPack(show)) : "",
       librarySection(loadLibrary()),
       await previousSection(ctx, files.world, "World", feedback),
       feedbackSection(feedback),
     ]),
-    check: checkWorld,
+    check: (data) => checkWorld(data, show?.cast.map((member) => member.id)),
   });
   // A described character is a humanoid whatever rig was written: the designer gives it the joints.
   const rigged = { ...world, models: world.models.map((model) => (model.character ? { ...model, rig: "humanoid" as const } : model)) };
   // Built blind: each model is rendered and looked at, and the ones that don't read are rebuilt once.
-  const { world: looked } = await lookAtModels(ctx, plan, rigged);
+  const { world: looked } = await lookAtModels(ctx, plan, rigged, show);
   await ctx.store.save(files.world, "World", looked, {
     producedBy: "ai",
     backend: ctx.ai.backendId,
-    inputs: [ctx.store.inputRef(files.seriesPlan), promptRef("world", ctx.series.template)],
+    inputs: [ctx.store.inputRef(files.seriesPlan), ...(show ? [ctx.store.inputRef(files.show)] : []), promptRef("world", ctx.series.template)],
   });
   return looked;
 }
 
 // The library as the prompt shows it: one line per model and material, short enough to list them all.
-function librarySection(library: Library): string {
+export function librarySection(library: Library): string {
   if (library.models.length === 0 && library.textures.length === 0) return "";
   const models = library.models.map((model) => `${model.id}: ${model.name}, ${model.size.map((metres) => metres.toFixed(2)).join("×")} m (${model.tags.slice(0, 4).join(", ")})`);
   const textures = library.textures.map((texture) => `${texture.id}: ${texture.name} (${texture.tags.slice(0, 3).join(", ")})`);
@@ -122,15 +125,18 @@ function checkLocation(location: WorldLocation, index: number, modelIds: string[
   ];
 }
 
-export function checkWorld(world: World): Issue[] {
+// `castIds`: the show bible's cast, every one of whom needs a model under the same id.
+export function checkWorld(world: World, castIds: string[] = []): Issue[] {
   const modelIds = world.models.map((model) => model.id);
   const unknownCast = world.cast.filter((member) => !modelIds.includes(member.model));
+  const unbuilt = castIds.filter((id) => !world.cast.some((member) => member.id === id));
   return [
     ...duplicates(modelIds).map((id) => ({ path: "models", problem: `model id "${id}" is used twice` })),
     ...duplicates(world.locations.map((location) => location.id)).map((id) => ({ path: "locations", problem: `location id "${id}" is used twice` })),
     ...world.models.flatMap(checkModel),
     ...world.locations.flatMap((location, index) => checkLocation(location, index, modelIds)),
     ...unknownCast.map((member) => ({ path: "cast", problem: `${member.id} is played by "${member.model}", which is not a model`, allowed: modelIds })),
+    ...(unbuilt.length > 0 ? [{ path: "cast", problem: `the show bible's ${unbuilt.join(", ")} ${unbuilt.length === 1 ? "has" : "have"} no cast entry`, fix: "Add a cast entry with the same id and a model for each." }] : []),
   ];
 }
 

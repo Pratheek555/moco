@@ -6,6 +6,8 @@ import type { TimedWord, VoiceoverTrack } from "@moco/spec";
 import { wordsPerMinute } from "../config.ts";
 import type { StageContext } from "../pipeline/context.ts";
 import { files, stageKey } from "../pipeline/stages.ts";
+import { readShow } from "./show.ts";
+import { readBible } from "../canon/merge.ts";
 
 const DURATION_TOLERANCE = 0.1; // ±10% of the target
 
@@ -13,10 +15,18 @@ export type VoiceoverOutcome = { kind: "done"; hash: string } | { kind: "sent_ba
 
 export async function runVoiceover(ctx: StageContext, episodeId: string): Promise<VoiceoverOutcome> {
   const script = await ctx.store.read(files.script(episodeId), "EpisodeScript");
-  const bible = await ctx.store.read(files.bible, "SeriesBible");
-  const lines = script.data.lines.map((line) => ({ id: line.id, text: line.text, delivery: line.delivery }));
+  const bible = { data: await readBible(ctx) }; // with cast later episodes added
+  const show = await readShow(ctx);
+  const available = await ctx.audio.voices?.(bible.data.narrator.language);
+  const lines = script.data.lines.map((line) => {
+    if (line.speaker !== "narrator" && !bible.data.cast.some((member) => member.id === line.speaker)) throw new Error(`Unknown speaker: ${line.speaker}`);
+    const voiceId = line.speaker === "narrator" ? undefined : show?.cast.find((member) => member.id === line.speaker)?.voiceId;
+    if (voiceId && available && !available.some((voice) => voice.id === voiceId)) throw new Error(`Voice ${voiceId} for ${line.speaker} is no longer available`);
+    return { id: line.id, text: line.text, delivery: line.delivery, voiceId };
+  });
   const { narrator } = bible.data;
 
+  await ctx.render.release?.(); // see RenderPort.release
   const spoken = await ctx.ttsSlots.run(() =>
     ctx.audio.tts(lines, narrator, narrator.language, join(ctx.dir, files.audioDir(episodeId)), ctx.signal),
   );
@@ -30,11 +40,15 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
   }
 
   const visemes = await ctx.audio.visemes(spoken.file, words);
-  const track: VoiceoverTrack = { file: relative(ctx.dir, spoken.file), durationSeconds: spoken.durationSeconds, words, visemes };
+  const speakers = script.data.lines.flatMap((line) => {
+    const timed = words.filter((word) => word.lineId === line.id);
+    return timed.length ? [{ speaker: line.speaker, start: timed[0]!.start, end: timed.at(-1)!.end }] : [];
+  });
+  const track: VoiceoverTrack = { file: relative(ctx.dir, spoken.file), durationSeconds: spoken.durationSeconds, words, visemes, speakers };
   const saved = await ctx.store.save(files.voiceover(episodeId), "VoiceoverTrack", track, {
     producedBy: "engine",
     backend: narrator.backend,
-    inputs: [ctx.store.inputRef(files.script(episodeId)), ctx.store.inputRef(files.bible)],
+    inputs: [ctx.store.inputRef(files.script(episodeId)), ctx.store.inputRef(files.bible), ...(show ? [ctx.store.inputRef(files.show)] : [])],
   });
   return { kind: "done", hash: saved.meta.contentHash };
 }

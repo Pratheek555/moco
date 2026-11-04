@@ -1,3 +1,4 @@
+import { sampleKeys, blendVector } from "./timeline.ts";
 // Keeps the lens where it can see the subject. The rigs in shots.ts place the camera as if the subject stood in open
 // air, but a place the AI builds is often closed in (a duct, a room, a cave), and a camera outside its walls sees only
 // their unlit backs: a black frame. So each shot's camera path is worked out once, from the set itself: turned towards
@@ -131,7 +132,21 @@ export function smooth(values: number[], window: number): number[] {
 }
 
 // The lens for one frame of a shot in a generated world: the rig's, kept where it can see the subject.
-export function steadyLens(stage: SceneStage, framing: Framing, frame: number, durationFrames: number, blockers: THREE.Object3D[]): Lens {
+// `strict` (a render check): a camera key the set blocks is an error for the AI to fix. Otherwise (an episode render) the
+// eye is pulled in along its line toward the target until it can see, as the rigs do.
+export function steadyLens(stage: SceneStage, framing: Framing, frame: number, durationFrames: number, blockers: THREE.Object3D[], markAt: [number, number, number] = [0,0,0], strict = true): Lens {
+  if (stage.cameraKeys) {
+    const { previous, next, amount } = sampleKeys(stage.cameraKeys, frame);
+    const origin = new THREE.Vector3(...markAt);
+    const eye = new THREE.Vector3(...blendVector(previous.eye, next.eye, amount)).add(origin);
+    const target = new THREE.Vector3(...blendVector(previous.target, next.target, amount)).add(origin);
+    if (eye.distanceTo(target) < 0.01) throw new Error(`stage.cameraKeys: eye and target coincide at frame ${frame}`);
+    const fov = previous.fov + (next.fov - previous.fov) * amount;
+    const share = clearShare(target, eye, blockers);
+    if (share >= 0.98) return { eye, target, fov };
+    if (strict) throw new Error(`stage.cameraKeys: set blocks the camera at frame ${frame}; move the eye or target inside the open set`);
+    return { eye: eye.clone().sub(target).multiplyScalar(Math.max(0.05, share * 0.95)).add(target), target, fov };
+  }
   if (blockers.length === 0) return lensFor(stage, framing(frame), frame, durationFrames);
   const path = pathFor(stage, framing, durationFrames, blockers);
   const { lens, seen, subject } = aimed(stage, framing, frame, durationFrames, path.turn);

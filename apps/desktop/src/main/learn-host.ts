@@ -3,12 +3,13 @@
 // Like engine-host.ts it runs from source, so @moco/learn finds its prompts and measure.py where the package keeps them.
 // shortcut: the Python tools come from the repo's .venv-learn (`pnpm learn:setup`); a packaged build must ship them.
 import { existsSync } from "node:fs";
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { allTemplates } from "@moco/engine";
 import { templateText } from "@moco/engine/templates/registry";
 import { defaultTools, learnStyle } from "@moco/learn";
 
 export interface LearnHostInput {
+  aiProvider: "claude-cli" | "codex-cli";
   name: string;
   sources: string[];
   stylesDir: string;
@@ -41,9 +42,9 @@ parentPort.on("message", ({ data }) => {
 async function run(input: LearnHostInput) {
   const tools = defaultTools();
   if (!existsSync(tools.python)) throw new Error("The video tools aren't installed yet. Run `pnpm learn:setup` in the moco folder, then try again.");
-  const ai = claudeCli();
+  const ai = aiBackend(input.aiProvider);
   const status = await ai.available();
-  if (!status.ok) throw new Error(status.reason ?? "Claude Code is not available.");
+  if (!status.ok) throw new Error(status.reason ?? "The selected AI connection is not available.");
 
   // The built-in template shows the template writer moco's format.
   const example = allTemplates().find((template) => !template.learned);

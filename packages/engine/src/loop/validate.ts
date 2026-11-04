@@ -35,6 +35,8 @@ export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
     ...checkShotIdentity(spec, rules.brief),
     ...(spec.stage ? [] : checkCastPresent(spec, rules.brief)), // a 3D stage shows its cast through the world
     ...checkPlayers(spec, rules),
+    ...(spec.stage?.players ?? []).flatMap((player, index) => (player.face ?? []).flatMap((key, keyIndex) => key.atFrame >= spec.durationFrames
+      ? [{ path: `stage.players[${index}].face[${keyIndex}].atFrame`, problem: "face key is outside the shot" }] : [])),
     ...(spec.stage ? [] : checkSomethingMoves(spec)), // the cars and rigs are always moving
     ...checkBackground(spec, rules),
     ...checkStage(spec, rules.catalog),
@@ -129,7 +131,8 @@ function checkStage(spec: SceneSpec, catalog: Catalog): Issue[] {
   if (!spec.stage) return [{ path: "stage", problem: `"${spec.background.id}" is a 3D stage, so the shot needs a stage object`, fix: "Add stage with camera, place, subject, leadStart and leadEnd." }];
   const unused = spec.actors.length > 0 ? [{ path: "actors", problem: "a 3D stage has no 2D characters", fix: "Leave actors empty." }] : [];
   return [
-    ...checkKnownId(spec.stage.camera, "stage.camera", "stage camera", stage.cameras.map((camera) => camera.id)),
+    ...(spec.stage.cameraKeys && stage.things ? [] : checkKnownId(spec.stage.camera, "stage.camera", "stage camera", stage.cameras.map((camera) => camera.id))),
+    ...(!stage.things && (spec.stage.cameraKeys || spec.stage.players.some((player) => player.motionKeys || player.poseKeys)) ? [{ path: "stage", problem: "timelines require a generated world" }] : []),
     ...checkKnownId(spec.stage.place, "stage.place", "stage place", stage.places.map((place) => place.id)),
     // A generated world's camera can follow anything in the shot (see checkPlayers): a boat, a tower, not just the cast.
     // Held to the cast, a shot of the boat alone had no right answer, and the AI put the lighthouse keeper on the boat.
@@ -383,6 +386,13 @@ function checkCamera(move: CameraMove, path: string, spec: SceneSpec): Issue[] {
 function checkCaptionText(captions: Caption[], brief: SceneBrief): Issue[] {
   const spoken = normaliseWords(brief.words.map((word) => word.text).join(" "));
   const shown = normaliseWords(captions.map((caption) => caption.text).join(" "));
+  // The comparison ignores punctuation, so markdown would slip through and be burned in as "**word**".
+  const raw = brief.words.map((word) => word.text).join(" ");
+  const markup = captions.flatMap((caption, index) => {
+    const extra = [...new Set(caption.text.match(/[*_#~`<>[\]{}|\\]/g) ?? [])].filter((char) => !raw.includes(char));
+    return extra.length > 0 ? [{ path: `captions[${index}].text`, problem: `"${caption.text}" contains ${extra.join(" ")}, which is shown on screen as typed`, fix: "Write the words plainly; use emphasis: true to stress a caption." }] : [];
+  });
+  if (markup.length > 0) return markup;
   if (spoken === shown) return [];
   return [{
     path: "captions",

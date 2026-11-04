@@ -17,6 +17,7 @@ import { approveGate, markDependantsStale, nextStage, type Next } from "./pipeli
 import { runStages } from "./pipeline/run.ts";
 import { renderThumbnail } from "./planner/publish.ts";
 import { worldCatalog } from "./planner/world.ts";
+import { readAdditions, worldWithAdditions } from "./canon/merge.ts";
 import { MAX_EPISODES } from "./planner/series.ts";
 import { allStageKeys, files, GATED, parseStageKey, stageKey } from "./pipeline/stages.ts";
 import type { AudioPort, RenderPort } from "./ports.ts";
@@ -146,7 +147,9 @@ export function createEngine(options: CreateEngineOptions): Engine {
     recoverAfterCrash(ledger);
     await ledger.save();
 
-    const world = store.has(files.world) ? (await store.read(files.world, "World")).data : undefined;
+    // A generated world is its approved build plus what later episodes added to it (canon/merge.ts).
+    const base = store.has(files.world) ? (await store.read(files.world, "World")).data : undefined;
+    const world = base && worldWithAdditions(base, await readAdditions(dir, store));
     const series: OpenSeries = { info, dir, ledger, store, world };
     open.set(seriesId, series);
     return series;
@@ -341,6 +344,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       const { stage, episodeId } = parseStageKey(ref.key);
       series.ledger.setStage(ref.key, { status: "pending" });
       series.ledger.setStage(stage === "preview" ? stageKey("scenes", episodeId) : ref.key, { status: "pending", feedback: note });
+      if (note) series.ledger.decide("feedback", ref.key, note); // kept for the episode retro (learn/playbook.ts)
       await series.ledger.save();
     },
 

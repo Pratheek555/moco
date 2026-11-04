@@ -317,6 +317,86 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
         "camera": {
           "type": "string",
         },
+        "cameraKeys": {
+          "items": {
+            "properties": {
+              "atFrame": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer",
+              },
+              "easing": {
+                "enum": [
+                  "linear",
+                  "smooth",
+                  "hold",
+                ],
+                "type": "string",
+              },
+              "eye": {
+                "additionalItems": false,
+                "items": [
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "fov": {
+                "maximum": 110,
+                "minimum": 10,
+                "type": "number",
+              },
+              "target": {
+                "additionalItems": false,
+                "items": [
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 2000,
+                    "minimum": -2000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+            },
+            "required": [
+              "atFrame",
+              "eye",
+              "target",
+              "fov",
+            ],
+            "type": "object",
+          },
+          "maxItems": 32,
+          "minItems": 2,
+          "type": "array",
+        },
         "leadEnd": {
           "default": 0,
           "maximum": 300,
@@ -398,6 +478,42 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
                 "minItems": 3,
                 "type": "array",
               },
+              "face": {
+                "items": {
+                  "properties": {
+                    "atFrame": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                    "brow": {
+                      "maximum": 1,
+                      "minimum": -1,
+                      "type": "number",
+                    },
+                    "eyeOpen": {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number",
+                    },
+                    "mouthOpen": {
+                      "maximum": 1,
+                      "minimum": 0,
+                      "type": "number",
+                    },
+                    "smile": {
+                      "maximum": 1,
+                      "minimum": -1,
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "atFrame",
+                  ],
+                  "type": "object",
+                },
+                "type": "array",
+              },
               "facing": {
                 "default": 0,
                 "maximum": 2000,
@@ -409,6 +525,122 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
               },
               "model": {
                 "type": "string",
+              },
+              "motionKeys": {
+                "items": {
+                  "properties": {
+                    "at": {
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "maximum": 2000,
+                          "minimum": -2000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 2000,
+                          "minimum": -2000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 2000,
+                          "minimum": -2000,
+                          "type": "number",
+                        },
+                      ],
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "type": "array",
+                    },
+                    "atFrame": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                    "easing": {
+                      "enum": [
+                        "linear",
+                        "smooth",
+                        "hold",
+                      ],
+                      "type": "string",
+                    },
+                    "facing": {
+                      "type": "number",
+                    },
+                  },
+                  "required": [
+                    "atFrame",
+                    "at",
+                    "facing",
+                  ],
+                  "type": "object",
+                },
+                "maxItems": 32,
+                "minItems": 2,
+                "type": "array",
+              },
+              "poseKeys": {
+                "items": {
+                  "properties": {
+                    "atFrame": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                    "easing": {
+                      "enum": [
+                        "linear",
+                        "smooth",
+                        "hold",
+                      ],
+                      "type": "string",
+                    },
+                    "turn": {
+                      "additionalProperties": {
+                        "additionalItems": false,
+                        "items": [
+                          {
+                            "maximum": 2000,
+                            "minimum": -2000,
+                            "type": "number",
+                          },
+                          {
+                            "maximum": 2000,
+                            "minimum": -2000,
+                            "type": "number",
+                          },
+                          {
+                            "maximum": 2000,
+                            "minimum": -2000,
+                            "type": "number",
+                          },
+                        ],
+                        "maxItems": 3,
+                        "minItems": 3,
+                        "type": "array",
+                      },
+                      "propertyNames": {
+                        "type": "string",
+                      },
+                      "type": "object",
+                    },
+                  },
+                  "required": [
+                    "atFrame",
+                    "turn",
+                  ],
+                  "type": "object",
+                },
+                "maxItems": 32,
+                "minItems": 2,
+                "type": "array",
+              },
+              "sequence": {
+                "type": "string",
+              },
+              "speak": {
+                "type": "boolean",
               },
               "to": {
                 "additionalItems": false,
@@ -442,6 +674,9 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
             "type": "object",
           },
           "type": "array",
+        },
+        "sequence": {
+          "type": "string",
         },
         "subject": {
           "type": "string",

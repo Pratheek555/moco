@@ -37,7 +37,7 @@ export interface JobRecord {
 // Append-only record of things the user must be able to see: fallbacks, send-backs, restores.
 export interface Decision {
   at: string;
-  category: "fallback" | "send_back" | "duration_off_target" | "restore" | "regenerate" | "edit" | "look";
+  category: "fallback" | "send_back" | "duration_off_target" | "restore" | "regenerate" | "edit" | "look" | "feedback" | "learn" | "canon";
   subject: string;
   detail: string;
 }
