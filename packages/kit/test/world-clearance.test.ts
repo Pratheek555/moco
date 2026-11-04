@@ -61,7 +61,7 @@ const middleOf = (stage: SceneStage, where: WorldLocation, frame: number) => fra
 describe("world camera clearance", () => {
   it("rejects camera keys the set blocks in a render check, and pulls the eye in when rendering an episode", () => {
     // Keys that look at the robot from outside the duct's wall.
-    const keyed: SceneStage = { ...stageFor("wide"), cameraKeys: [{ atFrame: 0, eye: [3, 0.8, 0], target: [0, 0.5, 0], fov: 40, ease: "linear" }, { atFrame: 89, eye: [3, 0.8, 0], target: [0, 0.5, 0], fov: 40, ease: "linear" }] } as SceneStage;
+    const keyed: SceneStage = { ...stageFor("wide"), cameraKeys: [{ atFrame: 0, eye: [3, 0.8, 0], target: [0, 0.5, 0], fov: 40, easing: "linear" }, { atFrame: 89, eye: [3, 0.8, 0], target: [0, 0.5, 0], fov: 40, easing: "linear" }] } as SceneStage;
     const blockers = blockersOf(closed, models);
     const mark = closed.marks[0]!.at as [number, number, number];
     expect(() => steadyLens(keyed, framingFor(keyed, closed), 20, DURATION, blockers, mark, true)).toThrow("set blocks the camera at frame 20");
