@@ -16,6 +16,7 @@ import {
 import { api, type AiStatus, type Settings, type Theme, type VoiceInfo } from "@/lib/api.ts";
 import type { VoiceModelStatus } from "../../../shared/api.ts";
 import { VoiceDownloadProgress } from "../components/VoiceDownloadProgress.tsx";
+import { CodexAccountSwitch } from "../components/CodexAccountSwitch.tsx";
 import { voiceLanguageProblem } from "../../../shared/voice-availability.ts";
 import { report, setNavigationGuard, useApp } from "@/lib/store.ts";
 import { EPISODE_COUNTS, LANGUAGE_OPTIONS } from "@/lib/format.ts";
@@ -199,6 +200,7 @@ export function SettingsPage() {
               {checking ? <Spinner data-icon="inline-start" aria-hidden /> : <RefreshCwIcon data-icon="inline-start" />}
               Check again
             </Button>
+            {draft.aiProvider === "codex-cli" && <CodexAccountSwitch disabled={settings.aiProvider !== "codex-cli" || saving} />}
           </Section>
         </TabsContent>
 

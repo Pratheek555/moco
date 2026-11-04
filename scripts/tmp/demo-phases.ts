@@ -1,13 +1,13 @@
 // One-off demo of v2 phases 4 and 5 on a real series: finish episode 1 (critic + retro write the playbook), extend the
 // series with an episode that needs someone new (the canon grows), make episode 2 with the lessons, then print the
-// evidence. Uses your app settings and Claude plan, like `pnpm bench run`.
+// evidence. Uses your app settings and AI provider, like `pnpm bench run`.
 //   npx tsx scripts/tmp/demo-phases.ts <projectsDir> <seriesId> "<episode 2 direction>"
 import { execFileSync } from "node:child_process";
 import { existsSync, readFileSync } from "node:fs";
 import { mkdir } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { chatterboxAudio } from "@moco/audio/chatterbox";
 import { createEngine, type Engine } from "@moco/engine";
 import { createRemotionRenderPort } from "@moco/renderer";
@@ -17,7 +17,7 @@ const userData = join(process.env.APPDATA ?? join(homedir(), ".config"), "Moco")
 const settings = JSON.parse(readFileSync(join(userData, "settings.json"), "utf8"));
 const audio = chatterboxAudio({ rate: settings.voice.rate, python: join(userData, "voice/runtime/Scripts/python.exe"), worker: join(process.cwd(), "packages/audio/python/narrate.py"), modelDir: join(userData, "voice/models/english"), expressiveness: settings.voice.expressiveness ?? 0.65 });
 const render = createRemotionRenderPort({});
-const engine = createEngine({ projectsDir, ai: claudeCli(), render, audio, config: { voice: { voiceId: "narrator", backend: "chatterbox" } } });
+const engine = createEngine({ projectsDir, ai: aiBackend(), render, audio, config: { voice: { voiceId: "narrator", backend: "chatterbox" } } });
 engine.on("*", (event) => {
   if (/stage\.(done|approved|failed)|look\.|learn\.|canon\.|shot\.fallback|job\.finished/.test(event.type)) console.log(new Date().toISOString().slice(11, 19), `[${event.type}]`, JSON.stringify(event.data).slice(0, 220));
 });

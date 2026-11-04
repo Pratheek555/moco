@@ -29,7 +29,9 @@ const answer = (text = '{"ok":true}') => [
 ];
 describe("codex-cli", () => {
   it("selects both providers and checks login without making a model request", async () => {
-    expect(aiBackend().id).toBe("claude-cli");
+    expect(aiBackend().id).toBe("codex-cli");
+    expect(aiBackend("claude-cli").id).toBe("claude-cli");
+    expect(() => aiBackend("unknown" as never)).toThrow("Unknown AI provider");
     expect(aiBackend("codex-cli").id).toBe("codex-cli");
     expect(await (await fake([])).ai.available()).toMatchObject({ ok: true, authMethod: "ChatGPT" });
     expect(await (await fake([], { loggedIn: false })).ai.available()).toMatchObject({ ok: false });
@@ -48,6 +50,22 @@ describe("codex-cli", () => {
   it("handles plain text and fenced JSON responses", async () => {
     expect((await (await fake(answer("hello"))).ai.generate({ ...request, jsonSchema: undefined })).text).toBe("hello");
     expect((await (await fake(answer('```json\n{"ok":true}\n```'))).ai.generate(request)).json).toEqual({ ok: true });
+  });
+  it("exposes only the application's artist tools with explicit approval and no shell", async () => {
+    const cli = await fake(answer("done"));
+    expect(cli.ai.supportsArtist).toBe(true);
+    await cli.ai.generate({ ...request, jsonSchema: undefined, artistTools: [{
+      name: "render_preview", description: "Preview", inputSchema: { type: "object" },
+      call: async () => ({ content: [{ type: "text", text: "ok" }] }),
+    }] });
+    const { args } = await cli.log();
+    expect(args).toEqual(expect.arrayContaining([
+      'mcp_servers.moco_artist.enabled_tools=["render_preview"]',
+      'mcp_servers.moco_artist.required=true',
+      'mcp_servers.moco_artist.default_tools_approval_mode="approve"',
+      'features.shell_tool=false', 'features.apply_patch_freeform=false', 'read-only',
+    ]));
+    expect(args).not.toContain("--dangerously-bypass-approvals-and-sandbox");
   });
   it("reports invalid JSON, failed turns and premature exits", async () => {
     await expect((await fake(answer("refused"))).ai.generate(request)).rejects.toBeInstanceOf(SchemaRefusal);

@@ -1,13 +1,13 @@
-// Learn a style from reference videos: measures every frame and word, has Claude agents study tile sheets, and writes
+// Learn a style from reference videos: measures every frame and word, has the AI study tile sheets, and writes
 // a skill (<styles>/<slug>/skill/SKILL.md) plus a moco template (<styles>/<slug>/moco-template.md). By default <styles> is
-// the desktop app's styles folder, so the template shows up in the app's Templates page. Uses your Claude plan's quota
+// the desktop app's styles folder, so the template shows up in the app's Templates page. Uses the selected provider's quota
 // (roughly 6–10 calls per reference plus 2–4 to merge). Run `pnpm learn:setup` once first.
 //   pnpm learn --name "Cartoon fact shorts" <youtube-url|video-file> [more…] [--out <folder>] [--whisper small]
 //              [--language en] [--model <id>] [--concurrency 3] [--measure-only]
 import { readFileSync } from "node:fs";
 import { homedir } from "node:os";
 import { join } from "node:path";
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { learnStyle } from "@moco/learn";
 
 const args = process.argv.slice(2);
@@ -25,7 +25,7 @@ if (!name || sources.length === 0) {
   process.exit(1);
 }
 
-const ai = claudeCli();
+const ai = aiBackend();
 if (!flags.has("measure-only")) {
   const status = await ai.available();
   if (!status.ok) throw new Error(status.reason);

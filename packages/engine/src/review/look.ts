@@ -12,9 +12,11 @@ import { generateScene, type SceneInputs } from "../generator/generate.ts";
 import { joinSections, jsonSection, loadPrompt } from "../generator/prompts.ts";
 import { generateValidated } from "../loop/loop.ts";
 import type { StageContext } from "../pipeline/context.ts";
+import { temporalFrames } from "../artist/workspace.ts";
 import { files } from "../pipeline/stages.ts";
 import { appearanceOf, critiquePack } from "../planner/show.ts";
 import { checkModel } from "../planner/world.ts";
+import { reviewArtistEpisode } from "./artist.ts";
 
 // A score at or under this is sent back.
 const FIX_AT = 3;
@@ -26,6 +28,7 @@ const Verdict = z.object({
   score: z.number().int().min(1).max(5),
   problems: z.array(z.string()).max(6),
   fix: z.string(),
+  requirements: z.array(z.object({ id: z.string(), status: z.enum(["pass", "fail", "not_applicable", "unknown"]), evidence: z.string() })).optional(),
 });
 const Review = z.object({ verdicts: z.array(Verdict), overall: z.string() });
 type Verdict = z.infer<typeof Verdict>;
@@ -75,6 +78,8 @@ async function look(ctx: StageContext, scope: string, prompt: "look_models" | "l
         prompt: joinSections([
           `The images above are, in order: ${imageKey(batch)}.`,
           standard,
+          ctx.series.production ? jsonSection("Full original creative brief", ctx.series.idea) : "",
+          ctx.series.production ? "For EVERY supplied requirement id, return requirements=[{id,status:pass|fail|not_applicable|unknown,evidence}] on each verdict. Explain actual frame evidence. A failed requirement caps the shot score at 3; an unknown cannot be called a pass. Judge character acting across the image sequence." : "",
           jsonSection("What each one is meant to be", batch.map(({ id, brief }) => ({ id, ...(brief as object) }))),
           "Return one verdict per id.",
         ]),
@@ -192,7 +197,7 @@ export function critiqueFrames(durationFrames: number): number[] {
 // judges what ships. Undefined if nothing could be rendered or found for it.
 async function shotItem(ctx: StageContext, episodeId: string, shot: Shot, shared: Omit<SceneInputs, "shot">, pass: string) {
   const spec = (await ctx.store.read(files.shotSpec(episodeId, shot.id), "SceneSpec")).data;
-  const frames = critiqueFrames(spec.durationFrames);
+  const frames = spec.canvas ? temporalFrames(spec) : critiqueFrames(spec.durationFrames);
   const words = shotBrief(shot, shared.voiceover).words.map((word) => word.text).join(" ");
   const check = await ctx.renderSlots.run(() => ctx.render.check(spec, { frames, outDir: join(ctx.dir, "cache", "look", episodeId, shot.id, pass) }));
   const images = check.ok ? check.stills : frames.map((frame) => join(ctx.dir, files.shotDir(episodeId, shot.id), "stills", `${frame}.png`)).filter((file) => existsSync(file));
@@ -205,6 +210,7 @@ async function shotItem(ctx: StageContext, episodeId: string, shot: Shot, shared
 // kept only if it scores at least as well as the shot it replaced. Every score is saved as the episode's critique,
 // the evidence the episode retro learns from (learn/playbook.ts).
 export async function lookAtShots(ctx: StageContext, episodeId: string, shots: Shot[], shared: Omit<SceneInputs, "shot">, maxFixes = Math.ceil(shots.length / 3)): Promise<LookOutcome> {
+  if(ctx.series.production)return reviewArtistEpisode(ctx,episodeId,shots,shared);
   if (!ctx.ai.seesImages) return { reviewed: 0, fixed: [] };
   try {
     const items = (await Promise.all(shots.map((shot) => shotItem(ctx, episodeId, shot, shared, "first")))).filter((item) => item !== undefined);
@@ -238,7 +244,7 @@ ${notes(verdict)}` })),
 
     const critique: Critique = {
       episodeId,
-      shots: first.verdicts.map(({ id, score, problems, fix }) => ({ shotId: id, score, problems, fix, repaired: repaired.get(id) })),
+      shots: first.verdicts.map(({ id, score, problems, fix, requirements }) => ({ shotId: id, score, problems, fix, repaired: repaired.get(id), ...(requirements && { requirements }) })),
       overall: first.overall,
     };
     await ctx.store.save(files.critique(episodeId), "Critique", critique, { producedBy: "ai", backend: ctx.ai.backendId, inputs: shots.map((shot) => ctx.store.inputRef(files.shotSpec(episodeId, shot.id))) });

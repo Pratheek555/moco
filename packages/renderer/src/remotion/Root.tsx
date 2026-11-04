@@ -25,6 +25,7 @@ export function Root() {
         defaultProps={demoEpisode}
         calculateMetadata={({ props }) => ({
           durationInFrames: props.episode.scenes.reduce((total, scene) => total + scene.durationFrames, 0),
+          ...props.episode.export,
         })}
       />
       <Composition
@@ -33,7 +34,7 @@ export function Root() {
         {...size}
         durationInFrames={1}
         defaultProps={{ scene: demoScene as SceneSpec }}
-        calculateMetadata={({ props }) => ({ durationInFrames: props.scene.durationFrames })}
+        calculateMetadata={({ props }) => ({ durationInFrames: props.scene.durationFrames, ...props.scene.format })}
       />
       <Composition
         id="Thumbnail"
@@ -41,7 +42,7 @@ export function Root() {
         {...size}
         durationInFrames={1}
         defaultProps={{ scene: demoScene as SceneSpec, text: "Krishna’s chariot" }}
-        calculateMetadata={({ props }) => ({ durationInFrames: props.scene.durationFrames })}
+        calculateMetadata={({ props }) => ({ durationInFrames: props.scene.durationFrames, ...props.scene.format })}
       />
     </>
   );

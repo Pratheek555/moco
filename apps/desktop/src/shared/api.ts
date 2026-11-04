@@ -1,10 +1,12 @@
 // The contract between the Electron main process and the UI.
 // The UI never talks to the engine directly: main forwards these calls to the engine host (main/engine-host.ts).
 import type { VoiceInfo } from "@moco/audio";
+import type { CodexAccountState } from "@moco/ai";
+export type { CodexAccountState } from "@moco/ai";
 import type { DailyUsage, EngineEvent, SeriesStatus } from "@moco/engine";
 import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
-import type { PublishDefaults, PublishKit } from "@moco/spec";
+import type { ArtistProduction, PublishDefaults, PublishKit } from "@moco/spec";
 
 export type Theme = "light" | "dark" | "system";
 export type VoiceModelId = "english" | "multilingual";
@@ -104,6 +106,9 @@ export interface MocoApi {
   };
   ai: {
     status(): Promise<AiStatus>;
+    accountStatus(): Promise<CodexAccountState>;
+    switchAccount(): Promise<CodexAccountState>;
+    cancelSignIn(): Promise<CodexAccountState>;
   };
   voice: {
     list(): Promise<VoiceInfo[]>;
@@ -125,7 +130,7 @@ export interface MocoApi {
   };
   series: {
     list(): Promise<SeriesSummary[]>;
-    create(input: { idea: string; language: string; episodes: number; template?: string }): Promise<string>; // creates and starts planning
+    create(input: { idea: string; language: string; episodes: number; template?: string; production?: ArtistProduction }): Promise<string>; // creates and starts planning
     extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
     status(id: string): Promise<SeriesStatus>;
     artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;

@@ -2,7 +2,7 @@
 import { join } from "node:path";
 import { homedir } from "node:os";
 import { readFileSync } from "node:fs";
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { chatterboxAudio } from "@moco/audio/chatterbox";
 import { createEngine } from "@moco/engine";
 import { createRemotionRenderPort } from "@moco/renderer";
@@ -11,7 +11,7 @@ const userData = join(process.env.APPDATA ?? join(homedir(), ".config"), "Moco")
 const settings = JSON.parse(readFileSync(join(userData, "settings.json"), "utf8"));
 const audio = chatterboxAudio({ rate: settings.voice.rate, python: join(userData, "voice/runtime/Scripts/python.exe"), worker: join(process.cwd(), "packages/audio/python/narrate.py"), modelDir: join(userData, "voice/models/english"), expressiveness: settings.voice.expressiveness ?? 0.65 });
 const render = createRemotionRenderPort({});
-const engine = createEngine({ projectsDir: projectsDir!, ai: claudeCli(), render, audio, config: { voice: { voiceId: "narrator", backend: "chatterbox" } } });
+const engine = createEngine({ projectsDir: projectsDir!, ai: aiBackend(), render, audio, config: { voice: { voiceId: "narrator", backend: "chatterbox" } } });
 engine.on("*", (e) => { if (/shot\.|stage\.(done|failed|approved)|job\.finished/.test(e.type)) console.log(e.type, JSON.stringify(e.data).slice(0, 140)); });
 const feedback = "Captions are burned into the video exactly as typed. Remove the ** markers; stress a word with emphasis: true instead.";
 for (const shotId of shots) {

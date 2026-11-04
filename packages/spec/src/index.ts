@@ -17,7 +17,9 @@ import * as z from "zod";
 //   0.9.0: optional cast voice ids, timed speakers, per-speaker scene speech and 3D face controls.
 //   0.10.0: optional camera/motion/pose timelines, sequence references and per-series Vocabulary artifacts.
 //   0.11.0: Critique (per episode), Playbook (per series) and CanonAddition (per episode): new artifact kinds only.
-export const SPEC_VERSION = "0.11.0";
+//   0.12.0: optional authored canvas scenes and per-scene format; export permits variable sizes/rates.
+//   0.13.0: artist project settings, explicit voice-track fps, requirement availability and review evidence.
+export const SPEC_VERSION = "0.13.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -234,12 +236,13 @@ export const ShowBible = z.object({
   tone: z.string().min(1), // how it should feel, and how it must never feel
   narration: z.string().min(1), // who tells it and how: person, register, rhythm
   format: z.object({
-    targetSeconds: z.number().min(15).max(90), // per episode; the engine holds it to its own window
+    targetSeconds: z.number().positive(), // per episode; production settings determine the target
     shotSeconds: z.object({ min: z.number().positive(), max: z.number().positive() }),
     pacing: z.string().min(1),
   }),
   rules: z.array(z.string().min(1)).max(12), // this series' do and don't
   rubric: z.array(z.string().min(1)).min(3).max(10), // what a 5/5 shot is for this show; the critic scores against it
+  requirements: z.array(z.object({ id: Slug, text: z.string().min(1), support: z.enum(["available", "partial", "unavailable"]), reason: z.string() })).max(30).optional(),
   look: z.object({
     statement: z.string().min(1), // the visual identity in a few sentences
     palette: z.array(z.object({ token: Slug, hex: Colour, use: z.string().min(1) })).min(3).max(10),
@@ -303,7 +306,7 @@ export const ScriptLine = z.object({
 export type ScriptLine = z.infer<typeof ScriptLine>;
 
 export const EpisodeScript = z.object({
-  targetSeconds: z.number().min(15).max(90),
+  targetSeconds: z.number().positive(),
   lines: z.array(ScriptLine).min(1),
 });
 export type EpisodeScript = z.infer<typeof EpisodeScript>;
@@ -326,10 +329,17 @@ export const VoiceoverTrack = z.object({
   durationSeconds: z.number().positive(),
   words: z.array(TimedWord).min(1),
   visemes: VisemeTrack.default([]), // whole-episode frames, computed from the audio by the audio package
+  fps: z.number().int().min(1).max(60).optional(), // absent on legacy tracks: 30 fps
   speakers: z.array(z.object({ speaker: z.string(), start: z.number().nonnegative(), end: z.number().positive() })).optional(),
 });
 export type VoiceoverTrack = z.infer<typeof VoiceoverTrack>;
 
+export const ActionCheck = z.object({
+  id: z.string().min(1),
+  description: z.string().min(1), // visible action, not an emotion label
+  fromWord: z.number().int().nonnegative(), // whole-track word indices, occurrence-safe
+  toWord: z.number().int().nonnegative(),
+});
 export const Shot = z.object({
   id: z.string().min(1),
   start: z.number().nonnegative(), // seconds, snapped to word boundaries
@@ -339,6 +349,7 @@ export const Shot = z.object({
   characters: z.array(z.string()), // bible cast ids
   location: z.string().min(1), // kit background id
   cameraHint: z.string().optional(),
+  actionChecks: z.array(ActionCheck).max(8).optional(),
 });
 export type Shot = z.infer<typeof Shot>;
 
@@ -436,9 +447,35 @@ export const SceneStage = z.object({
 });
 export type SceneStage = z.infer<typeof SceneStage>;
 
+// Optional authored drawing path. Source is a draw-function BODY, never executed in Node.
+// Embedded raster assets make the artifact self-contained and part of its content hash.
+export const CanvasScene = z.object({
+  version: z.literal(1),
+  source: z.string().min(1).max(100_000),
+  cast: z.array(z.string()).max(20).default([]),
+  assets: z.record(z.string(), z.string().max(8_000_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/)).default({}),
+  cues: z.array(z.object({ id: z.string(), atFrame: z.number().int().nonnegative() })).max(200).default([]),
+  designSources: z.record(z.string(), z.string()).optional(),
+});
+export type CanvasScene = z.infer<typeof CanvasScene>;
+
+export const VideoFormat = z.object({
+  width: z.number().int().min(16).max(4096),
+  height: z.number().int().min(16).max(4096),
+  fps: z.number().int().min(1).max(60),
+});
+export const ArtistProduction = z.object({
+  mode: z.literal("artist"),
+  format: VideoFormat,
+  targetSeconds: z.number().positive().optional(),
+});
+export type ArtistProduction = z.infer<typeof ArtistProduction>;
+
 export const SceneSpec = z.object({
   shotId: z.string(),
   durationFrames: z.number().int().positive(),
+  canvas: CanvasScene.optional(),
+  format: VideoFormat.optional(), // absent on existing projects: 1080x1920 at 30 fps
   background: z.object({ id: z.string(), parallax: z.boolean().default(true) }),
   stage: SceneStage.optional(), // required on a 3D stage; actors, props and camera moves don't apply there
   actors: z.array(SceneActor),
@@ -486,8 +523,17 @@ export const Critique = z.object({
     problems: z.array(z.string()),
     fix: z.string(),
     repaired: z.object({ score: Score, kept: z.boolean() }).optional(),
+    requirements: z.array(z.object({ id: z.string(), status: z.enum(["pass", "fail", "not_applicable", "unknown"]), evidence: z.string() })).optional(),
   })),
   overall: z.string(),
+  quality: z.object({
+    status: z.enum(["passed", "needs_attention"]),
+    unresolved: z.array(z.string()),
+    sceneHashes: z.record(z.string(), z.string()),
+    voiceoverHash: z.string(),
+    shotListHash: z.string(),
+    report: z.string(),
+  }).optional(),
 });
 export type Critique = z.infer<typeof Critique>;
 
@@ -538,7 +584,7 @@ export const EpisodeSpec = z.object({
   episodeId: z.string(),
   scenes: z.array(SceneSpec).min(1),
   audio: z.object({ voiceover: z.string(), music: z.string().optional() }),
-  export: z.object({ width: z.literal(FRAME_WIDTH), height: z.literal(FRAME_HEIGHT), fps: z.literal(FPS) }),
+  export: VideoFormat,
 });
 export type EpisodeSpec = z.infer<typeof EpisodeSpec>;
 

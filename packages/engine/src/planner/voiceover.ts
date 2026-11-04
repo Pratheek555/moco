@@ -39,12 +39,14 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
     if (sentBack) return { kind: "sent_back" };
   }
 
-  const visemes = await ctx.audio.visemes(spoken.file, words);
+  const sourceVisemes = await ctx.audio.visemes(spoken.file, words);
+  const fps = ctx.series.production?.format.fps ?? 30;
+  const visemes = fps === 30 ? sourceVisemes : sourceVisemes.map((key) => ({ ...key, frame: Math.round(key.frame * fps / 30) }));
   const speakers = script.data.lines.flatMap((line) => {
     const timed = words.filter((word) => word.lineId === line.id);
     return timed.length ? [{ speaker: line.speaker, start: timed[0]!.start, end: timed.at(-1)!.end }] : [];
   });
-  const track: VoiceoverTrack = { file: relative(ctx.dir, spoken.file), durationSeconds: spoken.durationSeconds, words, visemes, speakers };
+  const track: VoiceoverTrack = { file: relative(ctx.dir, spoken.file), durationSeconds: spoken.durationSeconds, words, visemes, speakers, ...(ctx.series.production && { fps }) };
   const saved = await ctx.store.save(files.voiceover(episodeId), "VoiceoverTrack", track, {
     producedBy: "engine",
     backend: narrator.backend,
@@ -58,7 +60,10 @@ async function handleDrift(ctx: StageContext, episodeId: string, measured: numbe
   const voKey = stageKey("voiceover", episodeId);
   const sendBacks = ctx.ledger.stage(voKey).sendBacks ?? 0;
   const seconds = Math.round(Math.abs(measured - target));
-  const words = Math.round((seconds * wordsPerMinute(ctx.config, language)) / 60);
+  const current = (await ctx.store.read(files.script(episodeId), "EpisodeScript")).data;
+  const currentWords = current.lines.reduce((count, line) => count + line.text.split(/\s+/).filter(Boolean).length, 0);
+  const revisedBudget = Math.max(1, Math.round(currentWords * target / measured));
+  const words = ctx.series.production ? Math.abs(currentWords - revisedBudget) : Math.round((seconds * wordsPerMinute(ctx.config, language)) / 60);
   const verb = measured > target ? "Cut" : "Add";
   const instruction = `The narration runs ${measured.toFixed(1)} s but the target is ${target} s. ${verb} about ${words} words, keeping the story beats.`;
 
@@ -69,7 +74,7 @@ async function handleDrift(ctx: StageContext, episodeId: string, measured: numbe
   }
 
   ctx.ledger.setStage(voKey, { sendBacks: sendBacks + 1 });
-  ctx.ledger.setStage(stageKey("script", episodeId), { status: "pending", feedback: instruction });
+  ctx.ledger.setStage(stageKey("script", episodeId), { status: "pending", feedback: instruction, ...(ctx.series.production && { narrationWordBudget: revisedBudget }) });
   ctx.ledger.decide("send_back", episodeId, instruction);
   await ctx.bus.emit(ctx.seriesId, "script.sent_back", { episodeId, instruction, sendBack: sendBacks + 1 });
   return true;

@@ -6,11 +6,12 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend } from "@moco/ai";
 import { catalog as defaultCatalog, type Catalog } from "@moco/kit";
-import { checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, THUMBNAIL_TEXT_MAX, type World } from "@moco/spec";
+import { ArtistProduction, checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, THUMBNAIL_TEXT_MAX, type World } from "@moco/spec";
 import { defaultConfig, type EngineConfig } from "./config.ts";
 import { EngineError } from "./errors.ts";
 import { EventBus, type EngineEvent, type EngineEventType, type Unsubscribe } from "./events/bus.ts";
 import { generateScene, neighbourAvoid, sceneSharedInputs, scenesHash } from "./generator/generate.ts";
+import { reviewArtistEpisode } from "./review/artist.ts";
 import { Semaphore } from "./jobs/semaphore.ts";
 import type { SeriesInfo, StageContext } from "./pipeline/context.ts";
 import { approveGate, markDependantsStale, nextStage, type Next } from "./pipeline/machine.ts";
@@ -76,7 +77,7 @@ export interface SeriesStatus {
 }
 
 export interface Engine {
-  createSeries(input: { idea: string; language: string; episodes?: number; template?: string }): Promise<SeriesId>;
+  createSeries(input: { idea: string; language: string; episodes?: number; template?: string; production?: ArtistProduction }): Promise<SeriesId>;
   // Plan `episodes` more after the approved ones, steered by an optional note. The longer plan waits for approval.
   extendSeries(seriesId: SeriesId, input: { episodes: number; note?: string }): Promise<JobId>;
   listSeries(): Promise<SeriesInfo[]>;
@@ -156,6 +157,23 @@ export function createEngine(options: CreateEngineOptions): Engine {
   }
 
   // A job or stage left "running" means the app died mid-way. Stages can safely run again.
+  // The desktop can also view a series being advanced by a CLI engine. Read a fresh, read-only
+  // snapshot rather than treating its new artifacts as edits against our old cached ledger.
+  // In particular, viewing must not recover (and overwrite) another process's running job.
+  async function readSeries(seriesId: SeriesId): Promise<OpenSeries> {
+    const cached = open.get(seriesId);
+    if (cached?.activeJob) return cached;
+    await cached?.ledger.settled();
+    if (cached?.activeJob) return cached;
+    const dir = seriesDir(config.projectsDir, seriesId);
+    if (!(await exists(join(dir, "series.json")))) throw new EngineError("not_found", `series ${seriesId} not found`);
+    const info = await readJson<SeriesInfo>(join(dir, "series.json"));
+    assertCompatible(info);
+    const ledger = await Ledger.load(dir);
+    const store = new ArtifactStore(dir, ledger, (file) => void bus.emit(seriesId, "artifact.modified_externally", { file }));
+    return { info, dir, ledger, store };
+  }
+
   function recoverAfterCrash(ledger: Ledger): void {
     const interrupted = { code: "interrupted", message: "Stopped because the app closed. Run it again." };
     for (const job of Object.values(ledger.data.jobs)) {
@@ -173,7 +191,11 @@ export function createEngine(options: CreateEngineOptions): Engine {
       seriesId: series.info.id,
       series: series.info,
       dir: series.dir,
-      config,
+      // Artist duration comes from the user's field or the approved show plan,
+      // never the legacy short-reel defaults.
+      config: series.info.production ? { ...config, targetSeconds: series.info.production.targetSeconds
+        ? { min: series.info.production.targetSeconds, max: series.info.production.targetSeconds }
+        : { min: 0, max: Number.MAX_SAFE_INTEGER } } : config,
       catalog: series.world ? worldCatalog(catalog, series.world) : catalog,
       world: series.world,
       useWorld: (world) => {
@@ -268,10 +290,13 @@ export function createEngine(options: CreateEngineOptions): Engine {
     async createSeries(input) {
       const idea = input.idea.trim();
       const episodes = input.episodes ?? 3;
-      if (!idea || idea.length > 4000) throw new EngineError("invalid_id", "the idea must be 1–4000 characters");
+      if (!idea || idea.length > 32000) throw new EngineError("invalid_id", "the idea must be 1–32000 characters");
       if (!/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(input.language)) throw new EngineError("invalid_id", `"${input.language}" is not a language code like "en" or "hi"`);
       if (!Number.isInteger(episodes) || episodes < 1 || episodes > 30) throw new EngineError("invalid_id", "episodes must be 1–30");
       if (input.template !== undefined && !lookupTemplate(input.template)) throw new EngineError("invalid_id", `unknown template "${input.template}"`);
+      const production = input.production ? ArtistProduction.parse(input.production) : undefined;
+      if (production && !options.ai.supportsArtist) throw new EngineError("validation_failed", "This AI backend does not support the artist workspace. Choose a supported backend before creating the project.");
+      if (production && input.template) throw new EngineError("validation_failed", "Artist projects use the brief and shared designs; omit the kit/world template.");
 
       const id = await uniqueSeriesId(config.projectsDir, slugify(idea.split(/\s+/).slice(0, 6).join(" ")));
       const info: SeriesInfo = {
@@ -280,6 +305,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
         language: input.language,
         episodes,
         ...(input.template && { template: input.template }),
+        ...(production && { production }),
         createdAt: new Date().toISOString(),
         engineVersion: ENGINE_VERSION,
         specVersion: SPEC_VERSION,
@@ -349,7 +375,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
     },
 
     async status(seriesId) {
-      const series = await load(seriesId);
+      const series = await readSeries(seriesId);
       const { ledger } = series;
       const keys = allStageKeys(ledger.data.episodeIds);
       const stages = keys.map((key) => ({ key, gated: GATED.has(parseStageKey(key).stage), ...ledger.stage(key) }));
@@ -380,6 +406,8 @@ export function createEngine(options: CreateEngineOptions): Engine {
         const shared = await sceneSharedInputs(ctx, ref.episodeId);
         const avoid = await neighbourAvoid(ctx, ref.episodeId, shotList.shots, shot.id);
         await generateScene(ctx, { ...shared, shot, feedback, force: true, avoid });
+        // A changed shot invalidates continuity evidence for the cut. Review without silently repairing other shots.
+        if (ctx.series.production) await reviewArtistEpisode(ctx, ref.episodeId, shotList.shots, shared, { maxRounds: 0 });
         ctx.ledger.decide("regenerate", `${ref.episodeId}/${ref.shotId}`, feedback ?? "no feedback");
         await outputChanged(series, scenesKey, await scenesHash(ctx, ref.episodeId));
       });
@@ -411,7 +439,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
     },
 
     async history(ref) {
-      const series = await load(ref.seriesId);
+      const series = await readSeries(ref.seriesId);
       return series.store.history(ref.file);
     },
 
@@ -442,7 +470,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
     },
 
     async readArtifact(ref) {
-      const series = await load(ref.seriesId);
+      const series = await readSeries(ref.seriesId);
       const record = series.ledger.data.artifacts[ref.file];
       if (!record) throw new EngineError("not_found", `artifact ${ref.file} does not exist`);
       return series.store.read(ref.file, record.kind as Parameters<ArtifactStore["read"]>[1]);

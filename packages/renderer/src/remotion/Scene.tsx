@@ -5,6 +5,7 @@
 import { Fragment } from "react";
 import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
+import { AuthoredCanvas } from "./AuthoredCanvas.tsx";
 import { ThreeCanvas } from "@remotion/three";
 import { IMAGE_LAYER_BOX, registry, rigStateAt, setLibraryUrl, worldStage, type AtmosphereDef, type BackgroundDef, type BackgroundLayerDef, type CharacterDef, type StageDef } from "@moco/kit/components";
 import { FRAME_HEIGHT, FRAME_WIDTH, type Caption, type SceneActor, type SceneSpec, type SceneStage } from "@moco/spec";
@@ -36,6 +37,10 @@ interface PlacedAtmosphere {
 // `strict`: set by the render check, where a camera the set blocks is an error for the AI to fix. In an episode render it
 // is pulled in until it can see, so one blocked frame never stops a whole episode.
 export function Scene({ scene, strict = false }: { scene: SceneSpec; strict?: boolean }) {
+  return scene.canvas ? <AuthoredCanvas scene={scene} /> : <KitScene scene={scene} strict={strict} />;
+}
+
+function KitScene({ scene, strict = false }: { scene: SceneSpec; strict?: boolean }) {
   const frame = useCurrentFrame();
   // A generated world brings its own place, so the id means nothing to the kit.
   const background = scene.world ? worldStage : registry.backgrounds.find((candidate) => candidate.id === scene.background.id);

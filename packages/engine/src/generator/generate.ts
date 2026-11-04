@@ -1,4 +1,5 @@
 import { expandModel } from "@moco/kit";
+import { generateArtistScene } from "../artist/generate.ts";
 // Shot → SceneSpec via the AI, through the validate → render-check → fix loop.
 // After the attempt cap, a deterministic fallback shot is saved instead and flagged for the user.
 // Each spec records a "SceneInput" hash of everything it was generated from; if that hash is unchanged
@@ -59,7 +60,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
   // A redo changes the current shot, so the AI has to see it. Engine fields are stripped, as in the golden example.
   const previous = inputs.feedback && ctx.store.has(specFile) ? AiSceneSpec.parse((await ctx.store.read(specFile, "SceneSpec")).data) : undefined;
 
-  const result = await generateValidated({
+  const result = ctx.series.production ? await generateArtistScene(ctx, inputs) : await generateValidated({
     ai: ctx.ai,
     scope: episodeId,
     schema: SceneSpec,
@@ -101,6 +102,8 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
 function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief): InputRef {
   const { id: _id, start: _start, end: _end, ...shotContent } = brief.shot;
   const key = hashData({
+    creativeBrief: ctx.series.idea,
+    production: ctx.series.production,
     shot: shotContent,
     durationFrames: brief.durationFrames,
     words: brief.words,
@@ -113,7 +116,7 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
     worldLayout: inputs.world,
     facts: relevantFacts(inputs.memory, brief.shot),
     show: inputs.show && scenePack(inputs.show, brief.shot),
-    prompt: promptRef("scene", ctx.series.template).contentHash,
+    prompt: promptRef(ctx.series.production ? "artist" : "scene", ctx.series.template).contentHash,
   });
   return { kind: "SceneInput", revision: 0, contentHash: key };
 }
@@ -130,7 +133,7 @@ async function upToDate(ctx: StageContext, specFile: string, sceneInput: InputRe
 // and the lip-sync track (from the audio).
 function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
   const visemes = shotVisemes(inputs.shot, inputs.voiceover);
-  return { ...withBibleVariants(spec, inputs.bible), visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: inputs.world && worldForShot(inputs.world, spec) };
+  return { ...withBibleVariants(spec, inputs.bible), visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: !spec.canvas && inputs.world ? worldForShot(inputs.world, spec) : undefined };
 }
 
 function withBibleVariants(spec: SceneSpec, bible: SeriesBible): SceneSpec {
@@ -179,6 +182,7 @@ function stageKind(ctx: StageContext, shot: Shot): "kit" | "race" | "world" {
 
 function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, previous: unknown): string {
   return joinSections([
+    jsonSection("Full original creative brief — preserve its visual requirements", ctx.series.idea),
     inputs.show ? jsonSection("Show bible — this series' rules for this shot", scenePack(inputs.show, brief.shot)) : "",
     jsonSection("Shot brief", {
       shotId: brief.shot.id,
@@ -224,11 +228,13 @@ export async function runSample(ctx: StageContext, episodeId: string, feedback?:
 export async function runScenes(ctx: StageContext, episodeId: string, feedback?: string): Promise<string> {
   const shotList = (await ctx.store.read(files.shotList(episodeId), "ShotList")).data;
   const shared = await sceneSharedInputs(ctx, episodeId);
-  const settled = await Promise.allSettled(shotList.shots.map((shot) => generateScene(ctx, { ...shared, shot, feedback })));
+  const settled = ctx.series.production
+    ? await (async () => { for (const shot of shotList.shots) await generateScene(ctx, { ...shared, shot, feedback }); return []; })()
+    : await Promise.allSettled(shotList.shots.map((shot) => generateScene(ctx, { ...shared, shot, feedback })));
   // Wait for every shot before failing, so no shot keeps writing after the stage is marked failed.
   const failure = settled.find((outcome) => outcome.status === "rejected");
   if (failure) throw failure.reason;
-  await breakRepeatedLooks(ctx, episodeId, shotList.shots, shared);
+  if (!ctx.series.production) await breakRepeatedLooks(ctx, episodeId, shotList.shots, shared);
   // Every shot was written blind: the director looks at the cut and the weakest shots get one more go.
   await lookAtShots(ctx, episodeId, shotList.shots, shared);
   const finalSpecs = await specsOf(ctx, episodeId, shotList.shots);

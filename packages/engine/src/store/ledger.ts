@@ -12,6 +12,7 @@ export interface StageRecord {
   error?: { code: string; message: string };
   feedback?: string; // from reject() or a send-back; goes into the next prompt, cleared after success
   sendBacks?: number; // voiceover → script send-backs so far
+  narrationWordBudget?: number; // artist projects: recalibrated from actual narration, not a fixed WPM guess
   updatedAt: string;
 }
 
@@ -93,6 +94,9 @@ export class Ledger {
     this.saving = this.saving.then(() => writeJsonAtomic(this.path, snapshot));
     return this.saving;
   }
+
+  // Readers must not observe a local save between its artifact and ledger writes.
+  settled(): Promise<void> { return this.saving; }
 
   stage(key: string): StageRecord {
     return this.data.stages[key] ?? { status: "pending", updatedAt: new Date(0).toISOString() };

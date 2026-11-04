@@ -13,13 +13,16 @@ import { readAdditions, showWithAdditions } from "../canon/merge.ts";
 import { provenLessons, type NotebookEntry } from "../learn/playbook.ts";
 
 export async function runShow(ctx: StageContext, plan: SeriesPlan, feedback?: string): Promise<ShowBible> {
-  const limits = showLimits(ctx.config);
+  const limits = ctx.series.production && ctx.series.production.targetSeconds === undefined
+    ? { shotSeconds: ctx.config.shotSecondsBounds, episodeDuration: "User-controlled. Use the requested length in the creative brief. If none is given, propose an appropriate target in the show plan for user approval. There is no preset episode length." }
+    : showLimits(ctx.config);
   const voices = await ctx.audio.voices?.(plan.language) ?? [];
   const show = await planWithAi(ctx, {
     scope: "series",
     promptName: "show",
     schema: ShowBible,
     prompt: joinSections([
+      ctx.series.production ? "Extract the brief's concrete nonnegotiable requirements into requirements=[{id,text,support,reason}]. Available: custom Canvas vector art, file editing, reusable character code, embedded provided raster assets, text on physical surfaces, IK helpers and measured-word cues. No paid image provider, external font downloader, music search or automatic soundtrack mixing is exposed here. Mark partial/unavailable honestly; do not drop requirements to get a valid plan." : "",
       jsonSection("Idea", ctx.series.idea),
       jsonSection("Series plan", plan),
       jsonSection("Engine limits", limits),
@@ -37,6 +40,12 @@ export async function runShow(ctx: StageContext, plan: SeriesPlan, feedback?: st
     backend: ctx.ai.backendId,
     inputs: [ctx.store.inputRef(files.seriesPlan), promptRef("show", ctx.series.template)],
   });
+  if (ctx.series.production) {
+    await ctx.store.writeRaw("artifacts/artist-capabilities.json", { originalBrief: ctx.series.idea, production: ctx.series.production, requirements: show.requirements ?? [], limitations: show.requirements?.filter((requirement) => requirement.support !== "available") });
+    if (!show.requirements?.length) throw new Error("Artist planning must record the brief's requirements before creating artwork");
+    const unavailable = show.requirements.filter((requirement) => requirement.support === "unavailable");
+    if (unavailable.length) throw new Error(`Unsupported requirements need a revised brief before artwork generation: ${unavailable.map((requirement) => `${requirement.text}: ${requirement.reason}`).join("; ")}`);
+  }
   return show;
 }
 
@@ -111,7 +120,7 @@ export function scenePack(show: ShowBible, shot: Shot) {
     look: { statement, palette, lighting, camera, captions },
     rules: show.rules,
     rubric: show.rubric,
-    cast: castBy(show, shot.characters).map(({ id, name, personality, movement, signature }) => ({ id, name, personality, movement, signature })),
+    cast: castBy(show, shot.characters).map(({ id, name, appearance, personality, movement, signature }) => ({ id, name, appearance, personality, movement, signature })),
     place: show.places.find((place) => place.id === shot.location),
   };
 }
@@ -125,7 +134,7 @@ export function biblePack(show: ShowBible) {
 }
 
 export function critiquePack(show: ShowBible) {
-  return { tone: show.tone, look: show.look.statement, camera: show.look.camera, rubric: show.rubric };
+  return { tone: show.tone, look: show.look.statement, camera: show.look.camera, rubric: show.rubric, requirements: show.requirements };
 }
 
 // The show's cast id for a world model, so the art director judges a model against the character it plays.

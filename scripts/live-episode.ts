@@ -1,10 +1,10 @@
-// Live end-to-end run: the user's real Claude Code + real Remotion + placeholder (silent) voiceover,
+// Live end-to-end run: the user's configured AI backend + real Remotion + placeholder (silent) voiceover,
 // or Supertonic if MOCO_SUPERTONIC_DIR points at its model folder (MOCO_SUPERTONIC_VOICE picks a preset, default M1).
-// Auto-approves every gate. Uses your Claude plan's quota (roughly 20–40 calls for one episode).
+// Auto-approves every gate. Uses the selected provider's quota (roughly 20–40 calls for one episode).
 //   pnpm live "Krishna explains duty to Arjuna on the battlefield" [projectsDir]
 //   MOCO_SERIES=<series-id> pnpm live "" [projectsDir]   (resume)
 import { join } from "node:path";
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { placeholderAudio } from "@moco/audio";
 import { supertonicAudio } from "@moco/audio/supertonic";
 import { createEngine } from "@moco/engine";
@@ -18,7 +18,7 @@ const concurrency = process.env.MOCO_RENDER_CONCURRENCY ? Number(process.env.MOC
 const render = createRemotionRenderPort({ concurrency });
 const modelDir = process.env.MOCO_SUPERTONIC_DIR;
 const audio = modelDir ? supertonicAudio({ modelDir, voice: process.env.MOCO_SUPERTONIC_VOICE, speed: 0.92 }) : placeholderAudio(); // 0.92 ≈ the engine's 150 wpm budget
-const engine = createEngine({ projectsDir, ai: claudeCli(), render, audio });
+const engine = createEngine({ projectsDir, ai: aiBackend(), render, audio });
 engine.on("*", (event) => console.log(`[${event.type}]`, JSON.stringify(event.data).slice(0, 160)));
 
 // MOCO_SERIES=<id> resumes an existing series (up-to-date shots are reused) instead of starting a new one.
