@@ -1,4 +1,4 @@
-import { aiBackend } from "@moco/ai";
+import { aiBackend, createCodexAccountManager } from "@moco/ai";
 import { systemVoices } from "@moco/audio";
 import { narrationAudio } from "./narration.ts";
 import { createVoiceModelManager, voiceRuntimePaths } from "./voice-models.ts";
@@ -137,6 +137,9 @@ function createWindow() {
 let host: { process: UtilityProcess; engine: Engine } | null = null;
 // Series with a job running, from the engine's job events; editing settings or deleting waits for these.
 const running = new Set<string>();
+const codexAccount = createCodexAccountManager();
+let pendingJobStarts = 0;
+const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "publish.rewrite", "publish.setThumbnail", "templates.learn"]);
 
 function startEngineHost(): Engine {
   const entry = path.join(app.getAppPath(), "src", "main", "engine-host.ts");
@@ -351,7 +354,13 @@ app
     const handle = <A extends unknown[], R>(
       name: string,
       fn: (...args: A) => Promise<R> | R,
-    ) => ipcMain.handle(`moco:${name}`, (_e, ...args) => fn(...(args as A)));
+    ) => ipcMain.handle(`moco:${name}`, async (_e, ...args) => {
+      if (!jobStarts.has(name)) return fn(...(args as A));
+      if (codexAccount.busy) throw new Error("Finish or cancel Codex sign-in before starting a job");
+      pendingJobStarts++;
+      try { return await fn(...(args as A)); }
+      finally { pendingJobStarts--; }
+    });
 
     handle("app.info", () => ({
       version: app.getVersion(),
@@ -391,7 +400,7 @@ app
       const engineInputs = (s: Settings) => JSON.stringify([s.projectsDir, s.voice, s.render, s.aiProvider]);
       if (patch.aiProvider !== undefined && !["claude-cli", "codex-cli"].includes(patch.aiProvider)) throw new Error("Unknown AI provider");
       const touchesEngine = patch.aiProvider !== undefined || patch.projectsDir !== undefined || patch.voice !== undefined || patch.render !== undefined;
-      if (touchesEngine && running.size > 0)
+      if (touchesEngine && (running.size > 0 || pendingJobStarts > 0 || codexAccount.busy))
         throw new Error("Wait for the running jobs to finish before changing these settings");
       const before = engineInputs(settings);
       settings = await saveSettings(patch);
@@ -405,7 +414,19 @@ app
       return settings;
     });
 
-    handle("ai.status", () => aiBackend(settings.aiProvider).available());
+    handle("ai.status", () => codexAccount.busy
+      ? { ok: false, reason: "Codex account sign-in is in progress. Finish or cancel sign-in before generating." }
+      : aiBackend(settings.aiProvider).available());
+    handle("ai.accountStatus", () => codexAccount.status());
+    handle("ai.switchAccount", () => {
+      if (settings.aiProvider !== "codex-cli") throw new Error("Select and save Codex before switching its account");
+      if (running.size || pendingJobStarts || [...learnJobs.values()].some(job => job.view.state === "running"))
+        throw new Error("Wait for generation and template learning to finish before switching accounts");
+      const status = codexAccount.start();
+      stopEngineHost();
+      return status;
+    });
+    handle("ai.cancelSignIn", () => codexAccount.cancel());
 
     handle("voice.list", () => systemVoices().catch(() => []));
     handle("voice.models", () => voiceModels.list());
@@ -464,7 +485,7 @@ app
     });
     handle(
       "series.create",
-      async (input: { idea: string; language: string; episodes: number; template?: string }) => {
+      async (input: Parameters<ReturnType<typeof engine>["createSeries"]>[0]) => {
         const id = await engine().createSeries(input);
         await engine().runStage({ seriesId: id });
         send("library", { seriesId: id });
@@ -534,7 +555,7 @@ app
     app.on("activate", () => {
       if (BrowserWindow.getAllWindows().length === 0) createWindow();
     });
-    app.on("before-quit", () => { voiceModels.cancel(); stopEngineHost(); });
+    app.on("before-quit", () => { void codexAccount.cancel(); voiceModels.cancel(); stopEngineHost(); });
   })
   .catch((err) => {
     dialog.showErrorBox(

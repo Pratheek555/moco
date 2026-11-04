@@ -6,7 +6,7 @@ import type { DeepPartial, Settings } from "../shared/api.ts";
 
 export function defaultSettings(): Settings {
   return {
-    aiProvider: "claude-cli",
+    aiProvider: "codex-cli",
     onboarded: false,
     theme: "system",
     projectsDir: path.join(app.getPath("documents"), "Moco"),

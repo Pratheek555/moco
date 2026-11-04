@@ -10,6 +10,7 @@ import { amplitudeVisemes, parseWav } from "./lipsync.ts";
 
 export { AMPLITUDE_VISEMES, amplitudeVisemes, parseWav, WavError } from "./lipsync.ts";
 export { joinLines, pickVoice, systemAudio, systemVoices, type SystemAudioOptions, type VoiceInfo } from "./system.ts";
+export { alignedAudio } from "./aligned.ts";
 
 export interface Line {
   id: string;

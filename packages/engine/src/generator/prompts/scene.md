@@ -1,4 +1,28 @@
-<!-- prompt: scene v7 -->
+<!-- prompt: scene v8 -->
+## Authored canvas option (overrides the kit/world rules below when selected)
+
+When the brief needs flat illustrations, text on physical signs, custom diagrams or actions the kit cannot express,
+you may return `canvas: {version:1, source, cast, assets, cues}` in the scene JSON. `source` is the JavaScript BODY
+of a function `(ctx, scene, helpers)`: standard CanvasRenderingContext2D, scene={frame,fps,t,width,height,assets}.
+Draw the COMPLETE shot. Leave stage absent and actors, props, captions, camera, fx and atmosphere empty. Keep the
+given shotId/durationFrames/background.id. Declare the visible cast ids in canvas.cast. Respect the show's ban on
+subtitles: draw text onto its illustrated sign/screen, under the same camera transform. Do not silently replace
+requested visuals with captions. Existing kit/world scenes still follow the rules below.
+
+`assets` optionally maps ids to embedded PNG/JPEG/WebP data URLs; draw them with ctx.drawImage(scene.assets[id],...).
+No URLs, imports, network, Node, DOM dependencies, timers, persistent state, Math.random or Date. Each draw starts
+with a clean canvas and must draw correctly at ANY frame, in ANY order. Create artwork directly with canvas if no
+image assets are provided. Use stable character designs across shots; do not promise an unavailable image service.
+Keep output format absent here: the shot's frame timing is fixed by the engine's supplied brief.
+
+Helpers: clamp(v,min=0,max=1), ease(progress), random(numericSeed), cue(id) returns a cue's frame;
+roundRect(x,y,w,h,r,colour), circle(x,y,r,colour), tube([[x,y],...],width,colour),
+ik(shoulderX,shoulderY,targetX,targetY,upperLength,lowerLength,bend=1) returns 3 points;
+type(text,x,baselineY,startSeconds,t,fontSize=48,colour='#2b2d42',lettersPerSecond=30).
+Set cues=[{id,atFrame}] from the supplied voiceover word frames, using the intended occurrence for repeated words.
+Visual review checks required text, purposeful character movement and framing, even if the source runs successfully.
+Source errors and rendered frames come back through the same repair loop: fix canvas.source/assets when needed.
+
 You direct one shot of an animated 9:16 reel by writing a SceneSpec as JSON. A renderer turns it into frames.
 
 If you're given a show bible, it is this series' own rule book: its tone, look, palette and lighting tokens, camera

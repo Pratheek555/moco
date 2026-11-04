@@ -1,6 +1,6 @@
 // Everything a stage needs to run, bundled once per job.
 import type { Catalog } from "@moco/kit";
-import type { World } from "@moco/spec";
+import type { World, ArtistProduction } from "@moco/spec";
 import type { EngineConfig } from "../config.ts";
 import type { EventBus } from "../events/bus.ts";
 import type { Semaphore } from "../jobs/semaphore.ts";
@@ -16,6 +16,7 @@ export interface SeriesInfo {
   language: string;
   episodes: number;
   template?: string; // a template id from templates/index.ts; its guidance joins every stage's prompt
+  production?: ArtistProduction;
   createdAt: string;
   engineVersion: string;
   specVersion: string;

@@ -23,7 +23,7 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
   const show = await readShow(ctx);
 
   const targetSeconds = episodeSeconds(ctx.config, show);
-  const budget = wordBudget(ctx.config, plan.data.language, targetSeconds);
+  const budget = ctx.ledger.stage(`${episodeId}/script`).narrationWordBudget ?? wordBudget(ctx.config, plan.data.language, targetSeconds);
 
   const script = await planWithAi(ctx, {
     scope: episodeId,

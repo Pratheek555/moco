@@ -22,7 +22,12 @@ const api: MocoApi = {
     get: call("settings.get"),
     set: call("settings.set"),
   } as MocoApi["settings"],
-  ai: { status: call("ai.status") } as MocoApi["ai"],
+  ai: {
+    status: call("ai.status"),
+    accountStatus: call("ai.accountStatus"),
+    switchAccount: call("ai.switchAccount"),
+    cancelSignIn: call("ai.cancelSignIn"),
+  } as MocoApi["ai"],
   voice: {
     list: call("voice.list"),
     models: call("voice.models"),

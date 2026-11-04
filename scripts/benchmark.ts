@@ -1,5 +1,5 @@
 // Benchmark: generate one episode the way the desktop app does, record how it went, and compare two runs blind.
-// Uses your Claude plan's quota and your app settings (voice from %APPDATA%/Moco/settings.json).
+// Uses the selected provider's quota and your app settings (voice from %APPDATA%/Moco/settings.json).
 //   pnpm bench run "<idea>" <label> [projectsDir]     generate, auto-approving every gate; writes benchmark/run.json
 //   pnpm bench sheet <seriesDir>                      contact sheet of the final video (benchmark/sheet.jpg)
 //   pnpm bench judge <seriesDirA> <seriesDirB>        blind side-by-side scoring on a fixed rubric (both orders)
@@ -8,7 +8,7 @@ import { existsSync } from "node:fs";
 import { mkdir, readFile, writeFile } from "node:fs/promises";
 import { homedir } from "node:os";
 import { join, resolve } from "node:path";
-import { claudeCli } from "@moco/ai";
+import { aiBackend } from "@moco/ai";
 import { chatterboxAudio } from "@moco/audio/chatterbox";
 import { createEngine } from "@moco/engine";
 import { createRemotionRenderPort } from "@moco/renderer";
@@ -29,7 +29,7 @@ async function run(idea: string, label: string, projectsDir: string) {
     expressiveness: settings.voice.expressiveness ?? 0.65,
   });
   const render = createRemotionRenderPort({});
-  const engine = createEngine({ projectsDir, stylesDir: join(root, "styles"), ai: claudeCli(), render, audio, config: { voice: { voiceId: "narrator", backend: "chatterbox" } } });
+  const engine = createEngine({ projectsDir, stylesDir: join(root, "styles"), ai: aiBackend(), render, audio, config: { voice: { voiceId: "narrator", backend: "chatterbox" } } });
   const counts: Record<string, number> = {};
   engine.on("*", (event) => {
     counts[event.type] = (counts[event.type] ?? 0) + 1;
@@ -105,7 +105,7 @@ async function judge(a: string, b: string) {
   const criteria = ["character_appeal", "world", "cinematography", "storytelling", "tone_fit", "overall"] as const;
   const score = { type: "object", properties: Object.fromEntries(criteria.map((name) => [name, { type: "integer", minimum: 1, maximum: 10 }])), required: [...criteria] };
   const schema = { type: "object", properties: { video1: score, video2: score, better: { enum: ["video1", "video2"] }, why: { type: "string" } }, required: ["video1", "video2", "better", "why"] };
-  const ai = claudeCli();
+  const ai = aiBackend();
   // Both orders, so a preference for whichever comes first cancels out.
   const rounds: { order: string[]; scores: Record<string, Record<string, number>>; better: string; why: string }[] = [];
   for (const order of [[0, 1], [1, 0]] as const) {

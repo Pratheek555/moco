@@ -12,27 +12,28 @@ export function goldenScene(): SceneSpec {
 }
 
 // Seconds → whole frames. Shots are converted at their absolute times so frames add up exactly across shots.
-export function toFrame(seconds: number): number {
-  return Math.round(seconds * FPS);
+export function toFrame(seconds: number, fps = FPS): number {
+  return Math.round(seconds * fps);
 }
 
 export function shotBrief(shot: Shot, voiceover: VoiceoverTrack): SceneBrief {
-  const shotStartFrame = toFrame(shot.start);
-  const durationFrames = toFrame(shot.end) - shotStartFrame;
+  const frame = (seconds: number) => toFrame(seconds, voiceover.fps ?? FPS);
+  const shotStartFrame = frame(shot.start);
+  const durationFrames = frame(shot.end) - shotStartFrame;
   const words = voiceover.words
     .filter((word) => word.start >= shot.start && word.start < shot.end)
     .map((word) => ({
       text: word.text,
-      startFrame: toFrame(word.start) - shotStartFrame,
-      endFrame: Math.min(durationFrames, toFrame(word.end) - shotStartFrame),
+      startFrame: frame(word.start) - shotStartFrame,
+      endFrame: Math.min(durationFrames, frame(word.end) - shotStartFrame),
     }));
   return { shot, durationFrames, words };
 }
 
 // The part of the episode's viseme track inside one shot, in shot frames, starting with the shape already showing.
 export function shotVisemes(shot: Shot, voiceover: VoiceoverTrack): VisemeTrack {
-  const startFrame = toFrame(shot.start);
-  const endFrame = toFrame(shot.end);
+  const startFrame = toFrame(shot.start, voiceover.fps ?? FPS);
+  const endFrame = toFrame(shot.end, voiceover.fps ?? FPS);
   const showing = voiceover.visemes.filter((key) => key.frame <= startFrame).at(-1);
   const inside = voiceover.visemes.filter((key) => key.frame > startFrame && key.frame < endFrame);
   const keys = showing ? [showing, ...inside] : inside;
@@ -43,8 +44,9 @@ export function shotVisemes(shot: Shot, voiceover: VoiceoverTrack): VisemeTrack 
 // Undefined preserves the legacy behaviour for audio generated before speaker metadata existed.
 export function shotSpeech(shot: Shot, voiceover: VoiceoverTrack) {
   if (!voiceover.speakers) return undefined;
-  const start = toFrame(shot.start);
-  const duration = toFrame(shot.end) - start;
+  const frameAt = (seconds: number) => toFrame(seconds, voiceover.fps ?? FPS);
+  const start = frameAt(shot.start);
+  const duration = frameAt(shot.end) - start;
   return [...new Set(voiceover.speakers.map((span) => span.speaker))].map((speaker) => {
     const spans = voiceover.speakers!.filter((span) => span.speaker === speaker);
     const visemes: VisemeTrack = [];
@@ -53,7 +55,7 @@ export function shotSpeech(shot: Shot, voiceover: VoiceoverTrack) {
       const absolute = frame + start;
       while (index + 1 < voiceover.visemes.length && voiceover.visemes[index + 1]!.frame <= absolute) index++;
       const key = voiceover.visemes[index];
-      const active = spans.some((span) => absolute >= toFrame(span.start) && absolute < toFrame(span.end));
+      const active = spans.some((span) => absolute >= frameAt(span.start) && absolute < frameAt(span.end));
       const viseme = active && key && key.frame <= absolute ? key.viseme : "X";
       if (visemes.at(-1)?.viseme !== viseme) visemes.push({ frame, viseme });
     }

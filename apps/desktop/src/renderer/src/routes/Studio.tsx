@@ -74,6 +74,9 @@ export function Studio() {
     setTemplateId = useApp((s) => s.setComposerTemplate);
   const template = templates.find((t) => t.id === templateId);
   const [details, setDetails] = useState<TemplateInfo | null>(null);
+  const [productionMode, setProductionMode] = useState("standard");
+  const [artistShape, setArtistShape] = useState("landscape");
+  const [artistSeconds, setArtistSeconds] = useState("");
   const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
@@ -89,17 +92,22 @@ export function Studio() {
     ? "could not check voice models" : voiceLanguageProblem(code, settings.voice, voices, models);
   const selectedVoiceProblem = voiceProblem(language);
 
-  // Check Claude Code once, so a missing setup shows here instead of failing after "Create series".
+  // Check the selected AI once, so a missing setup shows here instead of failing after "Create series".
   useEffect(() => {
     if (!useApp.getState().ai) useApp.getState().checkAi().catch(() => {});
   }, []);
 
   const submit = async () => {
     if (!idea.trim() || starting) return;
+    if (productionMode === "artist" && artistSeconds.trim() && (!Number.isFinite(Number(artistSeconds)) || Number(artistSeconds) <= 0)) {
+      report("Enter a positive duration in seconds, or leave it blank to use your prompt."); return;
+    }
     if (selectedVoiceProblem) { report(`Narration unavailable: ${selectedVoiceProblem}. Check Voice & narration in Settings.`); return; }
     setStarting(true);
     try {
-      const id = await api.series.create({ idea: idea.trim(), episodes, language, ...(template && { template: template.id }) });
+      const id = await api.series.create({ idea: idea.trim(), episodes, language,
+        ...(productionMode === "artist" ? { production: { mode: "artist" as const, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 60 }, ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : template ? { template: template.id } : {}),
+      });
       setIdea("");
       setTemplateId(null);
       go({ name: "series", id });
@@ -180,7 +188,7 @@ export function Studio() {
           <InputGroup>
             <InputGroupTextarea
               id="idea"
-              maxLength={4000}
+              maxLength={32000}
               disabled={starting}
               placeholder="A lighthouse keeper and a sea serpent. A robot alone on Mars…"
               className="max-h-72 min-h-28 md:text-base"
@@ -257,6 +265,29 @@ export function Studio() {
               </InputGroupButton>
             </InputGroupAddon>
           </InputGroup>
+          <div className="flex flex-wrap items-center gap-2">
+            <Select value={productionMode} onValueChange={(value) => { setProductionMode(value); if (value === "artist") setTemplateId(null); }} disabled={starting}>
+              <SelectTrigger size="sm" aria-label="Visual approach"><SelectValue /></SelectTrigger>
+              <SelectContent>
+                <SelectItem value="standard">Existing styles and 3D</SelectItem>
+                <SelectItem value="artist">Custom illustration · experimental</SelectItem>
+              </SelectContent>
+            </Select>
+            {productionMode === "artist" && <>
+              <Select value={artistShape} onValueChange={setArtistShape} disabled={starting}>
+                <SelectTrigger size="sm" aria-label="Video shape"><SelectValue /></SelectTrigger>
+                <SelectContent><SelectItem value="landscape">Landscape · 1080p · 60 fps</SelectItem><SelectItem value="portrait">Portrait · 1080p · 60 fps</SelectItem></SelectContent>
+              </Select>
+              <Field className="w-56">
+                <FieldLabel htmlFor="artist-seconds">Length in seconds (optional)</FieldLabel>
+                <InputGroup>
+                  <InputGroupInput id="artist-seconds" type="number" step="any" value={artistSeconds} onChange={event => setArtistSeconds(event.target.value)} disabled={starting} placeholder="Use length from prompt" />
+                </InputGroup>
+                <FieldDescription>Leave blank to use your prompt. An entered length overrides the prompt.</FieldDescription>
+              </Field>
+              <p className="text-xs text-muted-foreground">Your selected AI creates artwork and movement from your brief, then checks rendered previews.</p>
+            </>}
+          </div>
           {template ? (
             <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2 pr-3">
               <TemplateCover template={template} className="h-12 w-16 shrink-0 overflow-hidden rounded-md border" />

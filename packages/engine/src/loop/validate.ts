@@ -31,6 +31,18 @@ export interface SceneRules {
 const SAFE_AREA = { minX: 0.08, maxX: 0.92, minY: 0.12, maxY: 0.88 };
 
 export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
+  if (spec.canvas) {
+    const issues = checkShotIdentity(spec, rules.brief);
+    const missing = rules.brief.shot.characters.filter((id) => !spec.canvas!.cast.includes(id));
+    if (missing.length) issues.push({ path: "canvas.cast", problem: `missing ${missing.join(", ")}`, fix: "Draw the required cast and declare their ids in canvas.cast." });
+    spec.canvas.cues.forEach((cue, index) => {
+      if (cue.atFrame >= spec.durationFrames) issues.push({ path: `canvas.cues[${index}].atFrame`, problem: "cue is outside the shot" });
+    });
+    if (spec.stage || spec.actors.length || spec.props.length || spec.captions.length || spec.camera.length || spec.fx.length || spec.atmosphere.length) {
+      issues.push({ path: "canvas", problem: "canvas owns the complete shot", fix: "Leave stage absent and actors, props, captions, camera, fx and atmosphere empty; draw all elements in canvas.source." });
+    }
+    return issues;
+  }
   return [
     ...checkShotIdentity(spec, rules.brief),
     ...(spec.stage ? [] : checkCastPresent(spec, rules.brief)), // a 3D stage shows its cast through the world
@@ -200,6 +212,7 @@ const NO_SIZE = "";
 
 // The move that runs longest ("static" when the camera never moves), and the shot size.
 export function shotLook(spec: SceneSpec): { cameraPreset: string; shotSize: string } {
+  if (spec.canvas) return { cameraPreset: NO_SIZE, shotSize: NO_SIZE }; // custom camera is judged visually
   if (spec.stage) return { cameraPreset: spec.stage.camera, shotSize: NO_SIZE };
   const moving = spec.camera.filter((move) => move.move !== "static" && move.move !== "shake");
   const longest = [...moving].sort((a, b) => b.endFrame - b.startFrame - (a.endFrame - a.startFrame))[0];

@@ -3,10 +3,14 @@
 // Calls run in an empty temp folder, with Claude's tools disabled and Codex restricted to read-only.
 // Images use Claude's prompt message or Codex's explicit image attachments.
 import { spawn } from "node:child_process";
-import { existsSync } from "node:fs";
 import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { delimiter, extname, join } from "node:path";
+import { extname, join } from "node:path";
+import { codexCommand } from "./codex-command.ts";
+export { createCodexAccountManager, type CodexAccountState } from "./codex-account.ts";
+import { fileURLToPath } from "node:url";
+import { startToolBridge, type ArtistTool } from "./tool-bridge.ts";
+export type { ArtistTool, ToolContent } from "./tool-bridge.ts";
 
 export interface AiRequest {
   system: string; // full system prompt (replaces the backend's default)
@@ -16,6 +20,7 @@ export interface AiRequest {
   model?: string;
   timeoutMs: number;
   signal?: AbortSignal;
+  artistTools?: ArtistTool[]; // explicit, bounded app tools; ordinary JSON calls retain tools off
 }
 
 export interface AiResult {
@@ -30,6 +35,7 @@ export interface AiResult {
 export interface AiBackend {
   id: string;
   seesImages?: boolean; // takes AiRequest.images; without it the engine never asks the AI to look at a render
+  supportsArtist?: boolean;
   available(): Promise<{ ok: boolean; reason?: string; authMethod?: string; version?: string }>;
   generate(req: AiRequest): Promise<AiResult>;
 }
@@ -45,8 +51,10 @@ export class BackendError extends AiError {}
 
 export type AiProvider = "claude-cli" | "codex-cli";
 
-export function aiBackend(provider: AiProvider = "claude-cli"): AiBackend {
-  return provider === "codex-cli" ? codexCli() : claudeCli();
+export function aiBackend(provider: AiProvider = "codex-cli"): AiBackend {
+  if (provider === "codex-cli") return codexCli();
+  if (provider === "claude-cli") return claudeCli();
+  throw new BackendError(`Unknown AI provider: ${provider}`);
 }
 
 // Codex's strict output schema cannot represent Moco's dynamic-key records.
@@ -59,6 +67,7 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
   return {
     id: "codex-cli",
     seesImages: true,
+    supportsArtist: true,
     async available() {
       const versionRun = await run(["--version"], "", 15_000).catch(() => undefined);
       const version = /(\d+\.\d+\.\d+)/.exec(versionRun?.stdout ?? "")?.[1];
@@ -71,6 +80,7 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
     },
     async generate(req) {
       const cwd = await mkdtemp(join(tmpdir(), "moco-codex-"));
+      const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
       try {
         const systemFile = join(cwd, "system.md");
         await writeFile(systemFile, req.system);
@@ -80,6 +90,16 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
           "-c", "features.shell_tool=false", "-c", "features.apply_patch_freeform=false",
           "-c", "features.view_image=false", "-c", "project_doc_max_bytes=0",
           "-c", 'web_search="disabled"'];
+        if (bridge) {
+          // Same application-owned MCP transport and tool contract as every artist backend.
+          const server = "mcp_servers.moco_artist";
+          args.push("-c", `${server}.command=${JSON.stringify(process.execPath)}`,
+            "-c", `${server}.args=${JSON.stringify([fileURLToPath(new URL("./mcp-bridge.mjs", import.meta.url))])}`,
+            "-c", `${server}.env={MOCO_ARTIST_URL=${JSON.stringify(bridge.url)},MOCO_ARTIST_TOKEN=${JSON.stringify(bridge.token)},ELECTRON_RUN_AS_NODE="1"}`,
+            "-c", `${server}.enabled_tools=${JSON.stringify(req.artistTools!.map(tool => tool.name))}`,
+            "-c", `${server}.required=true`, "-c", `${server}.tool_timeout_sec=180`,
+            "-c", `${server}.default_tools_approval_mode="approve"`);
+        }
         if (req.model) args.push("--model", req.model);
         for (const image of req.images ?? []) args.push("--image", image);
         args.push("--", "-");
@@ -108,24 +128,11 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
         }
         return { text, json, usage, backend: "codex-cli", model: req.model, sessionId };
       } finally {
+        await bridge?.close();
         await rm(cwd, { recursive: true, force: true });
       }
     },
   };
-}
-
-// npm installs a .cmd shim on Windows, which spawn cannot execute directly.
-// Launch its JS entry with Node rather than putting prompts through cmd.exe.
-function codexCommand(): { bin: string; args: string[] } {
-  if (process.platform === "win32") {
-    for (const directory of (process.env.PATH ?? "").split(delimiter).filter(Boolean)) {
-      const native = join(directory, "codex.exe");
-      if (existsSync(native)) return { bin: native, args: [] };
-      const entry = join(directory, "node_modules", "@openai", "codex", "bin", "codex.js");
-      if (existsSync(entry)) return { bin: "node", args: [entry] };
-    }
-  }
-  return { bin: "codex", args: [] };
 }
 
 // ---------- claude-cli ----------
@@ -153,6 +160,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
   return {
     id: "claude-cli",
     seesImages: true,
+    supportsArtist: true,
 
     async available() {
       // Flags like --safe-mode and --json-schema need a recent Claude Code (reference R2).
@@ -180,6 +188,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
     async generate(req) {
       // Each call gets its own empty folder, so no project hooks, settings or MCP config can load.
       const cwd = await mkdtemp(join(tmpdir(), "moco-ai-"));
+      const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
       try {
         const systemFile = join(cwd, "system.md");
         await writeFile(systemFile, req.system);
@@ -191,12 +200,22 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
           ...(images.length > 0 ? ["--input-format", "stream-json", "--output-format", "stream-json", "--verbose"] : ["--output-format", "json"]),
           "--system-prompt-file", systemFile,
           "--tools", "", // no built-in tools
-          "--disallowedTools", "mcp__*",
+          ...(bridge ? ["--allowedTools", "mcp__moco_artist__*"] : ["--disallowedTools", "mcp__*"]),
           "--strict-mcp-config", // with no --mcp-config: no MCP servers at all
-          "--safe-mode", // no CLAUDE.md, skills, plugins, hooks or memory; keeps login
+          // Safe mode suppresses explicitly configured MCP servers too. Artist calls instead load no settings,
+          // disable hooks/skills, keep built-ins off and allow only our strict application-owned MCP server.
+          ...(bridge ? ["--setting-sources", "", "--settings", '{"disableAllHooks":true}', "--disable-slash-commands"] : ["--safe-mode"]),
           "--no-session-persistence",
           "--permission-prompts", "none",
         ];
+        if (bridge) {
+          const configFile = join(cwd, "artist-mcp.json");
+          await writeFile(configFile, JSON.stringify({ mcpServers: { moco_artist: {
+            command: process.execPath, args: [fileURLToPath(new URL("./mcp-bridge.mjs", import.meta.url))],
+            env: { MOCO_ARTIST_URL: bridge.url, MOCO_ARTIST_TOKEN: bridge.token, ELECTRON_RUN_AS_NODE: "1" },
+          } } }), { mode: 0o600 });
+          args.push("--mcp-config", configFile);
+        }
         if (req.jsonSchema) args.push("--json-schema", JSON.stringify(req.jsonSchema));
         if (req.model) args.push("--model", req.model);
 
@@ -205,6 +224,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
         const run = await runProcess(bin, args, stdin, req.timeoutMs, req.signal, cwd);
         return parseClaudeResult(run, req);
       } finally {
+        await bridge?.close();
         await rm(cwd, { recursive: true, force: true });
       }
     },
@@ -234,6 +254,7 @@ interface ClaudeJson {
   session_id?: string;
   total_cost_usd?: number;
   usage?: { input_tokens?: number; output_tokens?: number; cache_creation_input_tokens?: number; cache_read_input_tokens?: number };
+  modelUsage?: Record<string, unknown>;
 }
 
 function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
@@ -264,7 +285,7 @@ function parseClaudeResult(run: ProcessResult, req: AiRequest): AiResult {
       costUsdEstimate: out.total_cost_usd,
     },
     backend: "claude-cli",
-    model: req.model,
+    model: req.model ?? Object.keys(out.modelUsage ?? {})[0],
     sessionId: out.session_id,
   };
 }
