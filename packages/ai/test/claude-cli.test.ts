@@ -36,16 +36,30 @@ async function fakeClaudeLines(events: object[]) {
 const request = { system: "sys", prompt: "hello", jsonSchema: { type: "object" }, timeoutMs: 10_000 };
 
 describe("claude-cli", () => {
+  it("uses streaming output for public activity without changing text-only stdin", async () => {
+    const { bin, readLog } = await fakeClaudeLines([
+      { type: "assistant", message: { content: [{ type: "thinking", thinking: "private" }, { type: "text", text: "I’m shaping the premise." }] } },
+      { type: "result", structured_output: { ok: true }, result: "" },
+    ]);
+    const updates: string[] = [];
+    const result = await claudeCli({ bin: process.execPath, binArgs: [bin] }).generate({ ...request, onActivity: (text) => updates.push(text) });
+    expect(result.json).toEqual({ ok: true });
+    expect(updates).toEqual(["I’m shaping the premise."]);
+    const log = await readLog();
+    expect(log.args[log.args.indexOf("--output-format") + 1]).toBe("stream-json");
+    expect(log.args).not.toContain("--input-format");
+    expect(log.stdin).toBe("hello");
+  });
   it("counts cached prompt tokens as input", async () => {
     const usage = { input_tokens: 10, cache_creation_input_tokens: 200, cache_read_input_tokens: 3000, output_tokens: 40 };
     const { bin } = await fakeClaude({ result: "", structured_output: {}, usage });
-    const result = await claudeCli({ bin }).generate(request);
+    const result = await claudeCli({ bin: process.execPath, binArgs: [bin] }).generate(request);
     expect(result.usage).toMatchObject({ inputTokens: 3210, outputTokens: 40 });
   });
 
   it("runs isolated with no tools and returns structured output", async () => {
     const { bin, readLog } = await fakeClaude({ result: "", structured_output: { ok: 1 }, session_id: "s", total_cost_usd: 0.01 });
-    const result = await claudeCli({ bin }).generate(request);
+    const result = await claudeCli({ bin: process.execPath, binArgs: [bin] }).generate(request);
     expect(result.json).toEqual({ ok: 1 });
     expect(result.usage?.costUsdEstimate).toBe(0.01);
 
@@ -63,7 +77,7 @@ describe("claude-cli", () => {
     const { bin, readLog } = await fakeClaudeLines(stream);
     const image = join(await mkdtemp(join(tmpdir(), "img-")), "tile.png");
     await writeFile(image, Buffer.from([0x89, 0x50, 0x4e, 0x47]));
-    const result = await claudeCli({ bin }).generate({ ...request, images: [image] });
+    const result = await claudeCli({ bin: process.execPath, binArgs: [bin] }).generate({ ...request, images: [image] });
     expect(result.json).toEqual({ seen: true });
 
     const { args, stdin } = await readLog();
@@ -77,21 +91,21 @@ describe("claude-cli", () => {
 
   it("reports a missing structured output as a refusal", async () => {
     const { bin } = await fakeClaude({ result: "I can't do that" });
-    const refusal = claudeCli({ bin }).generate(request);
+    const refusal = claudeCli({ bin: process.execPath, binArgs: [bin] }).generate(request);
     await expect(refusal).rejects.toBeInstanceOf(SchemaRefusal);
     await expect(refusal).rejects.toThrow("I can't do that");
   });
 
   it("checks the installed version and login", async () => {
     const current = await fakeClaude({});
-    expect(await claudeCli({ bin: current.bin }).available()).toMatchObject({ ok: true, version: "2.1.312", authMethod: "claude.ai" });
+    expect(await claudeCli({ bin: process.execPath, binArgs: [current.bin] }).available()).toMatchObject({ ok: true, version: "2.1.312", authMethod: "claude.ai" });
     const old = await fakeClaude({}, "2.0.9");
-    expect(await claudeCli({ bin: old.bin }).available()).toMatchObject({ ok: false, version: "2.0.9" });
+    expect(await claudeCli({ bin: process.execPath, binArgs: [old.bin] }).available()).toMatchObject({ ok: false, version: "2.0.9" });
     expect(compareVersions("2.1.40", "2.1.312")).toBe(-1);
   });
 
   it("recognises plan rate limits", async () => {
     const { bin } = await fakeClaude({ is_error: true, result: "Claude usage limit reached. Your limit will reset at 5pm." });
-    await expect(claudeCli({ bin }).generate(request)).rejects.toBeInstanceOf(RateLimitError);
+    await expect(claudeCli({ bin: process.execPath, binArgs: [bin] }).generate(request)).rejects.toBeInstanceOf(RateLimitError);
   });
 });

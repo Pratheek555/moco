@@ -3,6 +3,7 @@ import { appendFile, mkdir } from "node:fs/promises";
 import { join } from "node:path";
 
 export type EngineEventType =
+  | "ai.activity"
   | "stage.started"
   | "stage.awaiting_approval"
   | "stage.approved"

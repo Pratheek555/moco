@@ -5,23 +5,23 @@ import {
   CheckCheckIcon,
   CheckIcon,
   ChevronRightIcon,
-  CircleCheckIcon,
-  FolderOpenIcon,
   MessageSquareIcon,
-  PlayIcon,
   PlusIcon,
-  RotateCcwIcon,
-  SquareIcon,
   Trash2Icon,
-  LayoutTemplateIcon,
-  TriangleAlertIcon,
 } from "lucide-react";
-import type { CanonAddition, EpisodeScript, Playbook, SeriesBible, SeriesPlan, ShowBible } from "@moco/spec";
+import type {
+  CanonAddition,
+  EpisodeScript,
+  Playbook,
+  SeriesBible,
+  SeriesPlan,
+  ShowBible,
+} from "@moco/spec";
 import { api, type SeriesStatus } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
 import { report, stageLabel, useApp } from "@/lib/store.ts";
-import { EPISODE_COUNTS, humanize, languageName, pad2 } from "@/lib/format.ts";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { EPISODE_COUNTS, humanize, pad2 } from "@/lib/format.ts";
+
 import {
   AlertDialog,
   AlertDialogAction,
@@ -54,19 +54,23 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Empty, EmptyDescription, EmptyHeader, EmptyTitle } from "@/components/ui/empty";
+import {
+  Empty,
+  EmptyDescription,
+  EmptyHeader,
+  EmptyTitle,
+} from "@/components/ui/empty";
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import {
   Item,
   ItemActions,
   ItemContent,
   ItemDescription,
-  ItemFooter,
   ItemGroup,
   ItemMedia,
   ItemTitle,
 } from "@/components/ui/item";
-import { Progress } from "@/components/ui/progress";
+
 import {
   Select,
   SelectContent,
@@ -79,8 +83,12 @@ import { Separator } from "@/components/ui/separator";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
-import { CastArt, CastAvatar } from "../components/CastArt.tsx";
-import { Page, PageError, PageLoading } from "../components/Page.tsx";
+import { CastAvatar } from "../components/CastArt.tsx";
+import { PageError, PageLoading } from "../components/Page.tsx";
+import { SeriesDevelopment } from "../components/SeriesDevelopment.tsx";
+
+import { StudioProduction } from "../components/StudioProduction";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
 type Stage = SeriesStatus["stages"][number];
 
@@ -99,202 +107,109 @@ function reviewFile(key: string): string | undefined {
   return undefined;
 }
 
-const episodeOf = (key: string) => (key.includes("/") ? key.split("/")[0] : undefined);
+const episodeOf = (key: string) =>
+  key.includes("/") ? key.split("/")[0] : undefined;
 
 // A stage name mid-sentence: "the series plan", "Episode 1 script".
-const inSentence = (label: string) => (label.startsWith("Series") ? `the ${label.toLowerCase()}` : label);
-const capitalize = (text: string) => text.charAt(0).toUpperCase() + text.slice(1);
+const inSentence = (label: string) =>
+  label.startsWith("Series") ? `the ${label.toLowerCase()}` : label;
 
 export function SeriesPage({ id }: { id: string }) {
   const version = useApp((s) => s.version),
-    go = useApp((s) => s.go),
-    progress = useApp((s) => s.progress[id]);
-  const { data, error } = useAsync(
-    async () => {
-      const [status, plan, bible, show, playbook] = await Promise.all([
-        api.series.status(id),
-        api.series.artifact(id, PLAN),
-        api.series.artifact(id, BIBLE),
-        api.series.artifact(id, SHOW),
-        api.series.artifact(id, PLAYBOOK),
-      ]);
-      // Characters later episodes added to the canon, each with the episode it joined in.
-      const episodes = (plan?.data as SeriesPlan | undefined)?.episodes ?? [];
-      const additions = (await Promise.all(episodes.map((ep) => api.series.artifact(id, `artifacts/canon/${ep.id}.json`).catch(() => null))))
-        .flatMap((artifact) => (artifact ? [artifact.data as CanonAddition] : []));
-      return {
-        status,
-        plan: plan?.data as SeriesPlan | undefined,
-        bible: bible?.data as SeriesBible | undefined,
-        show: show?.data as ShowBible | undefined,
-        playbook: playbook?.data as Playbook | undefined,
-        additions,
-      };
-    },
-    [id, version],
-  );
-  const [stopping, setStopping] = useState(false);
+    go = useApp((s) => s.go);
+  const { data, error } = useAsync(async () => {
+    const [status, plan, bible, show, playbook] = await Promise.all([
+      api.series.status(id),
+      api.series.artifact(id, PLAN),
+      api.series.artifact(id, BIBLE),
+      api.series.artifact(id, SHOW),
+      api.series.artifact(id, PLAYBOOK),
+    ]);
+    // Characters later episodes added to the canon, each with the episode it joined in.
+    const episodes = (plan?.data as SeriesPlan | undefined)?.episodes ?? [];
+    const additions = (
+      await Promise.all(
+        episodes.map((ep) =>
+          api.series
+            .artifact(id, `artifacts/canon/${ep.id}.json`)
+            .catch(() => null),
+        ),
+      )
+    ).flatMap((artifact) => (artifact ? [artifact.data as CanonAddition] : []));
+    return {
+      status,
+      plan: plan?.data as SeriesPlan | undefined,
+      bible: bible?.data as SeriesBible | undefined,
+      show: show?.data as ShowBible | undefined,
+      playbook: playbook?.data as Playbook | undefined,
+      additions,
+    };
+  }, [id, version]);
   if (error)
     return (
       <PageError
         title="Couldn’t open this series"
         detail={error}
-        action={{ label: "Back to my series", run: () => go({ name: "library" }) }}
+        action={{
+          label: "Back to my series",
+          run: () => go({ name: "library" }),
+        }}
       />
     );
   if (!data) return <PageLoading label="Opening series…" />;
   const { status, plan, bible, show, playbook, additions } = data;
-  const joined = additions.flatMap((addition) => addition.world.cast.map((member) => ({ id: member.id, kitCharacterId: member.model, description: member.description, episodeId: addition.episodeId })));
-  const lessons = playbook?.lessons.filter((lesson) => lesson.status === "active") ?? [];
+  const joined = additions.flatMap((addition) =>
+    addition.world.cast.map((member) => ({
+      id: member.id,
+      kitCharacterId: member.model,
+      description: member.description,
+      episodeId: addition.episodeId,
+    })),
+  );
+  const lessons =
+    playbook?.lessons.filter((lesson) => lesson.status === "active") ?? [];
   const running = status.activeJob !== undefined;
   const stage = (key: string) => status.stages.find((s) => s.key === key);
-  const current = status.stages.find((s) => s.status === "running");
-  const failed = status.stages.find((s) => s.status === "failed");
-  // A job can fail before any stage starts (Claude Code logged out, too old, the app closed mid-run).
-  const lastJob = status.jobs.at(-1);
   const waiting =
     status.next.kind === "waiting" && status.next.status === "awaiting_approval"
       ? stage(status.next.key)
       : undefined;
-  const aiCalls = Object.values(status.usage.aiCalls).reduce((a, b) => a + b, 0);
-  const template = useApp.getState().templates.find((t) => t.id === status.series.template);
+  const aiCalls = Object.values(status.usage.aiCalls).reduce(
+    (a, b) => a + b,
+    0,
+  );
 
-  const run = (key?: string) => void api.stages.run(id, key).catch(report);
-  const stop = async () => {
-    setStopping(true);
-    try {
-      await api.stages.cancel(status.activeJob!.id);
-    } catch (e) {
-      report(e);
-    } finally {
-      setStopping(false);
-    }
-  };
+  // All gates share the same bounded studio layout, from the first brief to delivery.
+  if (stage("series_plan")?.status !== "approved" && !bible)
+    return <SeriesDevelopment status={status} plan={plan} />;
 
   return (
-    <Page>
-      <Card className="flex-row gap-0 overflow-hidden py-0">
-        <div className="flex min-w-0 flex-1 flex-col gap-5 p-6">
-          <div className="flex flex-wrap gap-2">
-            <Badge variant="secondary">{languageName(status.series.language)}</Badge>
-            <Badge variant="secondary">
-              {status.series.episodes} {status.series.episodes === 1 ? "episode" : "episodes"}
-            </Badge>
-            {template && (
-              <Badge variant="outline" asChild>
-                <button type="button" onClick={() => go({ name: "templates", id: template.id })}>
-                  <LayoutTemplateIcon />
-                  {template.name}
-                </button>
-              </Badge>
-            )}
-          </div>
-          <div className="flex flex-col gap-2">
-            <h1 className="text-3xl font-semibold tracking-tight text-balance">
-              {plan?.title ??
-                (running ? <span className="shimmer">Planning your series…</span> : "A new series")}
-            </h1>
-            <p className="max-w-2xl text-base text-pretty text-muted-foreground select-text">
-              {plan?.premise ?? status.series.idea}
-            </p>
-          </div>
-          <div className="mt-auto flex flex-wrap gap-2">
-            {!running && !failed && status.next.kind === "run" && (
-              <Button onClick={() => run()}>
-                <PlayIcon data-icon="inline-start" />
-                Continue: {stageLabel(status.next.key)}
-              </Button>
-            )}
-            <Button
-              variant="outline"
-              onClick={() =>
-                void api.app.openPath(`${useApp.getState().settings!.projectsDir}/${id}`).catch(report)
-              }
-            >
-              <FolderOpenIcon data-icon="inline-start" />
-              Open project folder
-            </Button>
-          </div>
-        </div>
-        <div className="cast-backdrop hidden w-72 shrink-0 items-end border-l lg:flex">
-          <CastArt characters={bible?.cast.map((c) => c.kitCharacterId)} className="h-56 w-full" />
-        </div>
-      </Card>
-
-      {running && (
-        <Item variant="outline" role="status">
-          <ItemMedia variant="icon">
-            <Spinner aria-hidden />
-          </ItemMedia>
-          <ItemContent>
-            <ItemTitle>
-              {current ? `Working on ${inSentence(stageLabel(current.key))}…` : "Starting…"}
-            </ItemTitle>
-            <ItemDescription>
-              You can leave this page. Moco keeps working and lets you know when a step is ready for
-              review.
-            </ItemDescription>
-          </ItemContent>
-          <ItemActions>
-            {progress !== undefined && (
-              <span className="text-sm text-muted-foreground tabular-nums">
-                {Math.round(progress * 100)}%
-              </span>
-            )}
-            <Button variant="outline" size="sm" disabled={stopping} onClick={() => void stop()}>
-              {stopping ? <Spinner data-icon="inline-start" aria-hidden /> : <SquareIcon data-icon="inline-start" />}
-              Stop
-            </Button>
-          </ItemActions>
-          {progress !== undefined && (
-            <ItemFooter>
-              <Progress value={progress * 100} aria-label="Render progress" className="h-1.5" />
-            </ItemFooter>
-          )}
-        </Item>
-      )}
-      {!running && failed && (
-        <Alert variant="destructive">
-          <TriangleAlertIcon />
-          <AlertTitle>{capitalize(stageLabel(failed.key))} failed</AlertTitle>
-          <AlertDescription>
-            <p className="select-text">{failed.error?.message ?? "Something went wrong."}</p>
-            <Button variant="secondary" size="sm" className="mt-1" onClick={() => run(failed.key)}>
-              <RotateCcwIcon data-icon="inline-start" />
-              Try again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      {!running && !failed && lastJob?.status === "failed" && (
-        <Alert variant="destructive">
-          <TriangleAlertIcon />
-          <AlertTitle>That didn’t work</AlertTitle>
-          <AlertDescription>
-            <p className="select-text">{lastJob.error?.message ?? "Something went wrong."}</p>
-            <Button variant="secondary" size="sm" className="mt-1" onClick={() => run()}>
-              <RotateCcwIcon data-icon="inline-start" />
-              Try again
-            </Button>
-          </AlertDescription>
-        </Alert>
-      )}
-      {!running && waiting && (
-        <Review key={waiting.key} seriesId={id} stage={waiting} plan={plan} bible={bible} show={show} />
-      )}
-      {status.next.kind === "finished" && (
-        <Alert>
-          <CircleCheckIcon />
-          <AlertTitle>Every episode is rendered</AlertTitle>
-          <AlertDescription>Open an episode to watch it, export it or get it ready for YouTube.</AlertDescription>
-        </Alert>
-      )}
-
-      <div className="grid grid-cols-[minmax(0,1fr)_16rem] gap-10 xl:grid-cols-[minmax(0,1fr)_18rem]">
+    <StudioProduction
+      status={status}
+      plan={plan}
+      review={(focus) =>
+        waiting ? (
+          <Review
+            key={waiting.key}
+            seriesId={id}
+            stage={waiting}
+            plan={plan}
+            bible={bible}
+            show={show}
+            onRequestChanges={focus}
+          />
+        ) : null
+      }
+    >
+      <div className="studio-board grid gap-8 lg:grid-cols-[minmax(0,1fr)_16rem]">
         <section className="flex flex-col gap-4">
           <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold tracking-tight">The episode board</h2>
-            <p className="text-sm text-muted-foreground">One story, one chapter at a time.</p>
+            <h2 className="text-lg font-semibold tracking-tight">
+              The episode board
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              One story, one chapter at a time.
+            </p>
           </div>
           {plan ? (
             <>
@@ -302,7 +217,15 @@ export function SeriesPage({ id }: { id: string }) {
                 {plan.episodes.map((ep, index) => (
                   <div role="listitem" key={ep.id}>
                     <Item asChild variant="outline">
-                      <button onClick={() => go({ name: "episode", seriesId: id, episodeId: ep.id })}>
+                      <button
+                        onClick={() =>
+                          go({
+                            name: "episode",
+                            seriesId: id,
+                            episodeId: ep.id,
+                          })
+                        }
+                      >
                         <ItemMedia className="w-7 text-base font-medium text-muted-foreground tabular-nums">
                           {pad2(index + 1)}
                         </ItemMedia>
@@ -319,9 +242,14 @@ export function SeriesPage({ id }: { id: string }) {
                   </div>
                 ))}
               </ItemGroup>
-              {stage("series_plan")?.status === "approved" && plan.episodes.length < MAX_EPISODES && (
-                <AddEpisodes seriesId={id} have={plan.episodes.length} running={running} />
-              )}
+              {stage("series_plan")?.status === "approved" &&
+                plan.episodes.length < MAX_EPISODES && (
+                  <AddEpisodes
+                    seriesId={id}
+                    have={plan.episodes.length}
+                    running={running}
+                  />
+                )}
             </>
           ) : running ? (
             <EpisodeSkeleton count={status.series.episodes} />
@@ -329,7 +257,9 @@ export function SeriesPage({ id }: { id: string }) {
             <Empty className="border">
               <EmptyHeader>
                 <EmptyTitle>No episodes yet</EmptyTitle>
-                <EmptyDescription>Episodes appear once the series plan is written.</EmptyDescription>
+                <EmptyDescription>
+                  Episodes appear once the series plan is written.
+                </EmptyDescription>
               </EmptyHeader>
             </Empty>
           )}
@@ -348,9 +278,16 @@ export function SeriesPage({ id }: { id: string }) {
                     <ItemContent>
                       <ItemTitle>
                         {humanize(c.id)}
-                        {"episodeId" in c && <Badge variant="outline">Joined in episode {Number(String(c.episodeId).slice(3))}</Badge>}
+                        {"episodeId" in c && (
+                          <Badge variant="outline">
+                            Joined in episode{" "}
+                            {Number(String(c.episodeId).slice(3))}
+                          </Badge>
+                        )}
                       </ItemTitle>
-                      <ItemDescription className="line-clamp-3">{c.description}</ItemDescription>
+                      <ItemDescription className="line-clamp-3">
+                        {c.description}
+                      </ItemDescription>
                     </ItemContent>
                   </Item>
                 ))}
@@ -358,21 +295,27 @@ export function SeriesPage({ id }: { id: string }) {
             ) : running ? (
               <CastSkeleton />
             ) : (
-              <p className="text-sm text-muted-foreground">The cast is chosen with the series bible.</p>
+              <p className="text-sm text-muted-foreground">
+                The cast is chosen with the series bible.
+              </p>
             )}
           </section>
           {lessons.length > 0 && (
             <>
               <Separator />
               <section className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold">What this series learned</h2>
+                <h2 className="text-sm font-semibold">
+                  What this series learned
+                </h2>
                 <ul className="flex flex-col gap-2.5 text-sm select-text">
                   {lessons.map((lesson) => (
                     <li key={lesson.id} className="flex flex-col gap-0.5">
                       <span className="text-pretty">{lesson.rule}</span>
                       <span className="text-xs text-muted-foreground">
-                        From episode {Number(lesson.since.slice(3))} · {lesson.source === "user" ? "your note" : "the critic"}
-                        {lesson.held + lesson.broken > 0 && ` · held ${lesson.held} of ${lesson.held + lesson.broken}`}
+                        From episode {Number(lesson.since.slice(3))} ·{" "}
+                        {lesson.source === "user" ? "your note" : "the critic"}
+                        {lesson.held + lesson.broken > 0 &&
+                          ` · held ${lesson.held} of ${lesson.held + lesson.broken}`}
                       </span>
                     </li>
                   ))}
@@ -384,12 +327,16 @@ export function SeriesPage({ id }: { id: string }) {
             <>
               <Separator />
               <section className="flex flex-col gap-3">
-                <h2 className="text-sm font-semibold">What the engine decided</h2>
+                <h2 className="text-sm font-semibold">
+                  What the engine decided
+                </h2>
                 <ul className="flex flex-col gap-2.5 text-sm select-text">
                   {status.decisions.slice(-6).map((d, i) => (
                     <li key={i} className="flex flex-col gap-0.5">
                       <span className="font-medium">{d.subject}</span>
-                      <span className="text-pretty text-muted-foreground">{d.detail}</span>
+                      <span className="text-pretty text-muted-foreground">
+                        {d.detail}
+                      </span>
                     </li>
                   ))}
                 </ul>
@@ -403,15 +350,27 @@ export function SeriesPage({ id }: { id: string }) {
                 {aiCalls} {aiCalls === 1 ? "AI call" : "AI calls"} so far
               </p>
             )}
-            <DeleteSeries seriesId={id} title={plan?.title ?? status.series.idea} running={running} />
+            <DeleteSeries
+              seriesId={id}
+              title={plan?.title ?? status.series.idea}
+              running={running}
+            />
           </section>
         </aside>
       </div>
-    </Page>
+    </StudioProduction>
   );
 }
 
-function DeleteSeries({ seriesId, title, running }: { seriesId: string; title: string; running: boolean }) {
+function DeleteSeries({
+  seriesId,
+  title,
+  running,
+}: {
+  seriesId: string;
+  title: string;
+  running: boolean;
+}) {
   const go = useApp((s) => s.go);
   const [open, setOpen] = useState(false),
     [deleting, setDeleting] = useState(false);
@@ -430,9 +389,17 @@ function DeleteSeries({ seriesId, title, running }: { seriesId: string; title: s
   };
   return (
     <>
-      <AlertDialog open={open} onOpenChange={(next) => !deleting && setOpen(next)}>
+      <AlertDialog
+        open={open}
+        onOpenChange={(next) => !deleting && setOpen(next)}
+      >
         <AlertDialogTrigger asChild>
-          <Button variant="ghost" size="sm" className="-ml-2.5" disabled={running}>
+          <Button
+            variant="ghost"
+            size="sm"
+            className="-ml-2.5"
+            disabled={running}
+          >
             <Trash2Icon data-icon="inline-start" />
             Delete series
           </Button>
@@ -441,12 +408,14 @@ function DeleteSeries({ seriesId, title, running }: { seriesId: string; title: s
           <AlertDialogHeader>
             <AlertDialogTitle>Delete this series?</AlertDialogTitle>
             <AlertDialogDescription>
-              This permanently removes “{title}”, with its episodes, audio and exported videos, from your
-              project folder. You can’t undo this.
+              This permanently removes “{title}”, with its episodes, audio and
+              exported videos, from your project folder. You can’t undo this.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel disabled={deleting}>Keep series</AlertDialogCancel>
+            <AlertDialogCancel disabled={deleting}>
+              Keep series
+            </AlertDialogCancel>
             <AlertDialogAction
               variant="destructive"
               disabled={deleting}
@@ -461,13 +430,25 @@ function DeleteSeries({ seriesId, title, running }: { seriesId: string; title: s
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
-      {running && <p className="text-xs text-muted-foreground">Stop the current work to delete this series.</p>}
+      {running && (
+        <p className="text-xs text-muted-foreground">
+          Stop the current work to delete this series.
+        </p>
+      )}
     </>
   );
 }
 
 // Plan the next episodes after the approved ones. The longer plan comes back for review like the first one.
-function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: number; running: boolean }) {
+function AddEpisodes({
+  seriesId,
+  have,
+  running,
+}: {
+  seriesId: string;
+  have: number;
+  running: boolean;
+}) {
   const counts = EPISODE_COUNTS.filter((n) => have + n <= MAX_EPISODES);
   const [open, setOpen] = useState(false),
     [count, setCount] = useState(counts.includes(5) ? 5 : counts.at(-1)!),
@@ -476,7 +457,10 @@ function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: numb
   const add = async () => {
     setAdding(true);
     try {
-      await api.series.extend(seriesId, { episodes: count, note: note.trim() || undefined });
+      await api.series.extend(seriesId, {
+        episodes: count,
+        note: note.trim() || undefined,
+      });
       setOpen(false);
       setNote("");
     } catch (e) {
@@ -497,13 +481,18 @@ function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: numb
         <DialogHeader>
           <DialogTitle>Add episodes</DialogTitle>
           <DialogDescription>
-            Moco plans the next episodes after episode {have}, carrying on from what the story has established.
-            The episodes you have stay as they are.
+            Moco plans the next episodes after episode {have}, carrying on from
+            what the story has established. The episodes you have stay as they
+            are.
           </DialogDescription>
         </DialogHeader>
         <Field>
           <FieldLabel htmlFor="add-count">How many</FieldLabel>
-          <Select value={String(count)} onValueChange={(v) => setCount(Number(v))} disabled={adding}>
+          <Select
+            value={String(count)}
+            onValueChange={(v) => setCount(Number(v))}
+            disabled={adding}
+          >
             <SelectTrigger id="add-count" className="w-full">
               <SelectValue />
             </SelectTrigger>
@@ -519,7 +508,9 @@ function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: numb
           </Select>
         </Field>
         <Field>
-          <FieldLabel htmlFor="add-note">Where should the story go? (optional)</FieldLabel>
+          <FieldLabel htmlFor="add-note">
+            Where should the story go? (optional)
+          </FieldLabel>
           <Textarea
             id="add-note"
             rows={3}
@@ -528,7 +519,9 @@ function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: numb
             value={note}
             onChange={(e) => setNote(e.target.value)}
           />
-          <FieldDescription>Leave it empty to continue the story in order.</FieldDescription>
+          <FieldDescription>
+            Leave it empty to continue the story in order.
+          </FieldDescription>
         </Field>
         <DialogFooter>
           <DialogClose asChild>
@@ -549,7 +542,11 @@ function AddEpisodes({ seriesId, have, running }: { seriesId: string; have: numb
 // Placeholder rows shaped like the episode board while the plan is written.
 function EpisodeSkeleton({ count }: { count: number }) {
   return (
-    <ItemGroup aria-busy="true" aria-label="Writing the series plan" className="gap-2">
+    <ItemGroup
+      aria-busy="true"
+      aria-label="Writing the series plan"
+      className="gap-2"
+    >
       {Array.from({ length: Math.min(Math.max(count, 1), 6) }, (_, i) => (
         <Item key={i} role="listitem" variant="outline">
           <ItemMedia className="w-7 text-base font-medium text-muted-foreground tabular-nums">
@@ -572,7 +569,11 @@ function EpisodeSkeleton({ count }: { count: number }) {
 // Placeholder cast rows while the series bible picks characters.
 function CastSkeleton() {
   return (
-    <div aria-busy="true" aria-label="Choosing the cast" className="flex flex-col gap-4">
+    <div
+      aria-busy="true"
+      aria-label="Choosing the cast"
+      className="flex flex-col gap-4"
+    >
       {[0, 1].map((i) => (
         <div key={i} className="flex items-center gap-3">
           <Skeleton className="size-10 rounded-full" />
@@ -587,7 +588,13 @@ function CastSkeleton() {
 }
 
 // Where an episode is, as one badge: what needs you stands out, what's done is quiet.
-function EpisodeState({ status, episodeId }: { status: SeriesStatus; episodeId: string }) {
+function EpisodeState({
+  status,
+  episodeId,
+}: {
+  status: SeriesStatus;
+  episodeId: string;
+}) {
   const stages = status.stages.filter((s) => episodeOf(s.key) === episodeId);
   const has = (test: (s: Stage) => boolean) => stages.some(test);
   if (has((s) => s.key.endsWith("/publish") && s.status === "done"))
@@ -611,56 +618,102 @@ function EpisodeState({ status, episodeId }: { status: SeriesStatus; episodeId: 
         Working
       </Badge>
     );
-  if (has((s) => s.status === "awaiting_approval")) return <Badge>Needs review</Badge>;
-  if (has((s) => s.status === "failed")) return <Badge variant="destructive">Needs attention</Badge>;
-  if (has((s) => s.status === "done")) return <Badge variant="secondary">In progress</Badge>;
+  if (has((s) => s.status === "awaiting_approval"))
+    return <Badge>Needs review</Badge>;
+  if (has((s) => s.status === "failed"))
+    return <Badge variant="destructive">Needs attention</Badge>;
+  if (has((s) => s.status === "done"))
+    return <Badge variant="secondary">In progress</Badge>;
   return <Badge variant="outline">Not started</Badge>;
 }
 
 // The show bible as the user approves it: what the show is, its look and rules, and who is in it.
 function ShowRules({ show }: { show: ShowBible }) {
+  const limitations =
+    show.requirements?.filter((r) => r.support !== "available") ?? [];
   return (
-    <div className="flex flex-col gap-4 select-text">
-      <div className="flex flex-col gap-1">
-        <p className="text-sm font-medium text-pretty">{show.logline}</p>
-        <p className="text-sm text-pretty text-muted-foreground">{show.tone}</p>
+    <div className="studio-bible select-text">
+      <div className="studio-logline">
+        <span className="development-phase">THE WORLD OF YOUR SERIES</span>
+        <h2>{show.logline}</h2>
+        <p>{show.tone}</p>
       </div>
-      <div className="flex flex-wrap items-center gap-2">
-        <span className="mr-1 text-sm font-medium">Palette</span>
-        {show.look.palette.map((colour) => (
-          <Badge key={colour.token} variant="outline" title={colour.use}>
-            <span className="size-3 rounded-full border" style={{ background: colour.hex }} />
-            {humanize(colour.token).toLowerCase()}
-          </Badge>
-        ))}
-      </div>
-      {show.requirements?.some(requirement => requirement.support !== "available") && <div className="rounded-md border p-3 text-sm"><p className="font-medium">Production limitations to review</p><ul className="mt-2 list-disc pl-4 text-muted-foreground">{show.requirements.filter(requirement => requirement.support !== "available").map(requirement => <li key={requirement.id}>{requirement.text} — {requirement.reason}</li>)}</ul></div>}
-      <div className="grid gap-4 sm:grid-cols-2">
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">Rules</span>
-          <ul className="list-disc pl-4 text-sm text-pretty text-muted-foreground">
-            {show.rules.map((rule) => <li key={rule}>{rule}</li>)}
-          </ul>
-        </div>
-        <div className="flex flex-col gap-1.5">
-          <span className="text-sm font-medium">What a great shot looks like</span>
-          <ul className="list-disc pl-4 text-sm text-pretty text-muted-foreground">
-            {show.rubric.map((check) => <li key={check}>{check}</li>)}
-          </ul>
-        </div>
-      </div>
-      <div className="flex flex-col gap-3">
-        <span className="text-sm font-medium">Cast sheets</span>
-        {show.cast.map((member) => (
-          <div key={member.id} className="flex flex-col gap-0.5 text-sm">
-            <span className="font-medium">
-              {member.name} <span className="font-normal text-muted-foreground">· {member.role}</span>
-            </span>
-            <span className="text-pretty text-muted-foreground">{member.appearance}</span>
-            <span className="text-pretty text-muted-foreground">Voice: {member.voice} · {member.voiceId ?? "Configured narrator"}</span>
+      <Tabs defaultValue="look">
+        <TabsList variant="line" className="flex-wrap h-auto">
+          <TabsTrigger value="look">Look & tone</TabsTrigger>
+          <TabsTrigger value="cast">Cast ({show.cast.length})</TabsTrigger>
+          <TabsTrigger value="rules">Story rules</TabsTrigger>
+          <TabsTrigger value="limits">
+            Production notes ({limitations.length})
+          </TabsTrigger>
+        </TabsList>
+        <TabsContent value="look">
+          <h3 className="studio-section-title">The color story</h3>
+          <div className="studio-palette">
+            {show.look.palette.map((c) => (
+              <div key={c.token}>
+                <span style={{ background: c.hex }} />
+                <strong>{humanize(c.token)}</strong>
+                <small>{c.hex}</small>
+                <p>{c.use}</p>
+              </div>
+            ))}
           </div>
-        ))}
-      </div>
+          <h3 className="studio-section-title">What a great shot looks like</h3>
+          <ol className="studio-rule-list">
+            {show.rubric.map((r, i) => (
+              <li key={r}>
+                <span>{pad2(i + 1)}</span>
+                <p>{r}</p>
+              </li>
+            ))}
+          </ol>
+        </TabsContent>
+        <TabsContent value="cast">
+          <div className="studio-cast-grid">
+            {show.cast.map((c) => (
+              <article key={c.id}>
+                <span className="development-phase">{c.role}</span>
+                <h3>{c.name}</h3>
+                <p>{c.appearance}</p>
+                <Separator />
+                <p>
+                  <strong>Voice</strong> / {c.voice}
+                </p>
+                <small>{c.voiceId ?? "Configured narrator"}</small>
+              </article>
+            ))}
+          </div>
+        </TabsContent>
+        <TabsContent value="rules">
+          <h3 className="studio-section-title">The rules of this world</h3>
+          <ol className="studio-rule-list">
+            {show.rules.map((r, i) => (
+              <li key={r}>
+                <span>{pad2(i + 1)}</span>
+                <p>{r}</p>
+              </li>
+            ))}
+          </ol>
+        </TabsContent>
+        <TabsContent value="limits">
+          <h3 className="studio-section-title">Before we produce</h3>
+          <p className="text-sm text-muted-foreground mb-5">
+            Review these adaptations before approving the series bible.
+          </p>
+          {limitations.length ? (
+            limitations.map((r) => (
+              <article className="studio-limitation" key={r.id}>
+                <Badge variant="outline">{humanize(r.support)}</Badge>
+                <h4>{r.text}</h4>
+                <p>{r.reason}</p>
+              </article>
+            ))
+          ) : (
+            <p>No production limitations were reported.</p>
+          )}
+        </TabsContent>
+      </Tabs>
     </div>
   );
 }
@@ -672,30 +725,36 @@ function Review({
   plan,
   bible,
   show,
+  onRequestChanges,
 }: {
   seriesId: string;
   stage: Stage;
   plan?: SeriesPlan;
   bible?: SeriesBible;
   show?: ShowBible;
+  onRequestChanges?: () => void;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null),
     [busy, setBusy] = useState<"approve" | "redo" | null>(null);
   const file = reviewFile(stage.key);
   const episodeId = episodeOf(stage.key);
-  const { data: script } = useAsync(
+  const { data: script, error: scriptError } = useAsync(
     async () =>
       file?.endsWith("script.json")
         ? ((await api.series.artifact(seriesId, file))?.data as EpisodeScript)
         : undefined,
     [seriesId, file, stage.artifactHash],
   );
-  const { data: media } = useAsync(
-    async () => (episodeId ? api.episode.media(seriesId, episodeId) : undefined),
+  const { data: media, error: mediaError } = useAsync(
+    async () =>
+      episodeId ? api.episode.media(seriesId, episodeId) : undefined,
     [seriesId, episodeId, stage.artifactHash],
   );
 
-  const act = async (kind: "approve" | "redo", work: () => Promise<unknown>) => {
+  const act = async (
+    kind: "approve" | "redo",
+    work: () => Promise<unknown>,
+  ) => {
     setBusy(kind);
     try {
       await work();
@@ -719,33 +778,65 @@ function Review({
     });
 
   const stills = Object.values(media?.stills ?? {}).flat();
+  const unavailable = stage.key.endsWith("/script")
+    ? !script
+    : stage.key.endsWith("/sample")
+      ? !stills.length
+      : stage.key.endsWith("/preview")
+        ? !media?.preview
+        : stage.key === "bible"
+          ? !show && !bible
+          : !plan;
+  const loadError = scriptError || mediaError;
   return (
-    <Card role="region" aria-labelledby="review-title" className="ring-4 ring-primary/10">
+    <Card
+      role="region"
+      aria-labelledby="review-title"
+      className="studio-review"
+    >
       <CardHeader>
-        <CardTitle id="review-title">Review {inSentence(stageLabel(stage.key))}</CardTitle>
+        <CardTitle id="review-title">
+          Review {inSentence(stageLabel(stage.key))}
+        </CardTitle>
         <CardDescription>
-          Approve to move on to the next step, or ask for changes and Moco redoes this one with your note.
+          Approve to move on to the next step, or ask for changes and Moco
+          redoes this one with your note.
         </CardDescription>
         <CardAction>
           <Badge>Waiting for you</Badge>
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        {loadError && (
+          <p role="alert" className="text-sm text-destructive">
+            Could not load this review: {loadError}
+          </p>
+        )}
+        {unavailable && !loadError && (
+          <p role="status" className="text-sm text-muted-foreground">
+            Waiting for the review artifact. Approval is available once it can
+            be displayed.
+          </p>
+        )}
         {stage.key === "series_plan" && plan && (
           <ol className="flex flex-col gap-3 select-text">
             {plan.episodes.map((ep, i) => (
               <li key={ep.id} className="flex gap-3 text-sm">
-                <span className="w-6 shrink-0 font-medium text-muted-foreground tabular-nums">{pad2(i + 1)}</span>
+                <span className="w-6 shrink-0 font-medium text-muted-foreground tabular-nums">
+                  {pad2(i + 1)}
+                </span>
                 <div className="flex flex-col gap-0.5">
                   <span className="font-medium">{ep.title}</span>
-                  <span className="text-pretty text-muted-foreground">{ep.synopsis}</span>
+                  <span className="text-pretty text-muted-foreground">
+                    {ep.synopsis}
+                  </span>
                 </div>
               </li>
             ))}
           </ol>
         )}
         {stage.key === "bible" && show && <ShowRules show={show} />}
-        {stage.key === "bible" && bible && (
+        {stage.key === "bible" && bible && !show && (
           <div className="flex flex-col gap-4">
             <ItemGroup className="gap-4">
               {bible.cast.map((c) => (
@@ -761,7 +852,9 @@ function Review({
                         {c.variant ? `, ${c.variant}` : ""}
                       </span>
                     </ItemTitle>
-                    <ItemDescription className="line-clamp-none select-text">{c.description}</ItemDescription>
+                    <ItemDescription className="line-clamp-none select-text">
+                      {c.description}
+                    </ItemDescription>
                   </ItemContent>
                 </Item>
               ))}
@@ -769,8 +862,12 @@ function Review({
             <div className="flex flex-wrap items-center gap-2">
               <span className="mr-1 text-sm font-medium">Look</span>
               <Badge variant="outline">{bible.style.mood}</Badge>
-              <Badge variant="outline">Grade: {humanize(bible.style.grade).toLowerCase()}</Badge>
-              <Badge variant="outline">Captions: {humanize(bible.style.captionStyle).toLowerCase()}</Badge>
+              <Badge variant="outline">
+                Grade: {humanize(bible.style.grade).toLowerCase()}
+              </Badge>
+              <Badge variant="outline">
+                Captions: {humanize(bible.style.captionStyle).toLowerCase()}
+              </Badge>
             </div>
           </div>
         )}
@@ -780,11 +877,27 @@ function Review({
               <li key={line.id} className="flex flex-col gap-0.5">
                 <span className="text-xs font-medium text-muted-foreground">
                   {humanize(line.beat)}
-                  {line.speaker !== "narrator" && ` · ${humanize(line.speaker)}`}
+                  {line.speaker !== "narrator" &&
+                    ` · ${humanize(line.speaker)}`}
                 </span>
-                <p className="text-sm leading-relaxed text-pretty">{line.text}</p>
-                  <span className="text-xs text-muted-foreground">{line.text.trim().split(/\s+/).length} words{script.shotPlan?.find(shot => shot.lineId === line.id) && ` · ~${script.shotPlan.find(shot => shot.lineId === line.id)!.seconds}s`}</span>
-                  {script.shotPlan?.filter(shot => shot.lineId === line.id).map(shot => <p key={shot.lineId} className="text-xs text-muted-foreground">{shot.picture}</p>)}
+                <p className="text-sm leading-relaxed text-pretty">
+                  {line.text}
+                </p>
+                <span className="text-xs text-muted-foreground">
+                  {line.text.trim().split(/\s+/).length} words
+                  {script.shotPlan?.find((shot) => shot.lineId === line.id) &&
+                    ` · ~${script.shotPlan.find((shot) => shot.lineId === line.id)!.seconds}s`}
+                </span>
+                {script.shotPlan
+                  ?.filter((shot) => shot.lineId === line.id)
+                  .map((shot) => (
+                    <p
+                      key={shot.lineId}
+                      className="text-xs text-muted-foreground"
+                    >
+                      {shot.picture}
+                    </p>
+                  ))}
               </li>
             ))}
           </ol>
@@ -800,12 +913,21 @@ function Review({
                     className="aspect-[9/16] h-72 shrink-0 rounded-lg border object-cover"
                   />
                 ))
-              : [0, 1, 2].map((i) => <Skeleton key={i} className="aspect-[9/16] h-72 shrink-0 rounded-lg" />)}
+              : [0, 1, 2].map((i) => (
+                  <Skeleton
+                    key={i}
+                    className="aspect-[9/16] h-72 shrink-0 rounded-lg"
+                  />
+                ))}
           </div>
         )}
         {stage.key.endsWith("/preview") &&
           (media?.preview ? (
-            <video src={media.preview} controls className="aspect-[9/16] h-[32rem] rounded-lg bg-black" />
+            <video
+              src={media.preview}
+              controls
+              className="aspect-[9/16] h-[32rem] rounded-lg bg-black"
+            />
           ) : (
             <Skeleton className="aspect-[9/16] h-[32rem] rounded-lg" />
           ))}
@@ -825,13 +947,23 @@ function Review({
       </CardContent>
       <CardFooter className="justify-end gap-2 border-t">
         {feedback === null ? (
-          <Button variant="outline" disabled={busy !== null} onClick={() => setFeedback("")}>
+          <Button
+            variant="outline"
+            disabled={busy !== null}
+            onClick={() =>
+              onRequestChanges ? onRequestChanges() : setFeedback("")
+            }
+          >
             <MessageSquareIcon data-icon="inline-start" />
             Ask for changes
           </Button>
         ) : (
           <>
-            <Button variant="ghost" disabled={busy !== null} onClick={() => setFeedback(null)}>
+            <Button
+              variant="ghost"
+              disabled={busy !== null}
+              onClick={() => setFeedback(null)}
+            >
               Cancel
             </Button>
             <Button
@@ -839,13 +971,22 @@ function Review({
               disabled={busy !== null || !feedback.trim()}
               onClick={() => void requestChanges()}
             >
-              {busy === "redo" && <Spinner data-icon="inline-start" aria-hidden />}
+              {busy === "redo" && (
+                <Spinner data-icon="inline-start" aria-hidden />
+              )}
               Redo with my note
             </Button>
           </>
         )}
-        <Button disabled={busy !== null} onClick={() => void approve()}>
-          {busy === "approve" ? <Spinner data-icon="inline-start" aria-hidden /> : <CheckIcon data-icon="inline-start" />}
+        <Button
+          disabled={busy !== null || unavailable || Boolean(loadError)}
+          onClick={() => void approve()}
+        >
+          {busy === "approve" ? (
+            <Spinner data-icon="inline-start" aria-hidden />
+          ) : (
+            <CheckIcon data-icon="inline-start" />
+          )}
           Approve
         </Button>
       </CardFooter>

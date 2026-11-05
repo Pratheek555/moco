@@ -18,23 +18,37 @@ export interface PlanCall<T> {
 }
 
 export async function planWithAi<T>(ctx: StageContext, call: PlanCall<T>): Promise<T> {
-  const result = await generateValidated({
-    ai: ctx.ai,
-    scope: call.scope,
-    schema: call.schema,
-    images: ctx.ai.seesImages ? templateImages(ctx.series.template) : undefined,
-    jsonSchema: toAiJsonSchema(call.schema),
-    system: `${loadPrompt(call.promptName, ctx.series.template)}\n\nExplicit production settings and the full creative brief override generic vertical/3D/preset advice. Artist mode builds custom 2D artwork and animation, with optional provided raster assets; it does not build a 3D world. Do not promise unavailable paid tools.${ctx.series.production ? " Duration is user-controlled: when production.targetSeconds is supplied, it is the user's explicit duration override and takes precedence over length references in the brief. Otherwise honor the brief's requested duration; if absent propose a suitable duration for user approval. Do not invent a 30-second default or treat a duration override/conflicting length reference as an unsupported artwork capability." : ""}`,
-    prompt: [jsonSection("Full original creative brief", ctx.series.idea), jsonSection("Production settings", ctx.series.production ?? { mode: "kit-or-world", format: { width: 1080, height: 1920, fps: 30 } }), ctx.series.production?.localOnly ? "USER-SELECTED LOCAL MODE: local voice, procedural canvas artwork and installed fonts. Generated raster art, remote image/voice services, stock soundtrack, external downloads and automatic publishing are explicitly excluded. Record these substitutions as partial requirements with reasons; do not retain the excluded services as unavailable mandatory requirements. Retain all achievable visual, pacing and story rules. Truly unsupported visual requirements remain unavailable; never claim equivalent output or paid capabilities." : "", call.prompt].join("\n\n"),
-    maxAttempts: ctx.config.limits.maxAttemptsPerPlanStage,
-    check: call.check,
-    signal: ctx.signal,
-    timeoutMs: call.timeoutMs,
-  });
-  if (!result.ok) {
-    throw new EngineError("validation_failed", `The AI couldn't produce a valid ${call.promptName} after ${result.attempts} attempts:\n${formatIssues(result.issues)}`);
+  const key = call.promptName === "series" || call.promptName === "series_extend" ? "series_plan" : call.promptName;
+  await ctx.bus.emit(ctx.seriesId, "ai.activity", { key, phase: "started", message: key === "series_plan" ? `Developing your premise and outlining ${ctx.series.episodes} ${ctx.series.episodes === 1 ? "episode" : "episodes"}.` : `Developing the ${key.replaceAll("_", " ")}.` });
+  let updates = Promise.resolve();
+  try {
+    const result = await generateValidated({
+      ai: ctx.ai,
+      scope: call.scope,
+      schema: call.schema,
+      images: ctx.ai.seesImages ? templateImages(ctx.series.template) : undefined,
+      jsonSchema: toAiJsonSchema(call.schema),
+      system: `${loadPrompt(call.promptName, ctx.series.template)}\n\nExplicit production settings and the full creative brief override generic vertical/3D/preset advice. Artist mode builds custom 2D artwork and animation, with optional provided raster assets; it does not build a 3D world. Do not promise unavailable paid tools.${ctx.series.production ? " Duration is user-controlled: when production.targetSeconds is supplied, it is the user's explicit duration override and takes precedence over length references in the brief. Otherwise honor the brief's requested duration; if absent propose a suitable duration for user approval. Do not invent a 30-second default or treat a duration override/conflicting length reference as an unsupported artwork capability." : ""}`,
+      prompt: [jsonSection("Full original creative brief", ctx.series.idea), jsonSection("Production settings", ctx.series.production ?? { mode: "kit-or-world", format: { width: 1080, height: 1920, fps: 30 } }), ctx.series.production?.localOnly ? "USER-SELECTED LOCAL MODE: local voice, procedural canvas artwork and installed fonts. Generated raster art, remote image/voice services, stock soundtrack, external downloads and automatic publishing are explicitly excluded. Record these substitutions as partial requirements with reasons; do not retain the excluded services as unavailable mandatory requirements. Retain all achievable visual, pacing and story rules. Truly unsupported visual requirements remain unavailable; never claim equivalent output or paid capabilities." : "", call.prompt].join("\n\n"),
+      maxAttempts: ctx.config.limits.maxAttemptsPerPlanStage,
+      check: call.check,
+      signal: ctx.signal,
+      timeoutMs: call.timeoutMs,
+      onActivity: (message) => {
+        updates = updates.then(() => ctx.bus.emit(ctx.seriesId, "ai.activity", { key, phase: "working", message })).catch(() => {});
+      },
+      onAttempt: async ({ attempt, issues }) => {
+        await updates;
+        await ctx.bus.emit(ctx.seriesId, "ai.activity", { key, phase: issues.length ? "retrying" : "checked", message: issues.length ? `Checking draft ${attempt}: ${issues.length} ${issues.length === 1 ? "detail needs" : "details need"} another pass.` : "The draft passed its story and format checks. Preparing it for your review." });
+      },
+    });
+    if (!result.ok) {
+      throw new EngineError("validation_failed", `The AI couldn't produce a valid ${call.promptName} after ${result.attempts} attempts:\n${formatIssues(result.issues)}`);
+    }
+    return result.data;
+  } finally {
+    await updates;
   }
-  return result.data;
 }
 
 // A redo changes the last version, so the AI has to see it: a note alone can't say "line 3" or "cut 6 words".

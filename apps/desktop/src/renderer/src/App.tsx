@@ -158,7 +158,7 @@ export function App() {
           setSidebarOpen(open);
           localStorage.setItem(SIDEBAR_KEY, open ? "expanded" : "collapsed");
         }}
-        className="h-svh overflow-hidden pt-9"
+        className={cn("h-svh overflow-hidden pt-9", (route.name === "series" || route.name === "episode") && "dark")}
         style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
       >
         {/* The window's title bar is hidden: this strip drags the window and holds the OS window buttons. */}
@@ -169,7 +169,7 @@ export function App() {
           <div
             className={cn(
               "min-h-0 flex-1",
-              route.name === "episode" ? "flex flex-col overflow-hidden" : "overflow-y-auto",
+              route.name === "episode" || route.name === "series" ? "flex flex-col overflow-hidden" : "overflow-y-auto",
             )}
           >
             {error ? (

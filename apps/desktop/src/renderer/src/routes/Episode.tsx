@@ -102,7 +102,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
   };
 
   return (
-    <div className="flex min-h-0 flex-1 flex-col animate-in fade-in-0 duration-200">
+    <div className="studio-episode dark flex min-h-0 flex-1 flex-col animate-in fade-in-0 duration-200">
       <header className="flex shrink-0 items-center justify-between gap-4 border-b px-6 py-4">
         <div className="flex min-w-0 flex-col gap-0.5">
           <span className="text-xs font-medium text-muted-foreground">Episode {number}</span>
@@ -134,7 +134,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
         </div>
       )}
 
-      <div className="grid min-h-0 flex-1 grid-cols-[15rem_minmax(0,1fr)_21rem] xl:grid-cols-[16rem_minmax(0,1fr)_24rem]">
+      <div className="studio-edit-layout grid min-h-0 flex-1 grid-cols-[11rem_minmax(0,1fr)_18rem] xl:grid-cols-[14rem_minmax(0,1fr)_22rem]">
         <aside className="flex min-h-0 flex-col border-r">
           <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-3">
             <h2 className="text-sm font-semibold">

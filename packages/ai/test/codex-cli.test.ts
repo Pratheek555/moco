@@ -28,6 +28,17 @@ const answer = (text = '{"ok":true}') => [
   { type: "turn.completed", usage: { input_tokens: 100, cached_input_tokens: 80, output_tokens: 10 } },
 ];
 describe("codex-cli", () => {
+  it("delivers public updates while keeping the final structured answer intact", async () => {
+    const updates: string[] = [];
+    const cli = await fake([
+      { type: "item.completed", item: { type: "reasoning", text: "private" } },
+      { type: "item.completed", item: { type: "agent_message", text: "I’m outlining the episodes." } },
+      ...answer(),
+    ]);
+    const result = await cli.ai.generate({ ...request, onActivity: (text) => updates.push(text) });
+    expect(updates).toEqual(["I’m outlining the episodes."]);
+    expect(result.json).toEqual({ ok: true });
+  });
   it("selects both providers and checks login without making a model request", async () => {
     expect(aiBackend().id).toBe("codex-cli");
     expect(aiBackend("claude-cli").id).toBe("claude-cli");

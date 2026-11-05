@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource-variable/inter";
+@import "./studio-development.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 

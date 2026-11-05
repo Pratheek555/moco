@@ -8,6 +8,7 @@
   "author": "Moco",
   "main": "out/main/index.js",
   "scripts": {
+    "test:studio-development": "node scripts/studio-development-test.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",
     "start": "electron-vite preview",
@@ -30,6 +31,7 @@
     "@moco/spec": "workspace:*",
     "@remotion/bundler": "4.0.539",
     "@remotion/renderer": "4.0.539",
+    "asciify-engine": "4.32.9",
     "class-variance-authority": "^0.7.1",
     "cmdk": "^1.1.1",
     "cn": "^0.5.1",

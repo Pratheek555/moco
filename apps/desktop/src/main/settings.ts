@@ -8,7 +8,7 @@ export function defaultSettings(): Settings {
   return {
     aiProvider: "codex-cli",
     onboarded: false,
-    theme: "system",
+    theme: "dark",
     projectsDir: path.join(app.getPath("documents"), "Moco"),
     voice: { voice: "", rate: 1, backend: "system", reference: "", expressiveness: 0.65 },
     defaults: { episodes: 1, language: "en" },

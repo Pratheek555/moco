@@ -10,6 +10,7 @@ import { codexCommand } from "./codex-command.ts";
 export { createCodexAccountManager, type CodexAccountState } from "./codex-account.ts";
 import { fileURLToPath } from "node:url";
 import { startToolBridge, type ArtistTool } from "./tool-bridge.ts";
+import { activityReader, ACTIVITY_GUIDANCE } from "./activity.ts";
 export type { ArtistTool, ToolContent } from "./tool-bridge.ts";
 
 export interface AiRequest {
@@ -21,6 +22,7 @@ export interface AiRequest {
   timeoutMs: number;
   signal?: AbortSignal;
   artistTools?: ArtistTool[]; // explicit, bounded app tools; ordinary JSON calls retain tools off
+  onActivity?: (message: string) => void; // public progress messages, never reasoning or JSON
 }
 
 export interface AiResult {
@@ -62,8 +64,8 @@ export function aiBackend(provider: AiProvider = "codex-cli"): AiBackend {
 export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): AiBackend {
   const command = options.bin ? { bin: options.bin, args: options.binArgs ?? [] } : codexCommand();
   const bin = command.bin;
-  const run = (args: string[], stdin: string, timeout: number, signal?: AbortSignal, cwd?: string) =>
-    runProcess(bin, [...command.args, ...args], stdin, timeout, signal, cwd);
+  const run = (args: string[], stdin: string, timeout: number, signal?: AbortSignal, cwd?: string, onActivity?: (message: string) => void) =>
+    runProcess(bin, [...command.args, ...args], stdin, timeout, signal, cwd, onActivity);
   return {
     id: "codex-cli",
     seesImages: true,
@@ -83,7 +85,7 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
       const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
       try {
         const systemFile = join(cwd, "system.md");
-        await writeFile(systemFile, req.system);
+        await writeFile(systemFile, req.system + (req.onActivity ? ACTIVITY_GUIDANCE : ""));
         const args = ["exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
           "--sandbox", "read-only", "-c", 'approval_policy="never"',
           "-c", `model_instructions_file=${JSON.stringify(systemFile)}`,
@@ -104,9 +106,9 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
         for (const image of req.images ?? []) args.push("--image", image);
         args.push("--", "-");
         const prompt = req.jsonSchema
-          ? `${req.prompt}\n\nReturn only a JSON value matching this JSON Schema, without Markdown fences:\n${JSON.stringify(req.jsonSchema)}`
+          ? `${req.prompt}\n\n${req.onActivity ? "Your final message must be" : "Return only"} a JSON value matching this JSON Schema, without Markdown fences:\n${JSON.stringify(req.jsonSchema)}`
           : req.prompt;
-        const result = await run(args, prompt, req.timeoutMs, req.signal, cwd);
+        const result = await run(args, prompt, req.timeoutMs, req.signal, cwd, req.onActivity);
         if (result.timedOut) throw new TimeoutError(`Codex did not finish within ${Math.round(req.timeoutMs / 60_000 * 10) / 10} minutes. This request was stopped. Try again to retry the unfinished stage.`);
         let text = "", sessionId: string | undefined, usage: AiResult["usage"], failure = "", completed = false;
         for (const line of result.stdout.split(/\r?\n/)) {
@@ -152,6 +154,7 @@ export function compareVersions(a: string, b: string): number {
 
 export interface ClaudeCliOptions {
   bin?: string; // path to the `claude` binary; tests pass a fake one
+  binArgs?: string[]; // a JS CLI entrypoint run with Node, also usable on Windows
 }
 
 export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
@@ -164,7 +167,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
 
     async available() {
       // Flags like --safe-mode and --json-schema need a recent Claude Code (reference R2).
-      const versionRun = await runProcess(bin, ["--version"], "", 15_000).catch(() => undefined);
+      const versionRun = await runProcess(bin, [...options.binArgs ?? [], "--version"], "", 15_000).catch(() => undefined);
       const version = /(\d+\.\d+\.\d+)/.exec(versionRun?.stdout ?? "")?.[1];
       if (!version) return { ok: false, reason: "Claude Code is not installed. Install it from claude.com/code." };
       if (compareVersions(version, MIN_CLAUDE_VERSION) < 0) {
@@ -172,7 +175,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
       }
 
       // `claude auth status` prints JSON and exits 0 when logged in.
-      const run = await runProcess(bin, ["auth", "status"], "", 15_000);
+      const run = await runProcess(bin, [...options.binArgs ?? [], "auth", "status"], "", 15_000);
       if (run.code !== 0) {
         return { ok: false, version, reason: "Claude Code is not logged in. Run `claude` once and sign in." };
       }
@@ -191,13 +194,14 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
       const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
       try {
         const systemFile = join(cwd, "system.md");
-        await writeFile(systemFile, req.system);
+        await writeFile(systemFile, req.system + (req.onActivity ? ACTIVITY_GUIDANCE : ""));
 
         const images = req.images ?? [];
         const args = [
           "-p",
           // With images the prompt goes in as one stream-json user message; the reply then streams too.
-          ...(images.length > 0 ? ["--input-format", "stream-json", "--output-format", "stream-json", "--verbose"] : ["--output-format", "json"]),
+          ...(images.length > 0 ? ["--input-format", "stream-json"] : []),
+          ...(images.length > 0 || req.onActivity ? ["--output-format", "stream-json", "--verbose"] : ["--output-format", "json"]),
           "--system-prompt-file", systemFile,
           "--tools", "", // no built-in tools
           ...(bridge ? ["--allowedTools", "mcp__moco_artist__*"] : ["--disallowedTools", "mcp__*"]),
@@ -221,7 +225,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
 
         // Prompt goes in via stdin, never through a shell string.
         const stdin = images.length > 0 ? await imageMessage(req.prompt, images) : req.prompt;
-        const run = await runProcess(bin, args, stdin, req.timeoutMs, req.signal, cwd);
+        const run = await runProcess(bin, [...options.binArgs ?? [], ...args], stdin, req.timeoutMs, req.signal, cwd, req.onActivity);
         return parseClaudeResult(run, req);
       } finally {
         await bridge?.close();
@@ -330,6 +334,7 @@ function runProcess(
   timeoutMs: number,
   signal?: AbortSignal,
   cwd?: string,
+  onActivity?: (message: string) => void,
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(new AiError("cancelled")); return; }
@@ -349,7 +354,9 @@ function runProcess(
     }, timeoutMs);
     signal?.addEventListener("abort", stop, { once: true });
 
-    child.stdout.on("data", (chunk) => (stdout += chunk));
+    const activity = onActivity ? activityReader(onActivity) : undefined;
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => { stdout += chunk; activity?.write(chunk); });
     child.stderr.on("data", (chunk) => (stderr += chunk));
     child.on("error", (err) => {
       clearTimeout(timer);
@@ -357,6 +364,7 @@ function runProcess(
       reject(new BackendError(`could not start ${bin}: ${err.message}`));
     });
     child.on("close", (code) => {
+      activity?.end();
       clearTimeout(timer);
       signal?.removeEventListener("abort", stop);
       if (signal?.aborted) reject(new AiError("cancelled"));

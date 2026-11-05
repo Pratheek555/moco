@@ -220,13 +220,15 @@ function retry(seriesId: string, key?: string) {
 
 /** Wire main-process events into the store. Call once. */
 export async function bootstrap() {
+  // Subscribe before loading settings/library: creation can start as soon as the
+  // studio mounts, while those first queries are still in flight.
+  api.on("engine", (payload) => onEngineEvent(payload as EngineEvent));
   const settings = await api.settings.get();
   applyTheme(settings);
   useApp.setState({ settings });
   const templates = await api.templates.list().catch(() => []);
   useApp.setState({ templates });
   await useApp.getState().refreshLibrary();
-  api.on("engine", (payload) => onEngineEvent(payload as EngineEvent));
   api.on(
     "library",
     () =>

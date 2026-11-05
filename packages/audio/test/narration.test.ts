@@ -3,10 +3,34 @@ import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
 import { Delivery, ScriptLine } from "@moco/spec";
-import { chatterboxAudio, performance } from "../src/chatterbox.ts";
+import { chatterboxAudio, performance, narrationFailure } from "../src/chatterbox.ts";
 import { joinLines } from "../src/system.ts";
 import { wavFrom } from "../src/system.ts";
 import type { Line } from "../src/index.ts";
+
+it("reports the actual memory failure ahead of dependency warnings", () => {
+  expect(narrationFailure(1, "UserWarning: pkg_resources deprecated\nTraceback (most recent call last):\nOSError: The paging file is too small (os error 1455)"))
+    .toMatch(/^Not enough memory/);
+  expect(narrationFailure(1, "UserWarning: unrelated\nTraceback (most recent call last):\n  worker.py\nValueError: Invalid audio"))
+    .toBe("Neural narration failed (1). ValueError: Invalid audio");
+});
+
+it("serializes model workers across backend instances and releases the queue after failure", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "moco-voice-queue-"));
+  const worker = join(dir, "worker.mjs");
+  const lock = join(dir, "model.lock");
+  await writeFile(worker, `import {openSync,closeSync,unlinkSync} from 'node:fs';
+    const lock = ${JSON.stringify(lock)};
+    const fd = openSync(lock, 'wx');
+    setTimeout(() => { closeSync(fd); unlinkSync(lock); console.error('Traceback (most recent call last):\\nValueError: expected test failure'); process.exit(1); }, 100);`);
+  const results = await Promise.allSettled([1, 2].map((id) =>
+    chatterboxAudio({ python: process.execPath, worker }).tts([{ id: 'a', text: 'Hello.' }],
+      { voiceId: 'default', backend: 'chatterbox' }, 'en', join(dir, String(id)))));
+  for (const result of results) {
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected') expect(result.reason.message).toContain('ValueError: expected test failure');
+  }
+});
 
 it("keeps old scripts valid and validates performance directions", () => {
   expect(ScriptLine.parse({ id: "l01", text: "Rise.", beat: "rise" }).delivery).toBeUndefined();

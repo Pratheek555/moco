@@ -101,7 +101,30 @@ export function chatterboxAudio(options: ChatterboxOptions = {}) {
   };
 }
 
-function runWorker(python: string, worker: string, input: string, signal?: AbortSignal): Promise<void> {
+let workerQueue: Promise<void> = Promise.resolve();
+
+async function runWorker(python: string, worker: string, input: string, signal?: AbortSignal): Promise<void> {
+  // All backend instances share the queue, including previews and episode jobs.
+  const previous = workerQueue;
+  let release!: () => void;
+  workerQueue = new Promise<void>((resolve) => { release = resolve; });
+  try {
+    await previous;
+    signal?.throwIfAborted();
+    await startWorker(python, worker, input, signal);
+  } finally { release(); }
+}
+
+export function narrationFailure(code: number | null, diagnostics: string): string {
+  if (/paging file is too small|os error 1455|out of memory|cannot allocate memory|DefaultCPUAllocator/i.test(diagnostics)) {
+    return "Not enough memory to load the narration model. Close memory-heavy apps or increase Windows virtual memory (paging file), then retry.";
+  }
+  const traceback = diagnostics.lastIndexOf("Traceback (most recent call last):");
+  const detail = traceback >= 0 ? diagnostics.slice(traceback).trim().split(/\r?\n/).at(-1) : diagnostics.trim();
+  return `Neural narration failed (${code}). ${detail}`;
+}
+
+function startWorker(python: string, worker: string, input: string, signal?: AbortSignal): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(python, [worker, input], {
       windowsHide: true, env: { ...process.env, PYTHONUTF8: "1", PYTHONUNBUFFERED: "1", HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1" }, stdio: ["ignore", "pipe", "pipe"],
@@ -145,7 +168,10 @@ function runWorker(python: string, worker: string, input: string, signal?: Abort
       signal?.removeEventListener("abort", abort);
       if (stopping) return;
       if (code === 0) resolve();
-      else reject(new Error(`Neural narration failed (${code}). ${diagnostics.trim()}`));
+      else {
+        console.error(`[narration] Worker failed (${code}): ${diagnostics.trim()}`);
+        reject(new Error(narrationFailure(code, diagnostics)));
+      }
     });
   });
 }
