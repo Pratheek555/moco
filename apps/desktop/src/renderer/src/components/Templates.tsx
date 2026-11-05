@@ -21,6 +21,18 @@ import {
 export function TemplateCover({ template, className }: { template: TemplateInfo; className?: string }) {
   const { sky, ground, accents } = template.palette;
   const id = `sky-${template.id}`;
+  if (template.production) return <svg viewBox="0 0 180 120" className={cn("block",className)} aria-hidden="true">
+    <rect width="180" height="120" fill={sky[0]} />
+    <rect x="12" y="18" width="96" height="62" rx="3" fill="#f3ecdf" />
+    <rect x="20" y="28" width="57" height="7" rx="2" fill={accents[0]} />
+    <circle cx="37" cy="56" r="12" fill={accents[1]} />
+    <path d="M58 66 L73 44 L96 66Z" fill={accents[0]} />
+    <rect y="95" width="180" height="25" fill={ground} />
+    <rect x="119" y="67" width="30" height="31" rx="7" fill={accents[1]} />
+    <rect x="114" y="30" width="40" height="38" rx="11" fill="#e8b2a4" />
+    <circle cx="126" cy="48" r="2" fill="#2b2d42" /><circle cx="142" cy="48" r="2" fill="#2b2d42" />
+    <path d="M121 96V113 M144 96V113 M120 73L99 61 M147 73L161 87" stroke={accents[1]} strokeWidth="8" strokeLinecap="round" />
+  </svg>;
   const houses = [
     { x: 6, w: 34, h: 46 },
     { x: 42, w: 28, h: 58 },
@@ -94,7 +106,7 @@ export function TemplateCard({
         {template.learned && (
           <Badge variant="secondary" className="absolute top-3 right-3">
             <SparklesIcon />
-            Learned
+            {template.creativePrompt ? "Prompt" : "Learned"}
           </Badge>
         )}
         {selected && (
@@ -157,7 +169,8 @@ export function TemplateSheet({ template, onOpenChange }: { template: TemplateIn
               <TemplateList title="The story" items={template.story} />
               <TemplateList title="The look" items={template.look} />
               {template.missing?.length ? <TemplateList title="Not available in Moco yet" items={template.missing} /> : null}
-              <div className="flex flex-col gap-2">
+              {template.creativePrompt && <details className="text-sm"><summary className="cursor-pointer font-medium">Creative instructions</summary><pre className="mt-2 max-h-72 overflow-auto whitespace-pre-wrap break-words text-xs text-muted-foreground">{template.creativePrompt}</pre></details>}
+              {template.ideas.length > 0 && <div className="flex flex-col gap-2">
                 <h3 className="text-sm font-medium">Try it with</h3>
                 <ul className="flex flex-col gap-1.5 text-sm text-muted-foreground">
                   {template.ideas.map((idea) => (
@@ -166,11 +179,11 @@ export function TemplateSheet({ template, onOpenChange }: { template: TemplateIn
                     </li>
                   ))}
                 </ul>
-              </div>
+              </div>}
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <Separator className="mb-2" />
                 <span>
-                  {template.world === "world"
+                  {template.production ? "Creates custom canvas illustrations and animation from your prompt, using local narration." : template.world === "world"
                     ? "Always builds the story its own 3D world: the AI designs the cast and places for each series."
                     : "Uses the creative kit when the story fits it, otherwise builds a 3D world for it."}
                 </span>
@@ -212,7 +225,7 @@ function LearnedFrom({ template, onRemoved }: { template: TemplateInfo; onRemove
   return (
     <div className="flex flex-col gap-1.5">
       <span>
-        Learned from {learned.sources.length} video{learned.sources.length === 1 ? "" : "s"}
+        {template.creativePrompt ? "Saved from your creative prompt" : `Learned from ${learned.sources.length} video${learned.sources.length === 1 ? "" : "s"}`}
         {learned.learnedAt ? ` on ${new Date(learned.learnedAt).toLocaleDateString()}` : ""}:
       </span>
       {learned.sources.map((source) => (

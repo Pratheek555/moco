@@ -308,6 +308,7 @@ export type ScriptLine = z.infer<typeof ScriptLine>;
 export const EpisodeScript = z.object({
   targetSeconds: z.number().positive(),
   lines: z.array(ScriptLine).min(1),
+  shotPlan: z.array(z.object({ lineId: z.string(), seconds: z.number().positive(), picture: z.string().min(1) })).optional(),
 });
 export type EpisodeScript = z.infer<typeof EpisodeScript>;
 
@@ -451,6 +452,7 @@ export type SceneStage = z.infer<typeof SceneStage>;
 // Embedded raster assets make the artifact self-contained and part of its content hash.
 export const CanvasScene = z.object({
   version: z.literal(1),
+  fonts: z.record(z.string(), z.string().max(3_000_000).regex(/^data:font\/ttf;base64,[A-Za-z0-9+/=]+$/)).optional(),
   source: z.string().min(1).max(100_000),
   cast: z.array(z.string()).max(20).default([]),
   assets: z.record(z.string(), z.string().max(8_000_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/)).default({}),
@@ -468,6 +470,7 @@ export const ArtistProduction = z.object({
   mode: z.literal("artist"),
   format: VideoFormat,
   targetSeconds: z.number().positive().optional(),
+  localOnly: z.boolean().optional(),
 });
 export type ArtistProduction = z.infer<typeof ArtistProduction>;
 

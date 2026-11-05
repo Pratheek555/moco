@@ -8,7 +8,7 @@ import type { Line } from "./index.ts";
 
 interface NarrationBackend {
   voices?(language: string): Promise<{ id: string; name: string }[]>;
-  tts(lines: Line[], voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal): Promise<{ file: string; durationSeconds: number; words?: TimedWord[] }>;
+  tts(lines: Line[], voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal): Promise<{ file: string; durationSeconds: number; words?: TimedWord[]; backend?: string }>;
   align(file: string, lines: Line[], language: string): Promise<TimedWord[]>;
   visemes(file: string, words: TimedWord[]): Promise<VisemeTrack>;
 }
@@ -31,6 +31,8 @@ export function alignedAudio(base: NarrationBackend, options: { python: string; 
       });
       const aligned = JSON.parse(await readFile(output, "utf8")) as { words: TimedWord[]; similarity: number };
       if (!aligned.words.length || aligned.similarity < 0.65) throw Error(`Narration transcription did not sufficiently match the script (${aligned.similarity}); inspect alignment.json`);
+      const missing=lines.filter(line=>!aligned.words.some(word=>word.lineId===line.id));
+      if(missing.length)throw Error(`Narration omitted script lines ${missing.map(line=>line.id).join(", ")}; inspect alignment.json and the generated take before cutting shots`);
       return { ...spoken, words: aligned.words };
     },
   };

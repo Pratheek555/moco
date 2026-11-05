@@ -92,6 +92,9 @@ House style ("Cartoon 3D story short"):
 - Every hold creeps: never let a shot sit still. Actors act on the punch words.
 - Captions: 1–3 words per chunk, emphasise the number or the absurd word in each line.
 
+# artist
+This legacy template uses the 3D world pipeline. Preserve its storybook palette and character continuity if authoring a supplementary canvas insert.
+
 # publish
 House style ("Cartoon 3D story short"): the title states the absurd fact as a question or a hook ("How 74 soldiers broke
 a bridge by walking"). The description gives the year, the place and the real source of the story in one line.

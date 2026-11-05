@@ -1,7 +1,9 @@
-import { systemAudio } from "@moco/audio";
+import { alignedAudio, systemAudio } from "@moco/audio";
 import { chatterboxAudio } from "@moco/audio/chatterbox";
 import type { Settings } from "../shared/api.ts";
 import { join } from "node:path";
+import { stat } from "node:fs/promises";
+import { fileURLToPath } from "node:url";
 import { modelForLanguage, modelReady, type VoiceRuntime } from "./voice-models.ts";
 import { voiceLanguageProblem } from "../shared/voice-availability.ts";
 
@@ -18,4 +20,17 @@ export function narrationAudio(voice: Settings["voice"], runtime: VoiceRuntime) 
       python: runtime.python, worker: join(runtime.workerDir, "narrate.py"), modelDir: join(runtime.modelsDir, modelId),
       expressiveness: voice.expressiveness ?? 0.65 }).tts(...args);
   } };
+}
+
+// Template canvas cuts need real word boundaries. Keep previews and existing
+// productions on their current route, and load local ASR only when requested.
+export function productionNarrationAudio(voice: Settings["voice"], runtime: VoiceRuntime) {
+  const base = narrationAudio(voice,runtime);
+  const python = process.env.MOCO_ALIGN_PYTHON ?? fileURLToPath(new URL(
+    process.platform === "win32" ? "../../../../.venv-learn/Scripts/python.exe" : "../../../../.venv-learn/bin/python",import.meta.url));
+  const measured = alignedAudio(base,{python,worker:join(runtime.workerDir,"align.py"),model:process.env.MOCO_ALIGN_MODEL ?? "small"});
+  return {...base,ttsMeasured:async (...args:Parameters<typeof measured.tts>)=>{
+    if(!await stat(python).then(info=>info.isFile(),()=>false)) throw Error("Canvas narration needs local word timing. Run pnpm learn:setup and cache the faster-whisper small model, or set MOCO_ALIGN_PYTHON to a Python runtime with faster-whisper and a cached model. No remote voice service is used.");
+    return measured.tts(...args);
+  }};
 }

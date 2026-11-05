@@ -18,6 +18,7 @@ export const ENGINE_METHODS = [
   "reject",
   "status",
   "regenerateShot",
+  "reviewEpisode",
   "renderPreview",
   "renderFinal",
   "cancel",

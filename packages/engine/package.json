@@ -10,7 +10,8 @@
     "./client": "./src/client.ts",
     "./templates": "./src/templates/index.ts",
     "./testing": "./src/testing/fakes.ts",
-    "./templates/registry": "./src/templates/registry.ts"
+    "./templates/registry": "./src/templates/registry.ts",
+    "./templates/import": "./src/templates/import.ts"
   },
   "dependencies": {
     "@moco/ai": "workspace:*",

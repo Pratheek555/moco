@@ -10,12 +10,21 @@ it("escapes HTML and rejects remote assets", () => {
   const config = CanvasScene.parse({version:1,source:'throw Error("</script><script>alert(1)</script>")'});
   expect(canvasDocument(config, 640, 360).match(/<script>/g)).toHaveLength(1);
   expect(CanvasScene.safeParse({...config, assets:{bad:"https://example.com/a.png"}}).success).toBe(false);
+  expect(CanvasScene.safeParse({...config, fonts:{bad:"https://example.com/font.ttf"}}).success).toBe(false);
 });
 
 describe.runIf(process.env.MOCO_RENDER_TESTS)("authored canvas renderer", () => {
-  const port = createRemotionRenderPort();
+  const port = createRemotionRenderPort({stillFrameBudget:6});
   afterAll(() => port.close());
   const scene = (source: string) => SceneSpec.parse({shotId:"canvas",durationFrames:60,format:{width:640,height:360,fps:60},background:{id:"custom"},actors:[],captions:[],canvas:{version:1,source}});
+  it("loads embedded fonts before accepting the first frame", async () => {
+    const bytes=await readFile(new URL("../../engine/assets/fonts/LilitaOne-Regular.ttf",import.meta.url));
+    const spec=scene("if(!document.fonts.check('48px \"Lilita One\"'))throw Error('font not ready');ctx.fillStyle='#e4d9c7';ctx.fillRect(0,0,640,360);ctx.fillStyle='#222';ctx.font='48px \"Lilita One\"';ctx.fillText('READY',30,100)");
+    spec.canvas!.fonts={"Lilita One":`data:font/ttf;base64,${bytes.toString("base64")}`};
+    const result=await port.check(spec,{frames:[0],outDir:await mkdtemp(join(tmpdir(),"moco-font-"))});
+    if(!result.ok)throw Error(JSON.stringify(result.errors));
+    expect(result.ok).toBe(true);
+  },240_000);
   it("renders the acting controls deterministically at gesture endpoints", async () => {
     const source=`ctx.fillStyle='#e4d9c7';ctx.fillRect(0,0,scene.width,scene.height);
       const p=helpers.acting.pose('question',scene.frame/59);

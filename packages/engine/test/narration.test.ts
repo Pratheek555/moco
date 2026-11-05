@@ -7,6 +7,8 @@ it("carries approved delivery directions all the way to the audio backend", asyn
     const script = scriptData();
     return { ...script, lines: script.lines.map((line) => ({ ...line, delivery })) };
   } });
+  const measured=vi.fn(async()=>{throw Error("Legacy productions must keep their existing narration route");});
+  Object.assign(audio,{ttsMeasured:measured});
   const tts = vi.spyOn(audio, "tts");
   const seriesId = await engine.createSeries({ idea: "A difficult choice", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate += 1) {
@@ -15,6 +17,7 @@ it("carries approved delivery directions all the way to the audio backend", asyn
   }
   await advance(engine, seriesId);
   expect(tts).toHaveBeenCalled();
+  expect(measured).not.toHaveBeenCalled();
   expect(tts.mock.calls[0]![0][0]).toMatchObject({ delivery });
 });
 

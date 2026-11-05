@@ -5,7 +5,7 @@ import { actingSource } from "./acting.ts";
 // CSP is defense in depth, not an OS sandbox. Renderer timeouts bound failed draws.
 export function canvasDocument(canvas: CanvasScene, width: number, height: number): string {
   const encoded = JSON.stringify({ ...canvas, width, height }).replace(/</g, "\\u003c");
-  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; img-src data:; style-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'"><style>html,body{margin:0;overflow:hidden}canvas{display:block}</style></head><body><canvas></canvas><script>
+  return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; img-src data:; font-src data:; style-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'"><style>html,body{margin:0;overflow:hidden}canvas{display:block}</style></head><body><canvas></canvas><script>
 "use strict";
 const config=${encoded};
 const canvas=document.querySelector('canvas');
@@ -36,6 +36,7 @@ addEventListener('message',event=>{
 });
 (async()=>{try{
   draw=new Function('ctx','scene','helpers','"use strict";\\n'+config.source);
+  await Promise.all(Object.entries(config.fonts||{}).map(async([family,url])=>{const face=new FontFace(family,'url('+url+')');await face.load();document.fonts.add(face)}));
   await Promise.all(Object.entries(config.assets).map(([id,url])=>new Promise((resolve,reject)=>{const image=new Image();image.onload=()=>{assets[id]=image;resolve()};image.onerror=()=>reject(Error('Asset failed: '+id));image.src=url})));
   ready=true;send({kind:'moco:ready'});
 }catch(error){send({kind:'moco:error',message:String(error.message||error)})}})();

@@ -301,6 +301,8 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                         {line.speaker !== "narrator" && ` · ${humanize(line.speaker)}`}
                       </span>
                       <p className="text-sm leading-relaxed text-pretty">{line.text}</p>
+                        <span className="text-xs text-muted-foreground">{line.text.trim().split(/\s+/).length} words{script.shotPlan?.find(shot => shot.lineId === line.id) && ` · ~${script.shotPlan.find(shot => shot.lineId === line.id)!.seconds}s`}</span>
+                        {script.shotPlan?.filter(shot => shot.lineId === line.id).map(shot => <p key={shot.lineId} className="text-xs text-muted-foreground">{shot.picture}</p>)}
                     </li>
                   ))}
                 </ol>

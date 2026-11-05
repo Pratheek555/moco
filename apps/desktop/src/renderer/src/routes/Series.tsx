@@ -634,6 +634,7 @@ function ShowRules({ show }: { show: ShowBible }) {
           </Badge>
         ))}
       </div>
+      {show.requirements?.some(requirement => requirement.support !== "available") && <div className="rounded-md border p-3 text-sm"><p className="font-medium">Production limitations to review</p><ul className="mt-2 list-disc pl-4 text-muted-foreground">{show.requirements.filter(requirement => requirement.support !== "available").map(requirement => <li key={requirement.id}>{requirement.text} — {requirement.reason}</li>)}</ul></div>}
       <div className="grid gap-4 sm:grid-cols-2">
         <div className="flex flex-col gap-1.5">
           <span className="text-sm font-medium">Rules</span>
@@ -782,6 +783,8 @@ function Review({
                   {line.speaker !== "narrator" && ` · ${humanize(line.speaker)}`}
                 </span>
                 <p className="text-sm leading-relaxed text-pretty">{line.text}</p>
+                  <span className="text-xs text-muted-foreground">{line.text.trim().split(/\s+/).length} words{script.shotPlan?.find(shot => shot.lineId === line.id) && ` · ~${script.shotPlan.find(shot => shot.lineId === line.id)!.seconds}s`}</span>
+                  {script.shotPlan?.filter(shot => shot.lineId === line.id).map(shot => <p key={shot.lineId} className="text-xs text-muted-foreground">{shot.picture}</p>)}
               </li>
             ))}
           </ol>

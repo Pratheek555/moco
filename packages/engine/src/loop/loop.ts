@@ -15,6 +15,7 @@ export interface LoopOptions<T> {
   schema: z.ZodType<T>; // full schema the engine validates against
   jsonSchema: object; // AI-facing JSON Schema for structured output
   system: string;
+  images?: string[];
   prompt: string; // the first prompt; retries append the previous attempt and its issues
   maxAttempts: number;
   check: (data: T) => Issue[] | Promise<Issue[]>; // L2 (+ L3)
@@ -52,7 +53,7 @@ async function runAttempt<T>(options: LoopOptions<T>, prompt: string): Promise<{
   let raw: unknown;
   try {
     const result = await options.ai.generate(
-      { system: options.system, prompt, jsonSchema: options.jsonSchema, signal: options.signal, timeoutMs: options.timeoutMs },
+      { system: options.system, prompt, images: options.images, jsonSchema: options.jsonSchema, signal: options.signal, timeoutMs: options.timeoutMs },
       options.scope,
     );
     raw = result.json ?? tryParseJson(result.text);

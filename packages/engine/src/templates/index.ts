@@ -3,7 +3,7 @@
 // This file is plain data so the desktop UI can list templates without loading the engine.
 
 // The planning stages a template can guide; each is a "# <stage>" section of the template's .md file.
-export const TEMPLATE_STAGES = ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "publish"] as const;
+export const TEMPLATE_STAGES = ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "artist", "publish"] as const;
 export type TemplateStage = (typeof TEMPLATE_STAGES)[number];
 
 export interface TemplateInfo {
@@ -25,6 +25,10 @@ export interface TemplateInfo {
   credit?: { label: string; url: string };
   // Set for styles learned from reference videos (templates/registry.ts): where they live and what they came from.
   learned?: { dir: string; sources: string[]; learnedAt?: string };
+  // Prompt templates select the canvas path; legacy templates retain kit/world behavior.
+  creativePrompt?: string;
+  referenceImages?: string[]; // relative, imported style frames; shown to image-capable backends
+  production?: { mode: "artist"; format: { width: number; height: number; fps: number }; targetSeconds?: number; localOnly?: boolean };
 }
 
 export const TEMPLATES: TemplateInfo[] = [
