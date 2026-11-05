@@ -7,7 +7,7 @@
 // shortcut: works in dev (`pnpm dev`); a packaged build needs the packages shipped outside app.asar/node_modules
 // (Node won't strip types there) and a prebuilt Remotion bundle passed as remotion.serveUrl.
 import { aiBackend } from "@moco/ai";
-import { narrationAudio } from "./narration.ts";
+import { productionNarrationAudio } from "./narration.ts";
 import type { VoiceRuntime } from "./voice-models.ts";
 import type { Settings } from "../shared/api.ts";
 import { createEngine } from "@moco/engine";
@@ -45,7 +45,7 @@ parentPort.on("message", ({ data, ports }) => {
     stylesDir: data.stylesDir,
     ai: aiBackend(data.aiProvider),
     render: createRemotionRenderPort({ ...data.remotion, concurrency: data.concurrency }),
-    audio: narrationAudio(data.voice, data.voiceRuntime),
+    audio: productionNarrationAudio(data.voice, data.voiceRuntime),
     config: { voice: { voiceId: data.voice.backend === "chatterbox" ? "narrator" : data.voice.voice || "default", backend: data.voice.backend ?? "system" } },
   });
   serveEngine(engine, port);

@@ -118,6 +118,7 @@ export interface MocoApi {
     preview(text: string): Promise<{ url?: string; error?: string }>;
   };
   templates: {
+    importPrompt(input: { name: string; prompt: string; production: ArtistProduction; referenceImages?: string[] }): Promise<TemplateInfo>;
     list(): Promise<TemplateInfo[]>; // built-in plus learned
     learn(input: { name: string; sources: string[] }): Promise<string>; // job id; progress arrives on "learn"
     jobs(): Promise<LearnJob[]>;

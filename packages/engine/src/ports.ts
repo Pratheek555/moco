@@ -33,12 +33,15 @@ export interface AudioPort {
   voices?(language: string): Promise<{ id: string; name: string }[]>;
   // Speak all lines into one file. `words` is filled when the TTS backend gives timings.
   tts(
-    lines: { id: string; text: string; delivery?: Delivery; voiceId?: string }[],
+    lines: { id: string; text: string; delivery?: Delivery; voiceId?: string; speaker?: string }[],
     voice: { voiceId: string; backend: string },
     language: string,
     outDir: string,
     signal?: AbortSignal,
-  ): Promise<{ file: string; durationSeconds: number; words?: TimedWord[] }>;
+  ): Promise<{ file: string; durationSeconds: number; words?: TimedWord[]; backend?: string }>;
+  // Optional local ASR route for authored canvas productions. Legacy narration
+  // keeps its existing backend; the desktop host supplies this measured route.
+  ttsMeasured?: AudioPort["tts"];
   // Word timings from audio (whisper). The audio package maps words back to line ids.
   align(file: string, lines: { id: string; text: string }[], language: string): Promise<TimedWord[]>;
   // Mouth shapes for lip sync, in whole-episode frames, from the audio and its word timings.

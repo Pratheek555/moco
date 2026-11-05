@@ -255,6 +255,17 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
           },
           "type": "object",
         },
+        "fonts": {
+          "additionalProperties": {
+            "maxLength": 3000000,
+            "pattern": "^data:font\\/ttf;base64,[A-Za-z0-9+/=]+$",
+            "type": "string",
+          },
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
         "source": {
           "maxLength": 100000,
           "minLength": 1,

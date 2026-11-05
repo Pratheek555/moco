@@ -15,6 +15,7 @@ export { alignedAudio } from "./aligned.ts";
 export interface Line {
   id: string;
   text: string;
+  speaker?: string;
   delivery?: Delivery;
   voiceId?: string;
 }

@@ -61,6 +61,7 @@ export function createEngineClient(port: ClientPort): EngineClient {
     reject: call("reject"),
     status: call("status"),
     regenerateShot: call("regenerateShot"),
+    reviewEpisode: call("reviewEpisode"),
     renderPreview: call("renderPreview"),
     renderFinal: call("renderFinal"),
     cancel: call("cancel"),

@@ -60,7 +60,12 @@ async function renderCached(ctx: RenderContext, episode: EpisodeSpec, out: strin
     lastPercent = percent;
     void ctx.bus.emit(ctx.seriesId, "render.progress", { episodeId: episode.episodeId, quality, progress: percent / 100 });
   };
-  const rendered = await ctx.renderSlots.run(() => ctx.render.renderEpisode(episode, out, quality, onProgress, ctx.signal));
+  const rendered = await ctx.renderSlots.run(async () => {
+    // Movie encoding launches its own Chromium. Release the still-check browser
+    // first so large canvas episodes do not keep two copies of the artwork alive.
+    await ctx.render.release?.();
+    return ctx.render.renderEpisode(episode, out, quality, onProgress, ctx.signal);
+  });
   await placeFile(rendered.path, cached);
   return rendered;
 }

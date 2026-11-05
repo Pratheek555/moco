@@ -326,7 +326,7 @@ async function episodeMedia(
 
 async function stillUrls(stillsDir: string): Promise<string[]> {
   if (!existsSync(stillsDir)) return [];
-  const names = (await readdir(stillsDir)).filter((name) => name.endsWith(".png")).sort();
+  const names = (await readdir(stillsDir)).filter((name) => name.endsWith(".png")).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
   return Promise.all(names.map((name) => versionedUrl(path.join(stillsDir, name))));
 }
 
@@ -452,6 +452,10 @@ app
 
     handle("kit.catalog", () => catalog);
     handle("templates.list", () => [...TEMPLATES, ...learnedTemplates(stylesDir())]);
+    handle("templates.importPrompt", async (input: import("@moco/engine/templates/import").PromptTemplateInput) => {
+      const { importPromptTemplate } = await import("@moco/engine/templates/import");
+      return importPromptTemplate(stylesDir(), input);
+    });
     handle("templates.learn", (input: { name: string; sources: string[] }) => startLearning(input));
     handle("templates.jobs", () => [...learnJobs.values()].map((job) => job.view));
     handle("templates.cancelLearn", (jobId: string) => {
@@ -466,6 +470,7 @@ app
       if (template?.learned) await shell.openPath(template.learned.dir);
     });
     handle("templates.remove", async (id: string) => {
+      if ((await engine().listSeries()).some(series => series.template === id)) throw new Error("This template is used by an existing series. Keep it so that series can continue generating.");
       const template = learnedTemplates(stylesDir()).find((candidate) => candidate.id === id);
       if (!template?.learned) throw new Error("Only learned templates can be removed");
       if (path.dirname(template.learned.dir) !== stylesDir()) throw new Error("That template is outside the styles folder");

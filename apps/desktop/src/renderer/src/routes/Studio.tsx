@@ -139,6 +139,7 @@ export function Studio() {
   // Picking a template sets its usual episode count; the user can still change it.
   const chooseTemplate = (next: TemplateInfo | undefined) => {
     setTemplateId(next?.id ?? null);
+    setProductionMode("standard");
     setEpisodes(next ? next.defaults.episodes : settings.defaults.episodes);
   };
 
@@ -266,13 +267,15 @@ export function Studio() {
             </InputGroupAddon>
           </InputGroup>
           <div className="flex flex-wrap items-center gap-2">
-            <Select value={productionMode} onValueChange={(value) => { setProductionMode(value); if (value === "artist") setTemplateId(null); }} disabled={starting}>
+            <Select value={template?.production ? "template" : productionMode} onValueChange={(value) => { if(value === "template") return; setProductionMode(value); if (template?.production || value === "artist") setTemplateId(null); }} disabled={starting}>
               <SelectTrigger size="sm" aria-label="Visual approach"><SelectValue /></SelectTrigger>
               <SelectContent>
+                {template?.production && <SelectItem value="template">Prompt template · 2D canvas</SelectItem>}
                 <SelectItem value="standard">Existing styles and 3D</SelectItem>
                 <SelectItem value="artist">Custom illustration · experimental</SelectItem>
               </SelectContent>
             </Select>
+            {template?.production && <p className="text-xs text-muted-foreground">{template.production.format.width} × {template.production.format.height} · {template.production.format.fps} fps · {template.production.targetSeconds ? `${template.production.targetSeconds}s` : "Length from your prompt"} · local narration</p>}
             {productionMode === "artist" && <>
               <Select value={artistShape} onValueChange={setArtistShape} disabled={starting}>
                 <SelectTrigger size="sm" aria-label="Video shape"><SelectValue /></SelectTrigger>

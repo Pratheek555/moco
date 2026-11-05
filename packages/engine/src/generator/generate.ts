@@ -1,5 +1,7 @@
 import { expandModel } from "@moco/kit";
 import { generateArtistScene } from "../artist/generate.ts";
+import { EngineError } from "../errors.ts";
+import { reviewArtistEpisode } from "../review/artist.ts";
 // Shot → SceneSpec via the AI, through the validate → render-check → fix loop.
 // After the attempt cap, a deterministic fallback shot is saved instead and flagged for the user.
 // Each spec records a "SceneInput" hash of everything it was generated from; if that hash is unchanged
@@ -220,6 +222,12 @@ export async function runSample(ctx: StageContext, episodeId: string, feedback?:
   const shotList = (await ctx.store.read(files.shotList(episodeId), "ShotList")).data;
   const shared = await sceneSharedInputs(ctx, episodeId);
   const outcome = await generateScene(ctx, { ...shared, shot: shotList.shots[0]!, feedback });
+  if(ctx.series.production && ctx.ai.seesImages) {
+    await reviewArtistEpisode(ctx,episodeId,[shotList.shots[0]!],shared);
+    const quality=(await ctx.store.read(files.critique(episodeId),"Critique")).data.quality;
+    if(quality?.status!=="passed")throw new EngineError("validation_failed",`Sample needs visual repair before batching: ${quality?.unresolved.join("; ")}`);
+    return ctx.store.hashOf(files.shotSpec(episodeId,shotList.shots[0]!.id))!;
+  }
   return outcome.contentHash;
 }
 

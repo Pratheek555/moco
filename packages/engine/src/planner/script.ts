@@ -31,6 +31,7 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
     schema: EpisodeScript,
     prompt: joinSections([
       jsonSection("Episode", { ...episode, language: plan.data.language, targetSeconds, wordBudget: budget }),
+      ctx.series.template && ctx.series.production ? "Include shotPlan: one entry per spoken line, {lineId,seconds,picture}. Seconds are estimates summing to targetSeconds, picture describes acting and setting. This plan and script are shown together BEFORE voice generation. Keep actual word-aligned cuts for the later shots stage." : "",
       jsonSection("Series", { title: plan.data.title, premise: plan.data.premise }),
       show ? jsonSection("Show bible — this series' tone, narration and rules", scriptPack(show)) : jsonSection("Cast", bible.data.cast),
       jsonSection("Story so far", memory?.storySoFar ?? "This is the first episode."),
@@ -38,12 +39,21 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
       await previousSection(ctx, files.script(episodeId), "EpisodeScript", feedback),
       feedbackSection(feedback),
     ]),
-    check: (data) => checkScript(data, ctx.config, budget, (show?.cast ?? bible.data.cast).map((member) => member.id)),
+    check: (data) => [...checkScript(data, ctx.config, budget, (show?.cast ?? bible.data.cast).map((member) => member.id)), ...(ctx.series.template && ctx.series.production ? checkShotPlan(data) : [])],
   });
 
   const inputs = [ctx.store.inputRef(files.seriesPlan), ctx.store.inputRef(files.bible), ...(show ? [ctx.store.inputRef(files.show)] : []), ...(grown ? [ctx.store.inputRef(files.canon(episodeId))] : []), promptRef("script", ctx.series.template)];
   const saved = await ctx.store.save(files.script(episodeId), "EpisodeScript", script, { producedBy: "ai", backend: ctx.ai.backendId, inputs });
   return saved.meta.contentHash;
+}
+
+export function checkShotPlan(script: EpisodeScript): Issue[] {
+  const plan = script.shotPlan ?? [];
+  const complete = plan.length === script.lines.length && script.lines.every(line => plan.filter(shot => shot.lineId === line.id).length === 1);
+  return [
+    ...(!complete ? [{ path: "shotPlan", problem: "Provide exactly one picture and estimated seconds for each script line" }] : []),
+    ...(Math.abs(plan.reduce((sum, shot) => sum + shot.seconds, 0) - script.targetSeconds) > 0.5 ? [{ path: "shotPlan", problem: "Estimated shot seconds must sum to targetSeconds (within 0.5 s)" }] : []),
+  ];
 }
 
 export function wordBudget(config: EngineConfig, language: string, seconds: number): number {

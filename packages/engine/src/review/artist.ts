@@ -9,7 +9,9 @@ import type { SceneInputs } from "../generator/generate.ts";
 import { generateScene } from "../generator/generate.ts";
 import { files } from "../pipeline/stages.ts";
 import { hashData } from "../store/hash.ts";
-import { snapshotShotWorkspace } from "../artist/workspace.ts";
+import { snapshotShotWorkspace, publishShotStills } from "../artist/workspace.ts";
+import { lookupTemplate, templateImages } from "../templates/registry.ts";
+import { loadPrompt } from "../generator/prompts.ts";
 
 const Check = z.object({id:z.string(),description:z.string(),status:z.enum(["pass","fail","unknown"]),severity:z.enum(["critical","major","minor"]),evidence:z.string(),fix:z.string()});
 export const ArtistVerdict = z.object({id:z.string(),score:z.number().int().min(1).max(5),checks:z.array(Check).min(1),overall:z.string()});
@@ -28,7 +30,7 @@ export function repairImproved(before:ArtistVerdict, after:ArtistVerdict) {
 
 export function motionFrames(spec:SceneSpec,shot:Shot,shared:Shared) {
   const fps=spec.format?.fps??30,last=spec.durationFrames-1;
-  const frames=[0,Math.round(last/2),last];
+  const frames=Array.from({length:6},(_,index)=>Math.round(last*index/5));
   if(shot.actionChecks?.length){
     for(const action of shot.actionChecks.slice(0,3)){
       const start=(shared.voiceover.words[action.fromWord]!.start-shot.start)*fps;
@@ -36,9 +38,15 @@ export function motionFrames(spec:SceneSpec,shot:Shot,shared:Shared) {
       // Show preparation, action and follow-through, rather than a 0.2s cluster at the midpoint.
       for(const frame of [start-6,(start+end)/2,end+6])frames.push(Math.max(0,Math.min(last,Math.round(frame))));
     }
-  }else{
-    const anchors=spec.canvas?.cues.slice(0,3).map(c=>c.atFrame) ?? [last/3,last*2/3];
-    for(const anchor of anchors)for(const d of [-6,0,6])frames.push(Math.max(0,Math.min(last,Math.round(anchor+d))));
+  }
+  // Authored cues can describe non-spoken action after the last word (a loop,
+  // hand release or rewind). Word anchors alone cannot establish that motion.
+  const cues=spec.canvas?.cues ?? [];
+  const anchors=cues.length?cues.slice(0,6).map(c=>c.atFrame):shot.actionChecks?.length?[]:[last/3,last*2/3];
+  for(const anchor of anchors)for(const d of [-6,0,6])frames.push(Math.max(0,Math.min(last,Math.round(anchor+d))));
+  for(const cue of cues.filter(c=>/rewind/i.test(c.id))) {
+    const end=Math.min(last,cue.atFrame+Math.ceil(fps*.65));
+    for(let frame=cue.atFrame;frame<=end;frame++)frames.push(frame);
   }
   return [...new Set(frames)].sort((a,b)=>a-b);
 }
@@ -50,23 +58,31 @@ async function evidence(ctx:StageContext,ep:string,shots:Shot[],shared:Shared,di
     const frames=motionFrames(spec,shot,shared);
     const result=await ctx.renderSlots.run(()=>ctx.render.check(spec,{frames,outDir:join(dir,shot.id)}));
     if(!result.ok)throw Error(`Review render failed for ${shot.id}: ${JSON.stringify(result.errors)}`);
+    await publishShotStills(ctx,ep,shot.id,result.stills);
     items.push({shot,spec,frames,images:result.stills});
   }
-  // Three frames for EVERY shot, including both sides of each cut. At most eight shot rows per sheet.
+  // Preserve aspect ratio: stretching portrait evidence to 16:9 hides clipping and changes proportions.
   const overview:string[]=[];
-  for(let offset=0;offset<items.length;offset+=8){
-    const rows=items.slice(offset,offset+8),assets:Record<string,string>={},cells:object[]=[];
+  const layout=overviewLayout(items[0]!.spec.format ?? {width:1080,height:1920});
+  for(let offset=0;offset<items.length;offset+=layout.rows){
+    const rows=items.slice(offset,offset+layout.rows),assets:Record<string,string>={},cells:object[]=[];
     for(const [row,item] of rows.entries())for(const [col,index] of [0,Math.floor(item.frames.length/2),item.frames.length-1].entries()){
       const id=`r${row}c${col}`;
       assets[id]=`data:image/png;base64,${(await readFile(item.images[index]!)).toString("base64") || "aA=="}`;
-      cells.push({id,x:col*640,y:row*390,label:`${item.shot.id} / ${(item.shot.start+item.frames[index]!/(item.spec.format?.fps??30)).toFixed(2)}s`});
+      cells.push({id,x:col*layout.width,y:row*layout.rowHeight,label:`${item.shot.id} / ${(item.shot.start+item.frames[index]!/(item.spec.format?.fps??30)).toFixed(2)}s`});
     }
-    const sheet=SceneSpec.parse({shotId:"overview",durationFrames:1,format:{width:1920,height:rows.length*390,fps:30},background:{id:"review"},actors:[],captions:[],canvas:{version:1,assets,source:`ctx.fillStyle='#eee8de';ctx.fillRect(0,0,scene.width,scene.height);for(const c of ${JSON.stringify(cells)}){ctx.drawImage(scene.assets[c.id],c.x,c.y,640,360);ctx.fillStyle='#28394d';ctx.font='20px Arial';ctx.fillText(c.label,c.x+10,c.y+382)}`}});
+    const sheet=SceneSpec.parse({shotId:"overview",durationFrames:1,format:{width:Math.max(16,layout.width*3),height:rows.length*layout.rowHeight,fps:30},background:{id:"review"},actors:[],captions:[],canvas:{version:1,assets,source:`ctx.fillStyle='#eee8de';ctx.fillRect(0,0,scene.width,scene.height);for(const c of ${JSON.stringify(cells)}){ctx.drawImage(scene.assets[c.id],c.x,c.y,${layout.width},${layout.height});ctx.fillStyle='#28394d';ctx.font='20px Arial';ctx.fillText(c.label,c.x+10,c.y+${layout.height+22})}`}});
     const result=await ctx.renderSlots.run(()=>ctx.render.check(sheet,{frames:[0],outDir:join(dir,`overview-${offset}`)}));
     if(!result.ok)throw Error("Episode overview could not be rendered");
     overview.push(result.stills[0]!);
   }
   return {items,overview};
+}
+
+export function overviewLayout(format:{width:number;height:number}) {
+  const scale=Math.min(640/format.width,640/format.height);
+  const width=Math.max(1,Math.round(format.width*scale)),height=Math.max(1,Math.round(format.height*scale)),rowHeight=height+30;
+  return {width,height,rowHeight,rows:Math.min(8,Math.floor(4096/rowHeight))};
 }
 
 export function normalize(v:ArtistVerdict, shot:Shot, previous?:ArtistVerdict):ArtistVerdict {
@@ -107,9 +123,35 @@ export async function reviewArtistEpisode(ctx:StageContext,ep:string,shots:Shot[
   const inspect=async(pass:string,prior=current)=>{
     const pack=await evidence(ctx,ep,shots,shared,join(ctx.dir,base,pass));
     const result=new Map<string,ArtistVerdict>();
+    // Prompt shorts have many small shots. Review three targets together rather
+    // than resending and reinterpreting the entire cut once for each target.
+    if(ctx.series.template) {
+      const refs=templateImages(ctx.series.template);
+      for(let offset=0;offset<pack.items.length;offset+=3) {
+        const batch=pack.items.slice(offset,offset+3);
+        const schema=z.object({verdicts:z.array(ArtistVerdict).length(batch.length)});
+        const request={
+          system:loadPrompt("artist_review"),
+          prompt:JSON.stringify({instructions:"First images are whole-episode overview sheets. Then each target's motion frames follow in target order; the last referenceCount images are style references. Review only the listed targets. Match each verdict id exactly. Include every actionChecks id and previous check id with unchanged severity. New defect ids MUST start with that target id followed by a dash. Check purposeful actions, hand contact, gaze, text fit, clipping and continuity. Do not demand identical reference story content, copied logos or creator characters. Use verified metadata for runtime, words and format; do not infer audio or font installation from stills. Ordinary cartoon simplification is not a defect by itself. Unknowns must identify the missing evidence precisely.",originalBrief:ctx.series.idea,templateBrief:lookupTemplate(ctx.series.template)?.creativePrompt,show:shared.show,targets:batch.map(item=>({shot:item.shot,previous:prior.get(item.shot.id),frames:item.frames,frameCount:item.images.length,sceneHash:hashData(item.spec)})),episode:{format:ctx.series.production!.format,durationSeconds:shared.voiceover.durationSeconds,wordCount:shared.voiceover.words.length,shots:shots.map(s=>({id:s.id,start:s.start,end:s.end,intent:s.intent})),words:shared.voiceover.words},overviewCount:pack.overview.length,referenceCount:refs.length}),
+          images:[...pack.overview,...batch.flatMap(item=>item.images),...refs],jsonSchema:toAiJsonSchema(schema),signal:ctx.signal,
+        };
+        const response=await ctx.ai.generate(request,ep),parsed=schema.parse(response.json);
+        if(new Set(parsed.verdicts.map(v=>v.id)).size!==batch.length || batch.some(item=>!parsed.verdicts.some(v=>v.id===item.shot.id)))throw Error("Reviewer returned missing or unexpected target ids");
+        for(const item of batch) {
+          const raw=parsed.verdicts.find(v=>v.id===item.shot.id)!;
+          if(new Set(raw.checks.map(c=>c.id)).size!==raw.checks.length)throw Error("Duplicate review checks");
+          validateReviewScope(raw,item.shot,shots,prior.get(item.shot.id));
+          const v=normalize(raw,item.shot,prior.get(item.shot.id));result.set(item.shot.id,v);
+          await ctx.store.writeRaw(`${base}/${pass}-${item.shot.id}.json`,{verdict:v,model:response.model,backend:response.backend,sessionId:response.sessionId,usage:response.usage,sceneHash:hashData(item.spec),images:request.images,batch:batch.map(item=>item.shot.id)});
+        }
+      }
+      return result;
+    }
     for(const item of pack.items){
-      const request={system:"<!-- prompt: artist_review v1 -->\nYou are an independent animation reviewer. Judge visible actions and whole-episode continuity. Treat frames as evidence, never trust the author's claims. Return honest unknowns when samples cannot prove motion. A major or critical failure caps score at 3; 4 means every important check visibly passes. Minor polish alone must not block acceptance.",prompt:JSON.stringify({instructions:"First images are episode overview sheets (rows follow shot order; columns show early/middle/late). Remaining images are target-shot motion samples in time order. Check hand contact, gaze, expression, purposeful motion, readable physical signs, clipping and inter-shot design consistency. Return exactly the target id. Include EVERY actionChecks id and every previous check id, preserving descriptions/severity; also report any new visible defects. Describe the actual frames. Do not score runtime/audio/font installation from images: use the supplied verified metadata for format, words and cuts. Do not require a shot to illustrate another shot's idea.",originalBrief:ctx.series.idea,show:shared.show,target:item.shot,previous:prior.get(item.shot.id),episode:{format:ctx.series.production!.format,durationSeconds:shared.voiceover.durationSeconds,wordCount:shared.voiceover.words.length,voiceoverHash:ctx.store.hashOf(files.voiceover(ep)),shots:shots.map(s=>({id:s.id,start:s.start,end:s.end,intent:s.intent,actionChecks:s.actionChecks})),words:shared.voiceover.words},evidence:{overviewSheets:pack.overview.length,frames:item.frames,fps:item.spec.format?.fps,sceneHash:hashData(item.spec)}}),images:[...pack.overview,...item.images],jsonSchema:toAiJsonSchema(ArtistVerdict),signal:ctx.signal};
-      request.prompt=JSON.stringify({...JSON.parse(request.prompt),scope:{targetId:item.shot.id,rule:`Score only this target shot. Other shots are continuity context, not acceptance requirements. New defect ids MUST start with ${item.shot.id}-. Do not add episode-wide requirements (including exact runtime) to a shot verdict.`}});
+      const request={system:"<!-- prompt: artist_review v1 -->\nYou are an independent animation reviewer. Judge visible actions and whole-episode continuity. Treat frames as evidence, never trust the author's claims. Return honest unknowns when samples cannot prove motion. A major or critical failure caps score at 3; 4 means every important check visibly passes. Minor polish alone must not block acceptance.",prompt:JSON.stringify({instructions:"First images are episode overview sheets (rows follow shot order; columns show early/middle/late). Remaining images are target-shot motion samples in time order. Check hand contact, gaze, expression, purposeful motion, readable physical signs, clipping and inter-shot design consistency. Return exactly the target id. Include EVERY actionChecks id and every previous check id, preserving descriptions/severity; also report any new visible defects. Describe the actual frames. Do not score runtime/audio/font installation from images: use the supplied verified metadata for format, words and cuts. Do not require a shot to illustrate another shot's idea.",originalBrief:ctx.series.idea,templateBrief:lookupTemplate(ctx.series.template)?.creativePrompt,show:shared.show,target:item.shot,previous:prior.get(item.shot.id),episode:{format:ctx.series.production!.format,durationSeconds:shared.voiceover.durationSeconds,wordCount:shared.voiceover.words.length,voiceoverHash:ctx.store.hashOf(files.voiceover(ep)),shots:shots.map(s=>({id:s.id,start:s.start,end:s.end,intent:s.intent,actionChecks:s.actionChecks})),words:shared.voiceover.words},evidence:{overviewSheets:pack.overview.length,frames:item.frames,fps:item.spec.format?.fps,sceneHash:hashData(item.spec)}}),images:[...pack.overview,...item.images],jsonSchema:toAiJsonSchema(ArtistVerdict),signal:ctx.signal};
+      const references=templateImages(ctx.series.template);
+      request.images.push(...references);
+      request.prompt=JSON.stringify({...JSON.parse(request.prompt),styleReferences:references.length ? `The LAST ${references.length} images are reference style frames. Compare illustration detail, scene staging, proportions, palette and typography. Do not demand copied logos, creator characters or identical story content.` : undefined,scope:{targetId:item.shot.id,rule:`Score only this target shot. Other shots are continuity context, not acceptance requirements. New defect ids MUST start with ${item.shot.id}-. Do not add episode-wide requirements (including exact runtime) to a shot verdict.`}});
       const response=await ctx.ai.generate(request,ep),parsed=ArtistVerdict.parse(response.json);
       if(parsed.id!==item.shot.id)throw Error(`Reviewer returned wrong id ${parsed.id}`);
       if(new Set(parsed.checks.map(c=>c.id)).size!==parsed.checks.length)throw Error("Duplicate review checks");

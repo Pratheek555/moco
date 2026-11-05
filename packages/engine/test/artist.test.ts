@@ -48,12 +48,17 @@ it("runs artist tools through ordinary planning/generation, skips world building
   };
   const ai=Object.assign(new FakeAi((request,task)=>{
     if(task==="artist")return artist(request);
+    if(task==="artist_review") {
+      const parsed=JSON.parse(request.prompt), targets=parsed.targets?.map((target:{shot:unknown})=>target.shot) ?? [parsed.target];
+      const verdicts=targets.map((shot:{id:string;actionChecks:{id:string;description:string}[]})=>({id:shot.id,score:4,overall:"Rendered test sequence",checks:shot.actionChecks.map(action=>({...action,status:"pass",severity:"major",evidence:"Frames checked",fix:""}))}));
+      return parsed.targets ? {verdicts} : verdicts[0];
+    }
     if(task==="world"||task==="bible")throw Error("Artist mode must skip 3D construction and kit casting");
     const answer=validAnswer(request,task);
     if(task==="shots")return {...answer as object,shots:(answer as {shots:{fromWord:number}[]}).shots.map(shot=>({...shot,actionChecks:[{id:"point",description:"Hand points to the board",fromWord:shot.fromWord,toWord:shot.fromWord}]}))};
     if(task==="show")return {...answer as object,requirements:[{id:"flat",text:"Flat illustrations",support:"available",reason:"Canvas"}]};
     return answer;
-  }),{supportsArtist:true});
+  }),{supportsArtist:true,seesImages:true});
   const render=new FakeRenderPort();
   const engine=createEngine({projectsDir:dir,ai,render,audio:new FakeAudio(0.4)});
   const id=await engine.createSeries({idea:"FULL-BRIEF-SENTINEL flat vector episode",language:"en",episodes:1,production:{mode:"artist",format:{width:1920,height:1080,fps:60},targetSeconds:45}});
@@ -63,6 +68,8 @@ it("runs artist tools through ordinary planning/generation, skips world building
   expect(saved.data.durationFrames).toBeGreaterThan(150);
   expect(saved.data.canvas.source).toContain("function character");
   expect(saved.data.fallback).toBe(false);
+  expect(ai.requests.some(request=>request.system.includes("prompt: artist_review"))).toBe(true);
+  await expect(readFile(join(dir,id,"episodes/ep-01/shots/s01/stills/0.png"))).resolves.toBeInstanceOf(Buffer);
   const firstAttempt=JSON.parse(await readFile(join(dir,id,"episodes/ep-01/shots/s01/attempts/artist-1.json"),"utf8"));
   expect(firstAttempt.issues[0].problem).toContain("FINAL saved source/assets");
   expect(authorCalls).toBe(2);
@@ -80,6 +87,10 @@ it("runs artist tools through ordinary planning/generation, skips world building
   expect(archived).toEqual(firstAttempt);
   const latest=JSON.parse(await readFile(join(dir,id,"episodes/ep-01/shots/s01/attempts/artist-1.json"),"utf8"));
   expect(latest.invocationId).not.toBe(firstAttempt.invocationId);
+  const authorsBeforeReview=authorCalls;
+  const review=await engine.waitForJob(await engine.reviewEpisode({seriesId:id,episodeId:"ep-01"}));
+  expect(review.status).toBe("succeeded");
+  expect(authorCalls).toBe(authorsBeforeReview);
 },20_000);
 
 it("recalibrates an artist script's word budget from measured speech instead of rejecting the needed cut", async () => {

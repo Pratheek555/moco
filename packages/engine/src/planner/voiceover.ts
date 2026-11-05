@@ -22,19 +22,21 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
     if (line.speaker !== "narrator" && !bible.data.cast.some((member) => member.id === line.speaker)) throw new Error(`Unknown speaker: ${line.speaker}`);
     const voiceId = line.speaker === "narrator" ? undefined : show?.cast.find((member) => member.id === line.speaker)?.voiceId;
     if (voiceId && available && !available.some((voice) => voice.id === voiceId)) throw new Error(`Voice ${voiceId} for ${line.speaker} is no longer available`);
-    return { id: line.id, text: line.text, delivery: line.delivery, voiceId };
+    return { id: line.id, text: line.text, delivery: line.delivery, voiceId, speaker: line.speaker };
   });
   const { narrator } = bible.data;
 
   await ctx.render.release?.(); // see RenderPort.release
+  const speak = ctx.series.template && ctx.series.production && ctx.audio.ttsMeasured ? ctx.audio.ttsMeasured : ctx.audio.tts;
   const spoken = await ctx.ttsSlots.run(() =>
-    ctx.audio.tts(lines, narrator, narrator.language, join(ctx.dir, files.audioDir(episodeId)), ctx.signal),
+    speak.call(ctx.audio, lines, narrator, narrator.language, join(ctx.dir, files.audioDir(episodeId)), ctx.signal),
   );
   const words: TimedWord[] = spoken.words ?? (await ctx.audio.align(spoken.file, lines, narrator.language));
 
   const target = script.data.targetSeconds;
   const drift = (spoken.durationSeconds - target) / target;
-  if (Math.abs(drift) > DURATION_TOLERANCE) {
+  const tolerance = ctx.series.template && ctx.series.production ? 0.05 : DURATION_TOLERANCE;
+  if (Math.abs(drift) > tolerance) {
     const sentBack = await handleDrift(ctx, episodeId, spoken.durationSeconds, target, narrator.language);
     if (sentBack) return { kind: "sent_back" };
   }
@@ -49,7 +51,7 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
   const track: VoiceoverTrack = { file: relative(ctx.dir, spoken.file), durationSeconds: spoken.durationSeconds, words, visemes, speakers, ...(ctx.series.production && { fps }) };
   const saved = await ctx.store.save(files.voiceover(episodeId), "VoiceoverTrack", track, {
     producedBy: "engine",
-    backend: narrator.backend,
+    backend: spoken.backend ?? narrator.backend,
     inputs: [ctx.store.inputRef(files.script(episodeId)), ctx.store.inputRef(files.bible), ...(show ? [ctx.store.inputRef(files.show)] : [])],
   });
   return { kind: "done", hash: saved.meta.contentHash };

@@ -86,6 +86,7 @@ export interface Engine {
   reject(ref: Required<StageRef>, feedback: string): Promise<void>;
   status(seriesId: SeriesId): Promise<SeriesStatus>;
   regenerateShot(ref: ShotRef, feedback?: string): Promise<JobId>;
+  reviewEpisode(ref: EpisodeRef): Promise<JobId>;
   renderPreview(ref: EpisodeRef): Promise<JobId>;
   renderFinal(ref: EpisodeRef): Promise<JobId>;
   cancel(jobId: JobId): Promise<void>;
@@ -289,14 +290,16 @@ export function createEngine(options: CreateEngineOptions): Engine {
   return {
     async createSeries(input) {
       const idea = input.idea.trim();
-      const episodes = input.episodes ?? 3;
+      const template = lookupTemplate(input.template);
+      const episodes = input.episodes ?? template?.defaults.episodes ?? 3;
       if (!idea || idea.length > 32000) throw new EngineError("invalid_id", "the idea must be 1–32000 characters");
       if (!/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(input.language)) throw new EngineError("invalid_id", `"${input.language}" is not a language code like "en" or "hi"`);
       if (!Number.isInteger(episodes) || episodes < 1 || episodes > 30) throw new EngineError("invalid_id", "episodes must be 1–30");
-      if (input.template !== undefined && !lookupTemplate(input.template)) throw new EngineError("invalid_id", `unknown template "${input.template}"`);
-      const production = input.production ? ArtistProduction.parse(input.production) : undefined;
+      if (input.template !== undefined && !template) throw new EngineError("invalid_id", `unknown template "${input.template}"`);
+      const settings = input.production ?? template?.production;
+      const production = settings ? ArtistProduction.parse(settings) : undefined;
       if (production && !options.ai.supportsArtist) throw new EngineError("validation_failed", "This AI backend does not support the artist workspace. Choose a supported backend before creating the project.");
-      if (production && input.template) throw new EngineError("validation_failed", "Artist projects use the brief and shared designs; omit the kit/world template.");
+      if (production && template && !template.production) throw new EngineError("validation_failed", "This template requires the kit/world pipeline. Choose a prompt template for custom illustration.");
 
       const id = await uniqueSeriesId(config.projectsDir, slugify(idea.split(/\s+/).slice(0, 6).join(" ")));
       const info: SeriesInfo = {
@@ -410,6 +413,26 @@ export function createEngine(options: CreateEngineOptions): Engine {
         if (ctx.series.production) await reviewArtistEpisode(ctx, ref.episodeId, shotList.shots, shared, { maxRounds: 0 });
         ctx.ledger.decide("regenerate", `${ref.episodeId}/${ref.shotId}`, feedback ?? "no feedback");
         await outputChanged(series, scenesKey, await scenesHash(ctx, ref.episodeId));
+      });
+    },
+
+    async reviewEpisode(ref) {
+      assertSafeId(ref.episodeId,"episode id");
+      return startJob(ref.seriesId,"stage",`${ref.episodeId}/review`,async ctx=>{
+        if(!ctx.series.production) throw new EngineError("validation_failed","Visual review requires a canvas production");
+        if(!ctx.store.has(files.shotList(ref.episodeId)) || !ctx.store.has(files.voiceover(ref.episodeId))) throw new EngineError("stage_blocked","Generate narration and the shot list before reviewing");
+        const list=(await ctx.store.read(files.shotList(ref.episodeId),"ShotList")).data;
+        for(const shot of list.shots) {
+          if(!ctx.store.has(files.shotSpec(ref.episodeId,shot.id))) throw new EngineError("stage_blocked","Finish generating every shot before reviewing");
+          const saved=await ctx.store.read(files.shotSpec(ref.episodeId,shot.id),"SceneSpec");
+          for(const file of [files.shotList(ref.episodeId),files.voiceover(ref.episodeId)]) {
+            const required=ctx.store.inputRef(file);
+            if(!saved.meta.inputs.some(input=>input.kind===required.kind && input.contentHash===required.contentHash)) throw new EngineError("stage_blocked","Scenes are stale against the narration or shot list; regenerate them first");
+          }
+        }
+        await reviewArtistEpisode(ctx,ref.episodeId,list.shots,await sceneSharedInputs(ctx,ref.episodeId));
+        ctx.ledger.setStage(stageKey("scenes",ref.episodeId),{feedback:undefined});
+        await outputChanged(await load(ref.seriesId),stageKey("scenes",ref.episodeId),await scenesHash(ctx,ref.episodeId));
       });
     },
 

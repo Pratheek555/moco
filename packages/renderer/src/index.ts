@@ -15,7 +15,7 @@ import { blankReason, decodePng } from "./pixels.ts";
 
 // Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
 // (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
-export const RENDERER_VERSION = "0.8.0"; // deterministic acting helpers and versioned shared artwork
+export const RENDERER_VERSION = "0.9.0"; // self-contained offline canvas fonts
 
 // Remotion keeps a persistent webpack cache that doesn't notice a reinstall. When pnpm re-resolves a package under a new
 // peer-dependency folder, the cache still points at the old one and a bundle ends up with two copies of
@@ -37,6 +37,7 @@ export function dependencyStamp(): string {
 }
 
 export interface RemotionRenderOptions {
+  stillFrameBudget?: number; // recycle the shared browser during long visual-review batches
   stillTimeoutMs?: number; // per still; a hung browser fails the check instead of blocking forever (default 60 s)
   // Prebuilt bundle folder (packaged app). Without it the bundle is built on first use (dev only).
   serveUrl?: string;
@@ -92,14 +93,15 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
     return browser;
   };
   // After a crash or hang the browser can't be trusted: close it (if it's still there) and open a new one next time.
-  const resetBrowser = () => {
+  const resetBrowser = async () => {
     const old = browser;
     browser = undefined;
-    void old?.then((instance) => instance.close({ silent: true })).catch(() => undefined);
+    await old?.then((instance) => instance.close({ silent: true })).catch(() => undefined);
   };
   const stillTimeoutMs = options.stillTimeoutMs ?? 60_000;
   // Stills and thumbnails using the shared browser right now; release() leaves it open while any are.
   let inUse = 0;
+  let checkedFrames = 0;
   const using = async <T>(work: () => Promise<T>): Promise<T> => {
     inUse += 1;
     try {
@@ -135,7 +137,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
         // Browser trouble isn't the spec's fault: throw so the stage fails visibly, rather than
         // telling the AI to "fix" a spec that was fine.
         if (isInfrastructureError(err)) {
-          resetBrowser();
+          await resetBrowser();
           throw err;
         }
         return { ok: false, errors: [toRenderError(spec.shotId, frame, err)] };
@@ -223,10 +225,15 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
   };
   return {
     ...port,
-    check: (spec, opts) => using(() => port.check(spec, opts)),
+    check: async (spec, opts) => {
+      const result=await using(() => port.check(spec, opts));
+      checkedFrames+=opts.frames.length;
+      if(inUse===0 && checkedFrames>=(options.stillFrameBudget ?? 120)) { await resetBrowser(); checkedFrames=0; }
+      return result;
+    },
     thumbnail: (spec, opts) => using(() => port.thumbnail(spec, opts)),
     async release() {
-      if (inUse === 0) resetBrowser();
+      if (inUse === 0) { await resetBrowser(); checkedFrames=0; }
     },
   };
 }
@@ -245,7 +252,7 @@ function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
 function isInfrastructureError(err: unknown): boolean {
   if (err instanceof RenderTimeout) return true;
   const message = err instanceof Error ? err.message : String(err);
-  return /Target closed|Session closed|Protocol error|browser has disconnected|Browser closed|ECONNREFUSED|socket hang up/i.test(message);
+  return /Target closed|Session closed|Protocol error|browser has disconnected|Browser closed|ECONNREFUSED|socket hang up|ERR_NO_BUFFER_SPACE|ERR_INSUFFICIENT_RESOURCES|ERR_OUT_OF_MEMORY/i.test(message);
 }
 
 // A still the check can't read is the check's problem, not the spec's, so it's let through.

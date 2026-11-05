@@ -4,6 +4,7 @@
 import { existsSync, readdirSync, readFileSync } from "node:fs";
 import { join } from "node:path";
 import { TEMPLATES, type TemplateInfo } from "./index.ts";
+import { ArtistProduction } from "@moco/spec";
 
 let stylesDir: string | undefined;
 
@@ -17,7 +18,7 @@ export function learnedTemplates(dir = stylesDir): TemplateInfo[] {
   const found: TemplateInfo[] = [];
   for (const entry of readdirSync(dir, { withFileTypes: true })) {
     const folder = join(dir, entry.name);
-    if (!entry.isDirectory() || !existsSync(join(folder, "moco-template.md"))) continue;
+    if (!entry.isDirectory() || entry.name.startsWith(".") || !existsSync(join(folder, "moco-template.md"))) continue;
     const info = readLearnedInfo(folder);
     // A built-in id always wins, so a learned style can't replace one.
     if (info && !TEMPLATES.some((template) => template.id === info.id)) found.push(info);
@@ -56,11 +57,20 @@ function readLearnedInfo(folder: string): TemplateInfo | undefined {
       world: info.world === "auto" ? "auto" : "world",
       defaults: { episodes: info.defaults?.episodes ?? 3 },
       ideas: info.ideas ?? [],
+      ...(typeof info.creativePrompt === "string" && { creativePrompt: info.creativePrompt }),
+      referenceImages: info.referenceImages?.filter(path => /^references\/[0-4]\.(png|jpeg|webp)$/.test(path)),
+      ...(info.production && { production: ArtistProduction.parse(info.production) }),
       learned: { dir: folder, sources: style.sources ?? [], learnedAt: style.updatedAt },
     };
   } catch {
     return undefined; // half-written or hand-edited badly: skip it rather than break the list
   }
+}
+
+export function templateImages(id: string | undefined): string[] {
+  const template = lookupTemplate(id);
+  if(!template?.learned) return [];
+  return (template.referenceImages ?? []).map(path => join(template.learned!.dir,path)).filter(existsSync);
 }
 
 function readStyle(folder: string): { sources?: string[]; updatedAt?: string } {

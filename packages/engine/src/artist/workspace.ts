@@ -1,5 +1,5 @@
 import { appendFile, copyFile, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import * as z from "zod";
 import type { ArtistTool, ToolContent } from "@moco/ai";
@@ -9,6 +9,9 @@ import type { SceneInputs } from "../generator/generate.ts";
 import { shotBrief } from "../generator/context.ts";
 import { validateScene } from "../loop/validate.ts";
 import { Semaphore } from "../jobs/semaphore.ts";
+import { lookupTemplate } from "../templates/registry.ts";
+import { canvasFonts } from "./fonts.ts";
+import { files } from "../pipeline/stages.ts";
 
 const Manifest = z.object({
   sourceFiles: z.array(z.string()).min(1).max(12),
@@ -21,6 +24,13 @@ const Write = Read.extend({ content: z.string().max(10_000_000), encoding: z.enu
 const Preview = z.object({ frames: z.array(z.number().int().nonnegative()).max(12).optional() });
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 const text = (value: unknown): { content: ToolContent[] } => ({ content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] });
+
+export async function publishShotStills(ctx:Pick<StageContext,"dir">,ep:string,shot:string,stills:string[]) {
+  const dir=join(ctx.dir,files.shotDir(ep,shot),"stills");
+  await mkdir(dir,{recursive:true});
+  for(const entry of await readdir(dir,{withFileTypes:true})) if(entry.isFile() && entry.name.endsWith(".png")) await rm(join(dir,entry.name));
+  for(const file of stills) await copyFile(file,join(dir,basename(file)));
+}
 
 // Check every path component, including the root: no absolute paths, traversal, links or Windows streams.
 export async function workspacePath(root: string, name: string): Promise<string> {
@@ -67,6 +77,8 @@ export async function snapshotShotWorkspace(ctx: Pick<StageContext,"dir">, episo
 export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, production: ArtistProduction) {
   if ((inputs.voiceover.fps ?? 30) !== production.format.fps) throw Error("Voice-track fps differs from the project format; regenerate narration/timing before authoring shots");
   const root = join(ctx.dir, "episodes", inputs.episodeId, "artist");
+  const templateBrief = lookupTemplate(ctx.series.template)?.creativePrompt;
+  const fonts = await canvasFonts(`${ctx.series.idea}\n${templateBrief ?? ""}`);
   const shotRoot = `shots/${inputs.shot.id}`;
   await mkdir(join(root, shotRoot), { recursive: true });
   // Carry the approved design forward across episodes; source files remain embedded in every saved shot.
@@ -93,7 +105,8 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     const occurrence = (occurrences.get(key) ?? 0) + 1; occurrences.set(key, occurrence);
     return { ...word, wordIndex, occurrence, startFrame: Math.round(word.start * production.format.fps) - Math.round(inputs.shot.start * production.format.fps) };
   }).filter((word) => word.start >= inputs.shot.start && word.start < inputs.shot.end);
-  await writeContext(`${shotRoot}/brief.json`, { originalBrief: ctx.series.idea, production, show: inputs.show, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback });
+  const timeline = ctx.store.has(files.shotList(inputs.episodeId)) ? (await ctx.store.read(files.shotList(inputs.episodeId), "ShotList")).data.shots : [inputs.shot];
+  await writeContext(`${shotRoot}/brief.json`, { originalBrief: ctx.series.idea, templateBrief, availableFonts: Object.keys(fonts), production, show: inputs.show, timeline, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback });
   const manifestPath = `${shotRoot}/scene.json`;
   const lockPath = join(root, "shared.lock.json");
   const sharedLock = await readFile(lockPath, "utf8").then(value => JSON.parse(value) as { inherited?: string }, () => undefined);
@@ -124,7 +137,7 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
       if (!ownFile(path) || !mime) throw Error("Images must be PNG/JPEG/WebP files within this workspace");
       assets[id] = `data:image/${mime};base64,${(await readFile(await workspacePath(root, path))).toString("base64")}`;
     }
-    const spec = SceneSpec.parse({ shotId: inputs.shot.id, durationFrames: brief.durationFrames, format: production.format, background: { id: inputs.shot.location }, actors: [], captions: [], canvas: { version: 1, source: sources.join("\n"), cast: manifest.cast, cues: manifest.cues, assets, designSources } });
+    const spec = SceneSpec.parse({ shotId: inputs.shot.id, durationFrames: brief.durationFrames, format: production.format, background: { id: inputs.shot.location }, actors: [], captions: [], canvas: { version: 1, source: sources.join("\n"), cast: manifest.cast, cues: manifest.cues, assets, fonts, designSources } });
     const issues = validateScene(spec, { brief, bible: inputs.bible, catalog: ctx.catalog });
     if (issues.length) throw Error(JSON.stringify(issues));
     return spec;

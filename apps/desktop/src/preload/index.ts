@@ -37,6 +37,7 @@ const api: MocoApi = {
   } as MocoApi["voice"],
   kit: { catalog: call("kit.catalog") } as MocoApi["kit"],
   templates: {
+    importPrompt: call("templates.importPrompt"),
     list: call("templates.list"),
     learn: call("templates.learn"),
     jobs: call("templates.jobs"),

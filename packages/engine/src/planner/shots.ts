@@ -46,6 +46,7 @@ export async function runShotList(ctx: StageContext, episodeId: string, feedback
       show ? jsonSection("Show bible — pacing, camera grammar and places", shotsPack(show)) : "",
       lessonsSection(await readPlaybook(ctx), "shots"),
       jsonSection("Narration beats", script.lines.map((line) => ({ id: line.id, beat: line.beat, speaker: line.speaker }))),
+      script.shotPlan ? jsonSection("Approved estimated shot plan — preserve these pictures, retime to measured words", script.shotPlan) : "",
       jsonSection("Words", numberedWords),
       ctx.series.production ? "Every shot must include 1-3 actionChecks={id,description,fromWord,toWord}. Use whole-track word indices inside this shot. Describe visible contact, hand shape, gaze or body movement (e.g. hand cups opposite elbow, eyes turn toward sign), not vague feelings. These become acceptance checks." : "",
       jsonSection("Cast ids", bible.cast.map((member) => member.id)),
@@ -77,6 +78,7 @@ async function previousShotList(ctx: StageContext, episodeId: string) {
     characters: shot.characters,
     location: shot.location,
     cameraHint: shot.cameraHint,
+    actionChecks: shot.actionChecks,
   }));
 }
 
