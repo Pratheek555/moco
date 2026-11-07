@@ -1,0 +1,192 @@
+/* A quiet canvas inside Studio; the workspace owns navigation and appearance. */
+.studio-landing {
+  --landing-ink: #444640;
+  --landing-muted: #777a70;
+  position: relative;
+  isolation: isolate;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  height: 100%;
+  overflow: hidden;
+  background: #f7f7f2;
+  color: var(--landing-ink);
+  color-scheme: light;
+  font-family: "Inter Variable", sans-serif;
+}
+/* An almost invisible paper grain catches the glyphs without becoming a grid. */
+.studio-landing::before {
+  content: "";
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  pointer-events: none;
+  opacity: .17;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Cpath fill='%23818a7d' opacity='.2' filter='url(%23n)' d='M0 0h160v160H0z'/%3E%3C/svg%3E");
+}
+.ascii-ocean { position: absolute; inset: 0; z-index: -3; width: 100%; height: 100%; pointer-events: none; }
+.landing-halo {
+  position: absolute;
+  z-index: -2;
+  inset: 0;
+  pointer-events: none;
+  background: radial-gradient(ellipse 36% 23% at 49% 40%, rgba(255,255,251,.85), rgba(255,255,251,.3) 60%, transparent 100%);
+}
+.landing-header {
+  position: absolute;
+  z-index: 2;
+  top: 28px;
+  left: 36px;
+  right: 36px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 40px;
+}
+.landing-history {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  border: 1px solid #d8dbd184;
+  border-radius: 12px;
+  padding: 11px 17px;
+  background: #f0f1eb91;
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  box-shadow: 0 3px 4px #414a3604, 0 6px 18px #414a3606, inset 0 1px 0 #ffffffb3;
+  color: #666c5f;
+  font-size: 12px;
+  font-weight: 350;
+}
+.landing-history svg { width: 15px; height: 15px; stroke-width: 1.35; }
+.landing-history svg:last-child { width: 10px; margin-left: 6px; color: #989d90; }
+.landing-center {
+  position: absolute;
+  top: 47%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: min(720px, calc(100% - 64px));
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 27px;
+}
+.landing-center h1 {
+  margin: 0;
+  text-align: center;
+  color: #383c35;
+  font-size: clamp(32px, 4.15vw, 62px);
+  font-weight: 260;
+  line-height: 1.15;
+  letter-spacing: -.065em;
+}
+.landing-prompt {
+  position: relative;
+  border: 1px solid #bfc5b66b;
+  border-radius: 19px;
+  background: rgba(229, 232, 223, .32);
+  backdrop-filter: blur(13px) saturate(.7);
+  -webkit-backdrop-filter: blur(13px) saturate(.7);
+  padding: 22px 17px 13px 22px;
+  box-shadow: 0 5px 24px #55604504, inset 0 1px 0 #ffffffad;
+  transition: border-color 180ms, box-shadow 180ms, background 180ms;
+}
+.landing-prompt textarea {
+  display: block;
+  resize: none;
+  width: 100%;
+  height: 48px;
+  padding: 0 5px 3px 0;
+  border: 0;
+  outline: none;
+  background: transparent;
+  font: 350 15px/1.6 "Inter Variable", sans-serif;
+  color: #464d3f;
+  scrollbar-width: thin;
+}
+.landing-prompt textarea::placeholder { color: #858b7d; opacity: 1; }
+.landing-prompt:focus-within { border-color: #929e8294; background: rgba(232, 235, 226, .4); box-shadow: 0 0 0 3px #97a7840a, inset 0 1px 0 #ffffffb3; }
+.landing-prompt-tools { display: flex; align-items: center; gap: 9px; margin-left: -5px; }
+.landing-prompt-tools > button { display: grid; place-items: center; width: 32px; height: 32px; flex-shrink: 0; border-radius: 8px; color: #707867; }
+.landing-prompt-tools svg { width: 17px; height: 17px; stroke-width: 1.35; }
+.landing-modes { display: flex; justify-content: flex-end; align-items: center; gap: 18px; margin-left: auto; margin-right: 12px; }
+.landing-modes button { display: flex; align-items: center; gap: 5px; padding: 8px 0; font: 10px/1.5 "Consolas", "Courier New", monospace; letter-spacing: .04em; color: #727b68; white-space: nowrap; }
+.landing-modes svg { width: 10px; height: 10px; }
+.landing-prompt-tools .landing-submit { background: #dce1d2; width: 36px; height: 36px; border: 1px solid #bcc5af42; color: #515f42; transition: background 160ms, color 160ms, opacity 160ms; }
+.landing-prompt-tools .landing-submit:not(:disabled) { background: #657457; color: #f9fbf3; border-color: #657457; }
+.landing-prompt-tools .landing-submit:not(:disabled):hover { background: #526246; }
+.landing-prompt-tools .landing-submit svg { width: 20px; height: 20px; }
+.studio-landing button:disabled { opacity: .45; cursor: default; }
+.studio-landing button:focus-visible { outline: 2px solid #7c8d6b; outline-offset: 4px; }
+.landing-prompt-tools > button:not(:disabled):hover, .landing-footer button:hover { background: #97a08b1a; }
+.landing-prompt-tools .landing-submit:disabled:hover { background: #dce1d2; }
+.landing-messages { position: absolute; top: calc(100% + 17px); left: 0; width: 100%; display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.landing-notice { display: flex; align-items: center; gap: 8px; padding: 3px 6px; font-size: 11px; color: #626f53; max-width: 100%; text-align: center; }
+.landing-notice svg { width: 12px; height: 12px; flex-shrink: 0; }
+.landing-footer { position: absolute; bottom: 26px; left: 36px; right: 36px; display: flex; align-items: center; justify-content: space-between; color: #898e82; font-size: 11px; font-weight: 350; }
+.landing-footer > div { display: flex; align-items: center; gap: 20px; }
+.landing-shortcut { font: 10px "Consolas", "Courier New", monospace; }
+.landing-shortcut > span { margin-right: 4px; }
+.landing-footer button { display: grid; place-items: center; width: 28px; height: 28px; border: 1px solid #cdd2c36b; border-radius: 50%; }
+.landing-footer button svg { width: 11px; height: 11px; stroke-width: 1.4; }
+@media (max-width: 700px) {
+  .landing-header { left: 22px; right: 22px; }
+  .landing-center { width: calc(100% - 40px); top: 46%; gap: 24px; }
+  .landing-center h1 { font-size: clamp(27px, 6.4vw, 44px); }
+  .landing-prompt { padding: 18px 12px 11px 17px; border-radius: 16px; }
+  .landing-prompt textarea { font-size: 13px; height: 62px; }
+  .landing-modes { gap: 10px; margin-right: 4px; }
+  .landing-modes button { font-size: 8px; }
+  .landing-prompt-tools { gap: 3px; }
+  .landing-footer { left: 22px; right: 22px; bottom: 20px; }
+  .landing-shortcut { display: none; }
+  .landing-halo { background: radial-gradient(ellipse 65% 28% at 50% 41%, #fffffbd9, transparent); }
+}
+@media (max-height: 600px) {
+  .landing-header { top: 18px; }
+  .landing-center { top: 52%; gap: 18px; }
+  .landing-center h1 { font-size: 38px; }
+  .landing-footer { bottom: 13px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .studio-landing *, .studio-landing *::before { transition: none; }
+}
+
+/* Charcoal and sage, with slate and antique-gold glyphs suspended in the dark. */
+.dark .studio-landing { background: #151815; }
+.dark .studio-landing { --landing-ink: #dce2d3; --landing-muted: #929c87; color-scheme: dark; }
+.dark .studio-landing::before { opacity: .13; }
+.dark .landing-halo { background: radial-gradient(ellipse 40% 30% at 49% 40%, rgba(34, 42, 31, .83), rgba(24, 30, 22, .5) 60%, transparent 100%); }
+.dark .landing-history {
+  color: #a9b69e;
+  border-color: #7c8c6540;
+  background: #30372970;
+  box-shadow: 0 6px 20px #00000018, inset 0 1px 0 #c3d6aa0a;
+}
+.dark .landing-history svg:last-child { color: #798b69; }
+.dark .landing-center h1 { color: #dfe5d8; }
+.dark .landing-prompt {
+  border-color: #87967440;
+  background: rgba(47, 56, 40, .34);
+  box-shadow: 0 6px 30px #0000000d, inset 0 1px 0 #c4d6b00b;
+}
+.dark .landing-prompt:focus-within { border-color: #9baa7c80; background: rgba(50, 60, 41, .4); box-shadow: 0 0 0 3px #a3bc7906, inset 0 1px 0 #d6edb70c; }
+.dark .landing-prompt textarea { color: #d4ddca; }
+.dark .landing-prompt textarea::placeholder { color: #9aa38d; }
+.dark .landing-prompt-tools > button { color: #a6b297; }
+.dark .landing-modes button { color: #a4b28f; }
+.dark .landing-prompt-tools .landing-submit { border-color: #96a77d30; background: #62744a; color: #d0debd; }
+.dark .landing-prompt-tools .landing-submit:not(:disabled) { background: #b4c694; border-color: #b4c694; color: #233019; }
+.dark .landing-prompt-tools .landing-submit:not(:disabled):hover { background: #c5d8a3; }
+.dark .landing-prompt-tools .landing-submit:disabled:hover { background: #62744a; }
+.dark .landing-prompt-tools > button:not(:disabled):hover, .dark .landing-footer button:hover { background: #9fba7a15; }
+.dark .studio-landing button:focus-visible { outline-color: #a9c18a; }
+.dark .landing-notice { color: #b0bf9d; }
+.dark .landing-footer { color: #86947a; }
+.dark .landing-footer button { border-color: #83956c38; }
+@media (max-width: 700px) {
+  .dark .landing-halo { background: radial-gradient(ellipse 65% 28% at 50% 41%, #20291ad9, transparent); }
+}

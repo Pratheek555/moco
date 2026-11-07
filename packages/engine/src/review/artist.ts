@@ -12,6 +12,7 @@ import { hashData } from "../store/hash.ts";
 import { snapshotShotWorkspace, publishShotStills } from "../artist/workspace.ts";
 import { lookupTemplate, templateImages } from "../templates/registry.ts";
 import { loadPrompt } from "../generator/prompts.ts";
+import { EngineError } from "../errors.ts";
 
 const Check = z.object({id:z.string(),description:z.string(),status:z.enum(["pass","fail","unknown"]),severity:z.enum(["critical","major","minor"]),evidence:z.string(),fix:z.string()});
 export const ArtistVerdict = z.object({id:z.string(),score:z.number().int().min(1).max(5),checks:z.array(Check).min(1),overall:z.string()});
@@ -198,6 +199,9 @@ export async function reviewArtistEpisode(ctx:StageContext,ep:string,shots:Shot[
   }catch(error){
     for(const restore of pendingRollbacks.values())await restore();
     if(ctx.signal.aborted)throw error;
-    return await save([`Review/repair interrupted: ${error instanceof Error?error.message:String(error)}`]);
+    const saved = await save([`Review/repair interrupted: ${error instanceof Error?error.message:String(error)}`]);
+    // Persist evidence and restore candidates before surfacing a resumable stop.
+    if (error instanceof EngineError && (error.code === "cap_reached" || error.code === "rate_limited")) throw error;
+    return saved;
   }
 }

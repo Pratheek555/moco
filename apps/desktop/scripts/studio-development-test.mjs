@@ -37,6 +37,69 @@ try {
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
   await expect(page.getByLabel("What story will you tell?")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeDisabled();
+  await expect(page.locator('[data-slot="sidebar"]')).toBeVisible();
+  await page.getByRole("button", { name: "My series", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "My series", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Studio", exact: true }).click();
+  const ocean = () => page.locator(".ascii-ocean").evaluate((canvas) => canvas.toDataURL());
+  await page.getByRole("button", { name: "Pause ocean animation", exact: true }).click();
+  const pausedOcean = await ocean();
+  await page.waitForTimeout(250);
+  assert.equal(await ocean(), pausedOcean, "paused ocean stays still");
+  await page.getByRole("button", { name: "Resume ocean animation", exact: true }).click();
+  await expect.poll(ocean).not.toBe(pausedOcean);
+  await page.emulateMedia({ reducedMotion: "reduce" });
+  // Let the media-query change render its final, static frame.
+  await page.waitForTimeout(100);
+  const reducedOcean = await ocean();
+  await page.waitForTimeout(250);
+  assert.equal(await ocean(), reducedOcean, "reduced motion stops all ocean updates");
+  const viewport = page.viewportSize() ?? await page.evaluate(() => ({ width: innerWidth, height: innerHeight }));
+  await page.setViewportSize({ width: 1120, height: 720 });
+  await expect(page.getByLabel("What story will you tell?")).toBeVisible();
+  assert.equal(await page.locator(".studio-landing").evaluate(e => e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight), false);
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.documentElement.scrollHeight > innerHeight), false);
+  await page.screenshot({ path: path.join(artifacts, "00-studio-landing-compact.png") });
+  await page.setViewportSize(viewport);
+  await page.emulateMedia({ reducedMotion: "no-preference" });
+  await page.getByRole("button", { name: "History", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Your stories" })).toBeVisible();
+  await page.getByRole("button", { name: "Close", exact: true }).click();
+  await page.getByRole("button", { name: "Story options", exact: true }).click();
+  await expect(page.getByLabel("Number of episodes")).toBeVisible();
+  await expect(page.getByLabel("Visual approach")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Visual approach", exact: true })).toBeFocused();
+  await page.screenshot({ path: path.join(artifacts, "00-story-options-dark.png"), animations: "disabled" });
+  await page.setViewportSize({ width: 1120, height: 720 });
+  await expect(page.getByRole("button", { name: "Done", exact: true })).toBeInViewport();
+  assert.equal(await page.getByRole("dialog", { name: "Shape your story" }).evaluate(e => e.scrollWidth > e.clientWidth), false);
+  await page.screenshot({ path: path.join(artifacts, "00-story-options-compact.png"), animations: "disabled" });
+  await page.setViewportSize(viewport);
+  await page.getByRole("button", { name: "The keeper and the serpent", exact: true }).click();
+  await expect(page.getByRole("button", { name: "The keeper and the serpent", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await expect(page.getByText("An idea is ready in your prompt. Make it your own.")).toBeVisible();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await expect(page.getByLabel("What story will you tell?")).toBeFocused();
+  await expect(page.getByLabel("What story will you tell?")).not.toHaveValue("");
+  await page.getByLabel("What story will you tell?").fill("");
+  await page.screenshot({ path: path.join(artifacts, "00-studio-landing.png") });
+  await page.screenshot({ path: path.join(artifacts, "00-studio-landing-dark.png") });
+  await page.getByLabel("What story will you tell?").fill("A draft kept through appearance changes.");
+  await page.getByRole("button", { name: "Switch to light appearance", exact: true }).click();
+  await expect(page.locator("html")).not.toHaveClass(/dark/);
+  await expect(page.getByLabel("What story will you tell?")).toHaveValue("A draft kept through appearance changes.");
+  await page.screenshot({ path: path.join(artifacts, "00-studio-landing-light.png") });
+  await page.getByRole("button", { name: "Story options", exact: true }).click();
+  await page.screenshot({ path: path.join(artifacts, "00-story-options-light.png"), animations: "disabled" });
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.getByRole("button", { name: "Switch to dark appearance", exact: true }).click();
+  await expect(page.locator("html")).toHaveClass(/dark/);
+  assert.equal(await page.evaluate(() => window.moco.settings.get().then(s => s.theme)), "dark");
+  await page.getByLabel("What story will you tell?").fill("");
+  assert.equal(await page.locator(".studio-landing").evaluate((e) => e.scrollHeight > e.clientHeight), false);
   await app.evaluate(({ ipcMain, BrowserWindow }) => {
     const at = new Date().toISOString();
     const state = {
@@ -161,6 +224,15 @@ try {
     "dark",
   );
   await expect(page.getByLabel("Stop generation")).toBeVisible();
+  await page.getByRole("button", { name: "Production progress", exact: true }).click();
+  await expect(page.getByRole("navigation", { name: "Production stages" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Production stages" }).getByRole("listitem")).toHaveCount(6);
+  await expect(page.getByRole("navigation", { name: "Production stages" })).toContainText("Plan");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "Story context", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "The story so far" })).toBeVisible();
+  await expect(page.getByRole("dialog")).toContainText("A lighthouse keeper and a sea serpent");
+  await page.getByRole("button", { name: "Close", exact: true }).click();
 
   const update = async (count) =>
     app.evaluate(({ BrowserWindow }, count) => {
@@ -177,7 +249,19 @@ try {
           },
         });
     }, count);
-  await update(18);
+  await update(3);
+  await expect(page.getByRole("dialog")).toHaveCount(0);
+  await page.screenshot({ path: path.join(artifacts, "01-generation-overview.png"), animations: "disabled" });
+  const generationViewport = page.viewportSize();
+  await page.setViewportSize({ width: 1120, height: 720 });
+  await expect(page.getByLabel("Add direction to your series")).toBeInViewport();
+  await expect(page.locator(".development-active p")).toBeInViewport();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollHeight > innerHeight || document.documentElement.scrollWidth > innerWidth), false);
+  await page.screenshot({ path: path.join(artifacts, "01-generation-compact.png"), animations: "disabled" });
+  await page.setViewportSize(generationViewport);
+  await page.locator(".generation-process > summary").click();
+  await page.locator(".development-scroll").evaluate(e => { e.scrollTop = e.scrollHeight; });
+  await update(15);
   await expect(page.locator(".development-history article")).toHaveCount(17);
   await expect
     .poll(() =>
@@ -288,6 +372,38 @@ try {
   await expect(
     page.getByRole("heading", { name: "Preparing the next step" }),
   ).toBeVisible();
+  await app.evaluate(({ BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    const send = (type, data, seriesId = f.state.series.id) => BrowserWindow.getAllWindows()[0].webContents.send("moco:engine", { type, seriesId, at: new Date().toISOString(), data });
+    send("ai.activity", { key: "ep-01/scenes", message: "Drawing the keeper beside the lighthouse." });
+    send("shot.attempt", { shotId: "s01", attempt: 2, errors: 0 });
+    send("ai.activity", { message: "OTHER SERIES SENTINEL" }, "unrelated");
+    send("stage.awaiting_approval", { key: "bible" });
+  });
+  await page.locator(".studio-feed .generation-process > summary").click();
+  await expect(page.getByRole("log", { name: "Production updates" })).toContainText("Drawing the keeper beside the lighthouse.");
+  await expect(page.getByRole("log")).toContainText("s01: checked attempt 2. Shot checks passed.");
+  await expect(page.getByRole("log")).not.toContainText("OTHER SERIES SENTINEL");
+  await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+  const productionUpdates = async (count) => app.evaluate(({ BrowserWindow }, count) => {
+    const f = globalThis.__developmentFixture;
+    for (let i = 0; i < count; i++) BrowserWindow.getAllWindows()[0].webContents.send("moco:engine", {
+      type: "ai.activity", seriesId: f.state.series.id, at: new Date().toISOString(),
+      data: { key: "ep-01/scenes", message: `Production update ${i}: Refining the lighthouse artwork.` },
+    });
+  }, count);
+  await productionUpdates(20);
+  await page.getByLabel("Review direction").fill("Keep the lighthouse visible in every scene.");
+  await page.getByRole("button", { name: "Save production note", exact: true }).click();
+  await expect(page.getByText("Your direction · queued for the next review", { exact: true })).toBeVisible();
+  await expect.poll(() => page.evaluate(() => JSON.parse(localStorage.getItem("moco.production-direction.development-ui") ?? "[]").length)).toBe(1);
+  await page.getByLabel("Review direction").fill("An unfinished thought that survives the next review.");
+  await page.locator(".development-scroll").evaluate((e) => { e.scrollTop = 0; });
+  await expect(page.getByRole("button", { name: "Latest update" })).toBeVisible();
+  await productionUpdates(1);
+  assert.ok(await page.locator(".development-scroll").evaluate((e) => e.scrollTop < 10), "production updates must not interrupt reading");
+  await page.getByRole("button", { name: "Latest update" }).click();
+  await page.screenshot({ path: path.join(artifacts, "04-production-feed.png"), animations: "disabled" });
   const docked = async () => {
     const box = await page.locator(".development-composer").boundingBox();
     const shell = await page.locator(".studio-development").boundingBox();
@@ -303,7 +419,9 @@ try {
     );
   };
   await docked();
-  await page.getByRole("tab", { name: "Episodes & series" }).click();
+  await expect(page.getByRole("tab", { name: "Episodes & series" })).toHaveCount(0);
+  await expect(page.getByText("The episode board", { exact: true })).toBeHidden();
+  await page.locator(".generation-project-work > summary").click();
   await expect(
     page.getByText("The episode board", { exact: true }),
   ).toBeVisible();
@@ -366,6 +484,20 @@ try {
   await expect(
     page.getByText("A light in the fog brings two unlikely friends together."),
   ).toBeVisible();
+  await expect(page.getByLabel("Review direction")).toHaveValue("An unfinished thought that survives the next review.");
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeDisabled();
+  await expect(page.getByRole("button", { name: "Apply notes & revise", exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Apply notes & revise", exact: true }).click();
+  await expect.poll(() => app.evaluate(() => globalThis.__developmentFixture.calls.some(c => c[0] === "reject" && c[1] === "bible" && c[2] === "Keep the lighthouse visible in every scene."))).toBe(true);
+  await expect(page.getByLabel("Review direction")).toHaveValue("An unfinished thought that survives the next review.");
+  await expect(page.getByRole("button", { name: "Clear queued notes", exact: true })).toHaveCount(0);
+  await app.evaluate(({ BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    delete f.state.activeJob;
+    f.state.stages.find(s => s.key === "bible").status = "awaiting_approval";
+    f.state.next = { kind: "waiting", key: "bible", status: "awaiting_approval" };
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
   await page.getByRole("tab", { name: "Production notes (1)" }).click();
   await expect(
     page.getByText("Original orchestral score", { exact: true }),
@@ -391,6 +523,7 @@ try {
     )
     .toBe(true);
   await docked();
+  await expect(page.getByRole("button", { name: "Clear queued notes", exact: true })).toHaveCount(0);
   for (const step of ["script", "sample", "preview"]) {
     await app.evaluate(({ ipcMain, BrowserWindow }, step) => {
       const f = globalThis.__developmentFixture;
@@ -503,8 +636,12 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS all review gates, unavailable-media guard, finished state, bottom dock, and dark creation → live activity → scroll/fade → queued note → stop/resume → revise → review/approve → production",
+    "PASS Studio light/dark themes, compact layout, pause/reduced motion, all review gates, unavailable-media guard, finished state, bottom dock, and dark creation → live activity → scroll/fade → queued note → stop/resume → revise → review/approve → production",
   );
+} catch (error) {
+  const page = await app.firstWindow();
+  await page.screenshot({ path: path.join(artifacts, "failure.png") }).catch(() => {});
+  throw error;
 } finally {
   await app.close();
 }

@@ -8,23 +8,22 @@ import {
 } from "react";
 import {
   ArrowDownIcon,
-  ArrowLeftIcon,
   ArrowUpIcon,
   CheckIcon,
   ChevronRightIcon,
+  FileTextIcon,
+  ListChecksIcon,
+  MessageSquareTextIcon,
   RotateCcwIcon,
-  SquareIcon,
 } from "lucide-react";
 import type { SeriesPlan } from "@moco/spec";
 import { api, type SeriesStatus } from "@/lib/api";
-import { languageName } from "@/lib/format";
 import { report, useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { StudioAscii } from "./StudioAscii";
 
-import { StudioProgress } from "./StudioProduction";
-import { Textarea } from "@/components/ui/textarea";
+import { DirectionQueue, GenerationBrief, GenerationComposer, GenerationHeader, GenerationIdentity } from "./GenerationWorkspace";
 
 type Note = { text: string; at: string };
 const notesKey = (id: string) => `moco.series-direction.${id}`;
@@ -43,18 +42,6 @@ function readNotes(id: string): Note[] {
     return [];
   }
 }
-function MocoMark() {
-  return (
-    <span className="development-mark" aria-hidden="true">
-      <svg viewBox="0 0 24 24" fill="currentColor">
-        <rect x="3.5" y="5" width="4.5" height="14" rx="2" />
-        <rect x="9.75" y="2" width="4.5" height="20" rx="2" />
-        <rect x="16" y="7" width="4.5" height="10" rx="2" />
-      </svg>
-    </span>
-  );
-}
-
 /** The first approval gate: submitted brief → live public updates → editable plan. */
 export function SeriesDevelopment({
   status,
@@ -64,7 +51,6 @@ export function SeriesDevelopment({
   plan?: SeriesPlan;
 }) {
   const id = status.series.id;
-  const go = useApp((s) => s.go);
   const events = useApp((s) => s.events);
   const [direction, setDirection] = useState("");
   const [notes, setNotes] = useState<Note[]>(() => readNotes(id));
@@ -119,7 +105,7 @@ export function SeriesDevelopment({
     : cancelled
       ? "Your draft is safe."
       : ready
-        ? "Your first chapter is ready to explore."
+        ? "Your series plan is ready."
         : "A world is taking shape.";
   const activeTitle = failure
     ? "This draft needs another try."
@@ -145,6 +131,15 @@ export function SeriesDevelopment({
     if (follow.current && scroller.current)
       scroller.current.scrollTop = scroller.current.scrollHeight;
   }, [updates.length, activeText, ready, failure, notes.length, reviewing]);
+  useEffect(() => {
+    const element = scroller.current;
+    if (!element) return;
+    const observer = new ResizeObserver(() => {
+      if (follow.current) element.scrollTop = element.scrollHeight;
+    });
+    observer.observe(element);
+    return () => observer.disconnect();
+  }, []);
 
   const scrollLatest = () => {
     follow.current = true;
@@ -169,12 +164,12 @@ export function SeriesDevelopment({
       setBusy(null);
     }
   };
-  const revise = (text: string) =>
+  const revise = (text: string, clearDraft = true) =>
     work("revise", async () => {
       await api.stages.reject(id, "series_plan", text);
       // The engine records feedback before starting the replacement draft.
       setNotes([]);
-      setDirection("");
+      if (clearDraft) setDirection("");
       setReviewing(false);
       follow.current = true;
       setFollowing(true);
@@ -196,22 +191,8 @@ export function SeriesDevelopment({
       className="studio-development dark"
       aria-label="Series development"
     >
-      <div className="development-toolbar">
-        <Button
-          size="sm"
-          variant="ghost"
-          onClick={() => go({ name: "library" })}
-        >
-          <ArrowLeftIcon />
-          All series
-        </Button>
-        <span>
-          01 <span>/ Develop</span>
-          <span className="development-next">02 / Direct　 03 / Produce</span>
-        </span>
-      </div>
-      <div className="development-layout">
-        <StudioProgress status={status} />
+      <GenerationHeader status={status} plan={plan} />
+      <div className="development-layout generation-layout">
         <div
           ref={scroller}
           className="development-scroll"
@@ -228,46 +209,30 @@ export function SeriesDevelopment({
           }}
         >
           <div className="development-messages">
-            <article className="development-idea">
-              <span className="development-label">Your idea</span>
-              <p>{status.series.idea}</p>
-              <div>
-                {status.series.episodes}{" "}
-                {status.series.episodes === 1 ? "episode" : "episodes"}
-                <span>·</span>
-                {languageName(status.series.language)}
-                <span>·</span>Animated short
-              </div>
-            </article>
-            <div className="development-agent">
-              <MocoMark />
-              <strong>Moco</strong>
-              <span>
-                {running
-                  ? "Developing your series"
-                  : failure
-                    ? "Needs attention"
-                    : ready
-                      ? "Plan ready"
-                      : "Draft saved"}
-              </span>
-              {running && (
-                <span className="development-live" aria-hidden="true" />
-              )}
-            </div>
+            <GenerationBrief status={status} />
+            <GenerationIdentity running={running} label={running ? "Developing your series" : failure ? "Needs attention" : ready ? "Plan ready" : "Draft saved"} />
             <h1>{title}</h1>
             <p className="development-intro">
               {ready
                 ? "Take a look. We can change anything before production."
+                : failure
+                  ? "The draft stopped here. Try again whenever you're ready."
+                  : cancelled
+                    ? "Take your time. Your idea and notes are right here."
                 : "A premise, an episode arc, and a little room for the unexpected. All shaped around your idea."}
             </p>
-            <div className="development-history">
+            <details className="generation-process">
+              <summary><ListChecksIcon /><span>Creative process</span><small>{updates.length ? `${updates.length} ${updates.length === 1 ? "update" : "updates"}` : "Starting"}</small><ChevronRightIcon /></summary>
+              <div className="development-history" role="log" aria-live="polite" aria-label="Development updates">
               {completed.map((event, index) => (
                 <article key={`${event.at}-${index}`}>
-                  <CheckIcon aria-hidden="true" />
+                  <MessageSquareTextIcon aria-hidden="true" />
                   <p>{String(event.data.message)}</p>
                 </article>
               ))}
+              </div>
+            </details>
+            <div className="generation-note-history">
               {status.decisions
                 .filter(
                   (d) =>
@@ -301,16 +266,17 @@ export function SeriesDevelopment({
             </div>
             <article className="development-active" aria-busy={running}>
               <div className="development-active-text">
-                <span className="development-phase">
+                <span className="development-phase generation-current-status">
+                  <span className="generation-status-dot" data-running={running} />
                   {failure
-                    ? "LET’S TRY AGAIN"
+                    ? "Needs attention"
                     : ready
-                      ? "FIRST DRAFT READY"
+                      ? "First draft ready"
                       : cancelled
-                        ? "PAUSED"
-                        : "DEVELOPING YOUR SERIES"}
+                        ? "Paused"
+                        : "Creating the series plan"}
                 </span>
-                <h2>{activeTitle}</h2>
+                {(!running || latest?.data.phase === "retrying" || latest?.data.phase === "checked") && <h2>{activeTitle}</h2>}
                 <p>
                   {failure ??
                     (cancelled
@@ -335,30 +301,16 @@ export function SeriesDevelopment({
               </div>
             </article>
             {ready && (
-              <div className="development-actions">
-                <Button
-                  onClick={() => {
-                    setReviewing(true);
-                    requestAnimationFrame(() =>
-                      scroller.current?.scrollTo({
-                        top: review.current
-                          ? review.current.offsetTop -
-                            scroller.current.offsetTop
-                          : 0,
-                        behavior: matchMedia("(prefers-reduced-motion: reduce)")
-                          .matches
-                          ? "instant"
-                          : "smooth",
-                      }),
-                    );
-                  }}
-                >
-                  Review series plan
-                  <ChevronRightIcon />
-                </Button>
-                <Button variant="ghost" onClick={() => input.current?.focus()}>
-                  Keep exploring
-                </Button>
+              <div className="generation-plan-result">
+                <span className="generation-results-label">Made for your story</span>
+                <button className="generation-result" aria-label="Review series plan" onClick={() => {
+                  setReviewing(true);
+                  requestAnimationFrame(() => scroller.current?.scrollTo({
+                    top: review.current ? review.current.offsetTop - scroller.current.offsetTop : 0,
+                    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+                  }));
+                }}><span className="generation-result-icon"><FileTextIcon /></span><div><strong>Review series plan</strong><span>{plan?.title} · {plan?.episodes.length} {plan?.episodes.length === 1 ? "episode" : "episodes"}</span></div><span className="generation-result-state">Ready for review</span><ChevronRightIcon /></button>
+                <button className="generation-text-action" onClick={() => input.current?.focus()}>Have another idea? Keep exploring <ArrowUpIcon /></button>
               </div>
             )}
             {!running && !ready && (
@@ -440,81 +392,11 @@ export function SeriesDevelopment({
               <ArrowDownIcon />
             </Button>
           )}
-          {ready && notes.length > 0 && (
-            <div className="development-queued">
-              <span>
-                {notes.length} {notes.length === 1 ? "note" : "notes"} ready for
-                the next draft
-              </span>
-              <Button
-                size="sm"
-                variant="ghost"
-                disabled={busy !== null}
-                onClick={() =>
-                  void revise(notes.map((n) => n.text).join("\n\n"))
-                }
-              >
-                Apply notes & revise
-                <ArrowUpIcon />
-              </Button>
-            </div>
-          )}
-          <form className="development-composer" onSubmit={submit}>
-            <Textarea
-              ref={input}
-              aria-label="Add direction to your series"
-              placeholder={
-                ready
-                  ? "What would you like to change?"
-                  : "A new thought? Add it to the story…"
-              }
-              maxLength={2000}
-              rows={2}
-              value={direction}
-              onChange={(e) => setDirection(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.metaKey || e.ctrlKey) && e.key === "Enter") {
-                  e.preventDefault();
-                  e.currentTarget.form?.requestSubmit();
-                }
-              }}
-            />
-            <div>
-              <span>
-                {running
-                  ? "Add direction at any time · You’ll review the plan before production"
-                  : ready
-                    ? "Your direction shapes the next draft"
-                    : "Your draft is saved. Add a note for the next version."}
-              </span>
-              <div className="development-composer-buttons">
-                {running && (
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    size="icon-sm"
-                    aria-label="Stop generation"
-                    disabled={busy !== null}
-                    onClick={() =>
-                      void work("stop", () =>
-                        api.stages.cancel(status.activeJob!.id),
-                      )
-                    }
-                  >
-                    {busy === "stop" ? <Spinner /> : <SquareIcon />}
-                  </Button>
-                )}
-                <Button
-                  type="submit"
-                  size="icon-sm"
-                  aria-label={ready ? "Revise series plan" : "Add direction"}
-                  disabled={!direction.trim() || busy !== null}
-                >
-                  {busy === "revise" ? <Spinner /> : <ArrowUpIcon />}
-                </Button>
-              </div>
-            </div>
-          </form>
+          <DirectionQueue notes={notes} canApply={ready} busy={busy !== null} onApply={() => void revise(notes.map(n => n.text).join("\n\n"), false)} onClear={() => setNotes([])} />
+          <GenerationComposer status={status} inputRef={input} value={direction} onChange={setDirection} onSubmit={submit}
+            label="Add direction to your series" context="Series plan" placeholder={ready ? "What would you like to change?" : "A new thought? Add it to the story…"}
+            hint={running ? "Notes are saved for your next review. You stay in the director’s chair." : ready ? "Review the draft, or tell Moco where to take it next." : "Your draft is saved. Pick up whenever you’re ready."}
+            busy={busy !== null} onStop={() => void work("stop", () => api.stages.cancel(status.activeJob!.id))} sendLabel={ready ? "Revise series plan" : "Add direction"} />
         </div>
       </div>
     </section>

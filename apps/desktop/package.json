@@ -8,6 +8,7 @@
   "author": "Moco",
   "main": "out/main/index.js",
   "scripts": {
+    "test:recent-chats": "node scripts/recent-chats-test.mjs",
     "test:studio-development": "node scripts/studio-development-test.mjs",
     "dev": "electron-vite dev",
     "build": "electron-vite build",

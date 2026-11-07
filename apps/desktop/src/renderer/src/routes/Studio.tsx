@@ -1,25 +1,30 @@
 import { useEffect, useState } from "react";
 import {
   ArrowRightIcon,
-  CheckIcon,
+  ArrowUpRightIcon,
+  Clock3Icon,
+  ChevronDownIcon,
+  MicIcon,
   FilmIcon,
   LayoutTemplateIcon,
   XIcon,
   PlusIcon,
   SearchIcon,
-  SparklesIcon,
-  TriangleAlertIcon,
   WandSparklesIcon,
+  PauseIcon,
+  PlayIcon,
+  CheckIcon,
 } from "lucide-react";
 import type { SeriesSummary, TemplateInfo } from "@/lib/api.ts";
 import { api } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
-import { cn } from "@/lib/utils";
 import { newSeries, report, useApp } from "@/lib/store.ts";
 import { EPISODE_COUNTS, IDEAS, LANGUAGE_OPTIONS, MOD_KEY } from "@/lib/format.ts";
-import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Item, ItemActions, ItemContent, ItemDescription, ItemMedia, ItemTitle } from "@/components/ui/item";
+import { Separator } from "@/components/ui/separator";
 import {
   Empty,
   EmptyContent,
@@ -28,15 +33,12 @@ import {
   EmptyMedia,
   EmptyTitle,
 } from "@/components/ui/empty";
-import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
+import { Field, FieldDescription, FieldGroup, FieldLabel, FieldLegend, FieldSet } from "@/components/ui/field";
 import {
   InputGroup,
   InputGroupAddon,
-  InputGroupButton,
   InputGroupInput,
-  InputGroupTextarea,
 } from "@/components/ui/input-group";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
 import {
   Select,
   SelectContent,
@@ -45,11 +47,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Separator } from "@/components/ui/separator";
 import { Spinner } from "@/components/ui/spinner";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { CastArt } from "../components/CastArt.tsx";
+import { AsciiOcean } from "../components/AsciiOcean";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter, DialogClose } from "@/components/ui/dialog";
+import "../studio-landing.css";
 import { Page, PageHeader } from "../components/Page.tsx";
 import { SeriesCard } from "../components/SeriesCard.tsx";
 import { TemplateCover, TemplateSheet } from "../components/Templates.tsx";
@@ -64,6 +66,7 @@ const SPARKS = [
 
 export function Studio() {
   const settings = useApp((s) => s.settings)!,
+    dark = useApp((s) => s.dark),
     library = useApp((s) => s.library),
     idea = useApp((s) => s.composerIdea),
     setIdea = useApp((s) => s.setComposerIdea),
@@ -73,6 +76,9 @@ export function Studio() {
     templateId = useApp((s) => s.composerTemplate),
     setTemplateId = useApp((s) => s.setComposerTemplate);
   const template = templates.find((t) => t.id === templateId);
+  const [optionsOpen, setOptionsOpen] = useState(false);
+  const [historyOpen, setHistoryOpen] = useState(false);
+  const [motionPaused, setMotionPaused] = useState(false);
   const [details, setDetails] = useState<TemplateInfo | null>(null);
   const [productionMode, setProductionMode] = useState("standard");
   const [artistShape, setArtistShape] = useState("landscape");
@@ -144,279 +150,194 @@ export function Studio() {
   };
 
   return (
-    <Page className="gap-10">
-      <section className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-8">
-        <div className="flex flex-col gap-4">
-          <h1 className="text-4xl font-semibold tracking-tight text-balance xl:text-5xl">
-            Small idea.
-            <br />
-            <span className="text-muted-foreground">Epic possibilities.</span>
-          </h1>
-          <p className="max-w-md text-base text-pretty text-muted-foreground">
-            Turn the stories in your head into animated reels. A cast, a world, a little movie. All
-            yours.
-          </p>
-        </div>
-        <div className="hero-art hidden h-64 w-80 items-center justify-center lg:flex" aria-hidden="true">
-          <div className="hero-orbit h-48 w-64 -rotate-[18deg]" />
-          <div className="hero-orbit h-64 w-48 rotate-[50deg] border-dashed" />
-          <span className="absolute top-12 right-8 text-xl text-amber-600/60">✦</span>
-          <span className="absolute bottom-16 left-8 text-lg text-violet-500/50">✧</span>
-          <CastArt className="h-60 w-auto drop-shadow-[0_10px_10px_rgb(113_79_73/0.12)]" />
-        </div>
-      </section>
-
-      <section className="flex flex-col gap-4">
-        {ai && !ai.ok && (
-          <Alert>
-            <TriangleAlertIcon />
-            <AlertTitle>AI connection isn’t ready yet</AlertTitle>
-            <AlertDescription>
-              <p className="select-text">{ai.reason}</p>
-              <Button
-                variant="outline"
-                size="sm"
-                className="mt-1"
-                onClick={() => go({ name: "settings", section: "ai" })}
-              >
-                Open AI settings
-              </Button>
-            </AlertDescription>
-          </Alert>
-        )}
-        <Field>
-          <FieldLabel htmlFor="idea">What story will you tell?</FieldLabel>
-          <InputGroup>
-            <InputGroupTextarea
-              id="idea"
-              maxLength={32000}
-              disabled={starting}
-              placeholder="A lighthouse keeper and a sea serpent. A robot alone on Mars…"
-              className="max-h-72 min-h-28 md:text-base"
-              value={idea}
-              onChange={(e) => setIdea(e.target.value)}
-              onKeyDown={(e) => {
-                if ((e.ctrlKey || e.metaKey) && e.key === "Enter") void submit();
-              }}
-            />
-            <InputGroupAddon align="block-end" className="border-t">
-              {templates.length > 0 && (
-                <Select
-                  value={template?.id ?? "none"}
-                  onValueChange={(v) => chooseTemplate(templates.find((t) => t.id === v))}
-                  disabled={starting}
-                >
-                  <SelectTrigger size="sm" aria-label="Template">
-                    <LayoutTemplateIcon />
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectGroup>
-                      <SelectItem value="none">No template</SelectItem>
-                      {templates.map((t) => (
-                        <SelectItem key={t.id} value={t.id}>
-                          {t.name}
-                        </SelectItem>
-                      ))}
-                    </SelectGroup>
-                  </SelectContent>
-                </Select>
-              )}
-              <Select value={String(episodes)} onValueChange={(v) => setEpisodes(Number(v))} disabled={starting}>
-                <SelectTrigger size="sm" aria-label="Number of episodes">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {EPISODE_COUNTS.map((n) => (
-                      <SelectItem key={n} value={String(n)}>
-                        {n} {n === 1 ? "episode" : "episodes"}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <Select value={language} onValueChange={setLanguage} disabled={starting}>
-                <SelectTrigger size="sm" aria-label="Story language">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectGroup>
-                    {LANGUAGE_OPTIONS.map((option) => (
-                      <SelectItem key={option.value} value={option.value} disabled={Boolean(voiceProblem(option.value))}>
-                        {option.label}
-                        {voiceProblem(option.value) ? ` (${voiceProblem(option.value)})` : ""}
-                      </SelectItem>
-                    ))}
-                  </SelectGroup>
-                </SelectContent>
-              </Select>
-              <KbdGroup className="ml-auto" aria-hidden="true">
-                <Kbd>{MOD_KEY}</Kbd>
-                <Kbd>Enter</Kbd>
-              </KbdGroup>
-              <InputGroupButton
-                variant="default"
-                size="sm"
-                disabled={!idea.trim() || starting || Boolean(selectedVoiceProblem)}
-                onClick={() => void submit()}
-              >
-                {starting ? <Spinner data-icon="inline-start" aria-hidden /> : <SparklesIcon data-icon="inline-start" />}
-                {starting ? "Creating…" : "Create series"}
-              </InputGroupButton>
-            </InputGroupAddon>
-          </InputGroup>
-          <div className="flex flex-wrap items-center gap-2">
-            <Select value={template?.production ? "template" : productionMode} onValueChange={(value) => { if(value === "template") return; setProductionMode(value); if (template?.production || value === "artist") setTemplateId(null); }} disabled={starting}>
-              <SelectTrigger size="sm" aria-label="Visual approach"><SelectValue /></SelectTrigger>
-              <SelectContent>
-                {template?.production && <SelectItem value="template">Prompt template · 2D canvas</SelectItem>}
-                <SelectItem value="standard">Existing styles and 3D</SelectItem>
-                <SelectItem value="artist">Custom illustration · experimental</SelectItem>
-              </SelectContent>
-            </Select>
-            {template?.production && <p className="text-xs text-muted-foreground">{template.production.format.width} × {template.production.format.height} · {template.production.format.fps} fps · {template.production.targetSeconds ? `${template.production.targetSeconds}s` : "Length from your prompt"} · local narration</p>}
-            {productionMode === "artist" && <>
-              <Select value={artistShape} onValueChange={setArtistShape} disabled={starting}>
-                <SelectTrigger size="sm" aria-label="Video shape"><SelectValue /></SelectTrigger>
-                <SelectContent><SelectItem value="landscape">Landscape · 1080p · 60 fps</SelectItem><SelectItem value="portrait">Portrait · 1080p · 60 fps</SelectItem></SelectContent>
-              </Select>
-              <Field className="w-56">
-                <FieldLabel htmlFor="artist-seconds">Length in seconds (optional)</FieldLabel>
-                <InputGroup>
-                  <InputGroupInput id="artist-seconds" type="number" step="any" value={artistSeconds} onChange={event => setArtistSeconds(event.target.value)} disabled={starting} placeholder="Use length from prompt" />
-                </InputGroup>
-                <FieldDescription>Leave blank to use your prompt. An entered length overrides the prompt.</FieldDescription>
-              </Field>
-              <p className="text-xs text-muted-foreground">Your selected AI creates artwork and movement from your brief, then checks rendered previews.</p>
-            </>}
-          </div>
-          {template ? (
-            <div className="flex items-center gap-3 rounded-lg border bg-muted/40 p-2 pr-3">
-              <TemplateCover template={template} className="h-12 w-16 shrink-0 overflow-hidden rounded-md border" />
-              <div className="flex min-w-0 flex-1 flex-col">
-                <span className="text-sm font-medium">Using “{template.name}”</span>
-                <span className="truncate text-xs text-muted-foreground">{template.tagline}</span>
-              </div>
-              <Button variant="ghost" size="sm" onClick={() => setDetails(template)}>
-                Details
-              </Button>
-              <Button variant="ghost" size="icon-sm" aria-label="Remove template" onClick={() => chooseTemplate(undefined)}>
-                <XIcon />
-              </Button>
+    <section className="studio-landing" aria-label="Create a story">
+      <AsciiOcean paused={motionPaused} dark={dark} />
+      <div className="landing-halo" aria-hidden="true" />
+      <header className="landing-header">
+        <button className="landing-history" onClick={() => setHistoryOpen(true)}><Clock3Icon /> History <ChevronDownIcon /></button>
+      </header>
+      <div className="landing-center">
+        <h1>What story will you tell?</h1>
+        <form className="landing-prompt" aria-busy={starting} onSubmit={(e) => { e.preventDefault(); void submit(); }}>
+          <textarea id="idea" aria-label="What story will you tell?" placeholder="A small idea. A whole new world." maxLength={32000} disabled={starting} value={idea} onChange={(e) => setIdea(e.target.value)} onKeyDown={(e) => {
+            if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void submit(); }
+          }} />
+          <div className="landing-prompt-tools">
+            <button type="button" aria-label="Story options" title="Story options and templates" disabled={starting} onClick={() => setOptionsOpen(true)}><PlusIcon /></button>
+            <button type="button" aria-label="Voice settings" title="Voice and narration settings" onClick={() => go({ name: "settings", section: "voice" })}><MicIcon /></button>
+            <div className="landing-modes">
+              <button type="button" disabled={starting} onClick={() => setOptionsOpen(true)} aria-label="Animation style" title={template?.name ?? "Animation style"}>{template ? "TEMPLATE" : productionMode === "artist" ? "ILLUSTRATE" : "ANIMATE"}<ChevronDownIcon /></button>
+              <button type="button" disabled={starting} onClick={() => setOptionsOpen(true)} aria-label="Choose episode count">{episodes} {episodes === 1 ? "EPISODE" : "EPISODES"}</button>
             </div>
-          ) : (
-            <FieldDescription>
-              Any story works: Moco builds a cast and world for it. It plans the series, then stops so you can review each step.
-            </FieldDescription>
-          )}
-          {selectedVoiceProblem && <FieldDescription>
-            Narration unavailable: {selectedVoiceProblem}.
-            <Button variant="link" size="sm" onClick={() => go({ name: "settings", section: "voice" })}>Open voice settings</Button>
-          </FieldDescription>}
-        </Field>
-        <div className="flex flex-wrap items-center gap-2">
-          <span className="mr-1 text-sm text-muted-foreground">Need a spark?</span>
-          {sparks.map(([label, text]) => (
-            <Button key={label} variant="outline" size="sm" onClick={() => pickIdea(text)}>
-              {label}
-            </Button>
-          ))}
-          <Tooltip>
-            <TooltipTrigger asChild>
-              <Button variant="ghost" size="icon-sm" aria-label="Surprise me" onClick={surprise}>
-                <WandSparklesIcon />
-              </Button>
-            </TooltipTrigger>
-            <TooltipContent>Surprise me</TooltipContent>
-          </Tooltip>
+            <button className="landing-submit" type="submit" aria-label="Create series" title="Create series (Ctrl+Enter)" disabled={!idea.trim() || starting || Boolean(selectedVoiceProblem)}>{starting ? <Spinner /> : <ArrowUpRightIcon />}</button>
+          </div>
+        </form>
+        <div className="landing-messages" aria-live="polite">
+          {ai && !ai.ok && <button className="landing-notice" onClick={() => go({ name: "settings", section: "ai" })}>Connect your AI to start creating <ArrowRightIcon /></button>}
+          {selectedVoiceProblem && <button className="landing-notice" onClick={() => go({ name: "settings", section: "voice" })}>Narration unavailable: {selectedVoiceProblem}. Open voice settings.</button>}
         </div>
-      </section>
-
-      {templates.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <div className="flex items-end justify-between gap-4">
-            <div className="flex flex-col gap-1">
-              <h2 className="text-lg font-semibold tracking-tight">Start from a template</h2>
-              <p className="text-sm text-muted-foreground">A proven style for the story, the world and the cut. Just bring the idea.</p>
-            </div>
-            <Button variant="ghost" size="sm" onClick={() => go({ name: "templates" })}>
-              All templates
-              <ArrowRightIcon data-icon="inline-end" />
-            </Button>
-          </div>
-          <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
-            {templates.slice(0, 3).map((t) => {
-              const active = t.id === template?.id;
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  aria-pressed={active}
-                  disabled={starting}
-                  onClick={() => chooseTemplate(active ? undefined : t)}
-                  className={cn(
-                    "group flex items-center gap-3 rounded-xl border bg-card p-2 pr-3 text-left transition-shadow outline-none hover:shadow-md focus-visible:ring-[3px] focus-visible:ring-ring/50",
-                    active && "ring-2 ring-primary",
-                  )}
-                >
-                  <TemplateCover template={t} className="h-16 w-20 shrink-0 overflow-hidden rounded-lg border" />
-                  <span className="flex min-w-0 flex-1 flex-col gap-0.5">
-                    <span className="truncate text-sm font-medium">{t.name}</span>
-                    <span className="line-clamp-2 text-xs text-muted-foreground">{t.tagline}</span>
-                  </span>
-                  {active && <CheckIcon className="size-4 shrink-0 text-primary" />}
-                </button>
-              );
-            })}
-          </div>
-        </section>
-      )}
-      <TemplateSheet template={details} onOpenChange={(open) => !open && setDetails(null)} />
-
-      <section className="flex flex-col gap-4">
-        <div className="flex items-end justify-between gap-4">
-          <div className="flex flex-col gap-1">
-            <h2 className="text-lg font-semibold tracking-tight">Continue the story</h2>
-            <p className="text-sm text-muted-foreground">Your worlds, waiting for the next chapter.</p>
-          </div>
-          {library.length > 0 && (
-            <Button variant="ghost" size="sm" onClick={() => go({ name: "library" })}>
-              All series
-              <ArrowRightIcon data-icon="inline-end" />
-            </Button>
-          )}
-        </div>
-        {library.length ? (
-          <SeriesGrid series={library.slice(0, 3)} />
-        ) : (
-          <Empty className="border">
-            <EmptyHeader>
-              <EmptyMedia variant="icon">
-                <FilmIcon />
-              </EmptyMedia>
-              <EmptyTitle>Your next great story lives here</EmptyTitle>
-              <EmptyDescription>
-                Start with an idea above. Moco writes it with your selected AI connection and renders it on this
-                computer.
-              </EmptyDescription>
-            </EmptyHeader>
-          </Empty>
-        )}
-      </section>
-
-      <div className="flex flex-col gap-6">
-        <Separator />
-        <ul className="flex flex-wrap gap-x-6 gap-y-2 text-sm text-muted-foreground">
-          {["Rendered on your device", "Uses your own AI plan", "Ready for Reels and Shorts"].map((text) => (
-            <li key={text} className="flex items-center gap-2">
-              <CheckIcon className="size-4" />
-              {text}
-            </li>
-          ))}
-        </ul>
       </div>
-    </Page>
+      <footer className="landing-footer">
+        <span>A little imagination goes a long way.</span>
+        <div><span className="landing-shortcut">{MOD_KEY} <span aria-hidden="true">↵</span> to create</span><button aria-label={motionPaused ? "Resume ocean animation" : "Pause ocean animation"} title={motionPaused ? "Resume motion" : "Pause motion"} aria-pressed={motionPaused} onClick={() => setMotionPaused(!motionPaused)}>{motionPaused ? <PlayIcon /> : <PauseIcon />}</button></div>
+      </footer>
+      <Dialog open={optionsOpen} onOpenChange={setOptionsOpen}>
+        <DialogContent
+          className="max-h-[90dvh] grid-rows-[auto_minmax(0,1fr)_auto] overflow-hidden sm:max-w-xl"
+          onCloseAutoFocus={event => { event.preventDefault(); document.getElementById("idea")?.focus(); }}
+        >
+          <DialogHeader>
+            <DialogTitle>Shape your story</DialogTitle>
+            <DialogDescription>A few choices to make this world your own.</DialogDescription>
+          </DialogHeader>
+          <FieldGroup className="min-h-0 overflow-y-auto px-1 py-1">
+            <FieldSet>
+              <FieldLegend variant="label">Look &amp; feel</FieldLegend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="story-approach">Visual approach</FieldLabel>
+                  <Select
+                    value={template?.production ? "template" : productionMode}
+                    onValueChange={value => {
+                      if (value === "template") return;
+                      setProductionMode(value);
+                      if (template?.production || value === "artist") setTemplateId(null);
+                    }}
+                    disabled={starting}
+                  >
+                    <SelectTrigger id="story-approach" className="w-full min-w-0" aria-label="Visual approach">
+                      <SelectValue className="min-w-0 truncate" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      {template?.production && <SelectItem value="template">Prompt template &middot; 2D canvas</SelectItem>}
+                      <SelectItem value="standard">Animation &amp; 3D</SelectItem>
+                      <SelectItem value="artist">Custom illustration &middot; experimental</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="story-template">Template <span className="font-normal text-muted-foreground">(optional)</span></FieldLabel>
+                  <Select value={template?.id ?? "none"} onValueChange={value => chooseTemplate(templates.find(t => t.id === value))} disabled={starting || !templates.length}>
+                    <SelectTrigger id="story-template" className="w-full min-w-0" aria-label="Template">
+                      <LayoutTemplateIcon /><SelectValue className="min-w-0 truncate" />
+                    </SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      <SelectGroup>
+                        <SelectItem value="none">Start from scratch</SelectItem>
+                        {templates.map(t => <SelectItem key={t.id} value={t.id}>{t.name}</SelectItem>)}
+                      </SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              <FieldDescription>
+                {template?.production ? "Your template brings its own artwork and animation direction." : productionMode === "artist" ? "Original artwork and movement, shaped around your brief." : "Bring your world to life with ready-made styles and 3D scenes."}
+              </FieldDescription>
+              {template && (
+                <Item variant="outline" size="sm">
+                  <ItemMedia><TemplateCover template={template} className="h-10 w-14 rounded-sm" /></ItemMedia>
+                  <ItemContent className="min-w-0">
+                    <ItemTitle>{template.name}</ItemTitle>
+                    <ItemDescription>{template.tagline}</ItemDescription>
+                  </ItemContent>
+                  <ItemActions>
+                    <Button variant="ghost" size="sm" onClick={() => setDetails(template)}>Details</Button>
+                    <Button variant="ghost" size="icon-sm" aria-label="Remove template" onClick={() => chooseTemplate(undefined)}><XIcon /></Button>
+                  </ItemActions>
+                </Item>
+              )}
+              {template?.production && (
+                <FieldDescription>{template.production.format.width} &times; {template.production.format.height} &middot; {template.production.format.fps} fps &middot; {template.production.targetSeconds ? `${template.production.targetSeconds}s` : "Length from your prompt"}</FieldDescription>
+              )}
+              {productionMode === "artist" && (
+                <FieldGroup className="rounded-lg border bg-muted/30 p-4">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <Field>
+                      <FieldLabel htmlFor="story-shape">Video shape</FieldLabel>
+                      <Select value={artistShape} onValueChange={setArtistShape} disabled={starting}>
+                        <SelectTrigger id="story-shape" className="w-full" aria-label="Video shape"><SelectValue /></SelectTrigger>
+                        <SelectContent position="popper" align="start">
+                          <SelectItem value="landscape">Landscape &middot; 16:9</SelectItem>
+                          <SelectItem value="portrait">Portrait &middot; 9:16</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      <FieldDescription>1080p &middot; 60 fps</FieldDescription>
+                    </Field>
+                    <Field>
+                      <FieldLabel htmlFor="artist-seconds">Length in seconds (optional)</FieldLabel>
+                      <Input
+                        id="artist-seconds" type="number" step="any" value={artistSeconds}
+                        onChange={event => setArtistSeconds(event.target.value)} disabled={starting}
+                        placeholder="From your prompt" aria-describedby="story-duration-help"
+                        aria-invalid={Boolean(artistSeconds.trim() && (!Number.isFinite(Number(artistSeconds)) || Number(artistSeconds) <= 0))}
+                      />
+                      <FieldDescription id="story-duration-help">Leave blank to follow your prompt.</FieldDescription>
+                    </Field>
+                  </div>
+                </FieldGroup>
+              )}
+            </FieldSet>
+            <Separator />
+            <FieldSet>
+              <FieldLegend variant="label">Format &amp; narration</FieldLegend>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <Field>
+                  <FieldLabel htmlFor="story-episodes">Episodes</FieldLabel>
+                  <Select value={String(episodes)} onValueChange={value => setEpisodes(Number(value))} disabled={starting}>
+                    <SelectTrigger id="story-episodes" className="w-full" aria-label="Number of episodes"><SelectValue /></SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      <SelectGroup>{EPISODE_COUNTS.map(n => <SelectItem key={n} value={String(n)}>{n} {n === 1 ? "episode" : "episodes"}</SelectItem>)}</SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="story-language">Story language</FieldLabel>
+                  <Select value={language} onValueChange={setLanguage} disabled={starting}>
+                    <SelectTrigger id="story-language" className="w-full min-w-0" aria-label="Story language"><SelectValue className="min-w-0 truncate" /></SelectTrigger>
+                    <SelectContent position="popper" align="start">
+                      <SelectGroup>{LANGUAGE_OPTIONS.map(option => <SelectItem key={option.value} value={option.value} disabled={Boolean(voiceProblem(option.value))}>{option.label}{voiceProblem(option.value) ? ` (${voiceProblem(option.value)})` : ""}</SelectItem>)}</SelectGroup>
+                    </SelectContent>
+                  </Select>
+                </Field>
+              </div>
+              {selectedVoiceProblem && (
+                <FieldDescription>
+                  Narration unavailable: {selectedVoiceProblem}.
+                  <Button variant="link" size="sm" onClick={() => go({ name: "settings", section: "voice" })}>Open voice settings <ArrowUpRightIcon /></Button>
+                </FieldDescription>
+              )}
+            </FieldSet>
+            <Separator />
+            <FieldSet>
+              <FieldLegend variant="label">Start with a spark</FieldLegend>
+              <div className="flex flex-wrap gap-2">
+                {sparks.map(([label, text]) => (
+                  <Button key={label} variant={idea === text ? "secondary" : "outline"} size="sm" aria-pressed={idea === text} onClick={() => pickIdea(text)}>
+                    {idea === text && <CheckIcon />}{label}
+                  </Button>
+                ))}
+                <Button variant="ghost" size="sm" onClick={surprise}><WandSparklesIcon />Surprise me</Button>
+              </div>
+              <FieldDescription role="status">
+                {(template ? template.ideas.map(i => i.idea) : IDEAS).includes(idea) ? "An idea is ready in your prompt. Make it your own." : "Borrow an idea, then take it somewhere only you can."}
+              </FieldDescription>
+            </FieldSet>
+          </FieldGroup>
+          <DialogFooter className="border-t pt-4 sm:items-center sm:justify-between">
+            <FieldDescription className="text-xs">You review the plan before production.</FieldDescription>
+            <DialogClose asChild><Button>Done <ArrowRightIcon /></Button></DialogClose>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={historyOpen} onOpenChange={setHistoryOpen}>
+        <DialogContent className="max-h-[80dvh] overflow-y-auto">
+          <DialogHeader><DialogTitle>Your stories</DialogTitle><DialogDescription>Pick up where your imagination left off.</DialogDescription></DialogHeader>
+          {library.length ? <div className="flex flex-col gap-2">{library.slice(0, 8).map((series) => <button key={series.id} className="rounded-lg border p-3 text-left text-sm" onClick={() => go({ name: "series", id: series.id })}>{series.title.length > 100 ? `${series.title.slice(0, 97)}...` : series.title}</button>)}</div> : <p className="text-sm text-muted-foreground">Your first story starts with an idea.</p>}
+          <Button variant="outline" onClick={() => go({ name: "library" })}>All series <ArrowRightIcon /></Button>
+        </DialogContent>
+      </Dialog>
+      <TemplateSheet template={details} onOpenChange={(open) => !open && setDetails(null)} />
+    </section>
   );
 }
 

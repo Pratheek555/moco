@@ -34,7 +34,7 @@ export function meteredAi(
     async generate(request, scope) {
       const calls = callsThisJob[scope] ?? 0;
       if (calls >= config.limits.maxAiCallsPerEpisode) {
-        throw new EngineError("cap_reached", `${scope} used all ${config.limits.maxAiCallsPerEpisode} AI calls allowed in one run`);
+        throw new EngineError("cap_reached", `This run reached its ${config.limits.maxAiCallsPerEpisode}-call AI safety limit for ${scope}. Saved work is kept. Try again to continue with a fresh run allowance. This is Moco's run limit, not your AI provider's quota.`);
       }
       callsThisJob[scope] = calls + 1;
       ledger.data.usage.aiCalls[scope] = (ledger.data.usage.aiCalls[scope] ?? 0) + 1;

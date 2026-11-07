@@ -1,7 +1,7 @@
 // Verify renderer submission without starting generation or changing real projects.
 import { _electron as electron, expect } from "@playwright/test";
 import assert from "node:assert/strict";
-import { mkdtemp, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -25,10 +25,18 @@ try{
   });
   const errors=[];
   page.on("pageerror",error=>errors.push(error.message));
+  await page.getByRole("button",{name:"Story options",exact:true}).click();
   await page.getByLabel("Visual approach").click();
   await page.getByRole("option",{name:"Custom illustration · experimental"}).click();
   const duration=page.getByLabel("Length in seconds (optional)");
   await expect(duration).toHaveValue("");
+  const artifacts=path.resolve(desktop,"../../artifacts/studio-implementation");
+  await mkdir(artifacts,{recursive:true});
+  await page.setViewportSize({width:1120,height:720});
+  await expect(page.getByRole("button",{name:"Done",exact:true})).toBeInViewport();
+  await expect(duration).toBeInViewport();
+  await page.screenshot({path:path.join(artifacts,"00-story-options-illustration.png"),animations:"disabled"});
+  await page.getByRole("button",{name:"Done",exact:true}).click();
   const idea=page.getByLabel("What story will you tell?");
   await idea.fill("Make a 20-second illustrated explainer about your nose.");
   const submit=()=>idea.press(process.platform==="darwin"?"Meta+Enter":"Control+Enter");
@@ -36,13 +44,17 @@ try{
   await expect.poll(()=>app.evaluate(()=>globalThis.durationRequests.length)).toBe(1);
   assert.equal((await app.evaluate(()=>globalThis.durationRequests[0])).production.targetSeconds,undefined);
   for(const [index,value] of ["20","37.5","120"].entries()){
+    await page.getByRole("button",{name:"Story options",exact:true}).click();
     await duration.fill(value);
+    await page.getByRole("button",{name:"Done",exact:true}).click();
     await submit();
     await expect.poll(()=>app.evaluate(()=>globalThis.durationRequests.length)).toBe(index+2);
     assert.equal((await app.evaluate(()=>globalThis.durationRequests.at(-1))).production.targetSeconds,Number(value));
   }
   for(const value of ["0","-5"]){
+    await page.getByRole("button",{name:"Story options",exact:true}).click();
     await duration.fill(value);
+    await page.getByRole("button",{name:"Done",exact:true}).click();
     await submit();
     await expect(page.getByText("Enter a positive duration in seconds, or leave it blank to use your prompt.",{exact:true}).first()).toBeVisible();
     assert.equal(await app.evaluate(()=>globalThis.durationRequests.length),4);

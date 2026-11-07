@@ -149,6 +149,27 @@
   app-region: drag;
 }
 
+/* Compact project-style links to saved studio conversations. */
+.recent-chats { padding-top: 1rem; }
+.recent-chat-row {
+  gap: 0.625rem;
+  color: color-mix(in oklab, var(--sidebar-foreground) 70%, transparent);
+  font-size: 0.8125rem;
+}
+.recent-chat-row > span:not(.recent-chat-dot):not(.sr-only) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.recent-chat-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  flex: 0 0 auto;
+  margin-inline: 0.3125rem;
+  border-radius: 50%;
+  background: color-mix(in oklab, var(--sidebar-foreground) 35%, transparent);
+}
+.recent-chat-dot[data-running="true"] { background: #45bd8a; }
+.recent-chat-dot[data-active="true"] { background: #f16e50; }
+.recent-chats-all { color: var(--muted-foreground); font-size: 0.75rem; }
+.recent-chats-empty { padding: 0.375rem 0.5rem; color: var(--muted-foreground); font-size: 0.75rem; line-height: 1.6; }
+
 /* Text shimmer while the AI is working on something. */
 @keyframes text-shimmer {
   from {

@@ -160,14 +160,18 @@ function onEngineEvent(event: EngineEvent) {
   const state = useApp.getState();
   const title =
     state.library.find((s) => s.id === event.seriesId)?.title ?? "Your series";
-  useApp.setState({ events: [...state.events, event].slice(-200) });
+  useApp.setState({ events: [...state.events, event].slice(-1000) });
 
   if (event.type === "render.progress") {
     const progress = Number(event.data.progress ?? 0);
     useApp.setState({ progress: { ...state.progress, [event.seriesId]: progress } });
   }
-  if (event.type === "stage.awaiting_approval")
-    state.toast(`${title}: ${stageLabel(String(event.data.key))} is ready for review`, "success");
+  if (event.type === "stage.awaiting_approval" &&
+      !(state.route.name === "series" && state.route.id === event.seriesId))
+    state.toast(`${stageLabel(String(event.data.key))} is ready for review`, "success", {
+      description: title.length > 80 ? `${title.slice(0, 77)}...` : title,
+      action: { label: "Review", run: () => state.go({ name: "series", id: event.seriesId }) },
+    });
   if (event.type === "job.started") stageFailedInJob.delete(event.seriesId);
   if (event.type === "stage.failed") {
     stageFailedInJob.add(event.seriesId);

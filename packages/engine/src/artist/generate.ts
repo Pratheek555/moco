@@ -18,7 +18,13 @@ export async function generateArtistScene(ctx: StageContext, inputs: SceneInputs
     workspace.beginAttempt();
     const prompt = `Create shot ${inputs.shot.id} by writing workspace files with the artist tools. Read shots/${inputs.shot.id}/brief.json FIRST: it contains the FULL original brief, approved cast appearance, fixed format and actual word times.\nManifest path: ${workspace.manifestPath}\nReuse shared character/design files from earlier shots. Before finishing, call render_preview, inspect the returned sequence and repair visible failures. Final response: a short account of what you created and checked; the saved files are your deliverable.\n${feedback ? `Repair feedback: ${feedback}` : ""}`;
     await workspace.audit({ phase: "author.started", attempt, invocationId });
-    const result = await ctx.ai.generate({ system: loadPrompt("artist", ctx.series.template), prompt, images: ctx.ai.seesImages ? templateImages(ctx.series.template) : undefined, artistTools: workspace.tools, signal: ctx.signal }, inputs.episodeId);
+    const activity = { key: `${inputs.episodeId}/scenes`, episodeId: inputs.episodeId, shotId: inputs.shot.id };
+    await ctx.bus.emit(ctx.seriesId, "ai.activity", { ...activity, phase: "started", message: `Creating ${inputs.shot.id}, attempt ${attempt}: drawing and animating the shot.` });
+    let updates = Promise.resolve();
+    const result = await ctx.ai.generate({ onActivity: (message) => {
+      updates = updates.then(() => ctx.bus.emit(ctx.seriesId, "ai.activity", { ...activity, phase: "working", message })).catch(() => {});
+    }, system: loadPrompt("artist", ctx.series.template), prompt, images: ctx.ai.seesImages ? templateImages(ctx.series.template) : undefined, artistTools: workspace.tools, signal: ctx.signal }, inputs.episodeId).finally(() => updates);
+    await ctx.bus.emit(ctx.seriesId, "ai.activity", { ...activity, phase: "working", message: `Checking the saved artwork and motion for ${inputs.shot.id}.` });
     let issues: unknown[] = [];
     let spec: SceneSpec | undefined;
     let stills:string[]=[];

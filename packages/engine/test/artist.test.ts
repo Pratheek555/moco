@@ -30,6 +30,7 @@ it("runs artist tools through ordinary planning/generation, skips world building
   const dir=await mkdtemp(join(tmpdir(),"moco-artist-engine-"));
   let authorCalls=0;
   const artist = async (request: AiRequest) => {
+    request.onActivity?.("Drawing the character silhouette.");
     const tools=request.artistTools!;
     const call=async(name:string,args:object)=>tools.find(tool=>tool.name===name)!.call(args);
     const files=JSON.parse((await call("list_files",{})).content.filter(block=>block.type==="text").map(block=>block.text).join("")) as string[];
@@ -64,6 +65,9 @@ it("runs artist tools through ordinary planning/generation, skips world building
   const id=await engine.createSeries({idea:"FULL-BRIEF-SENTINEL flat vector episode",language:"en",episodes:1,production:{mode:"artist",format:{width:1920,height:1080,fps:60},targetSeconds:45}});
   for(let gate=0;gate<4;gate++){await advance(engine,id);await approveNext(engine,id);}
   const saved=JSON.parse(await readFile(join(dir,id,"episodes/ep-01/shots/s01/spec.json"),"utf8"));
+  const activityLog = await readFile(join(dir,id,"events.jsonl"),"utf8");
+  expect(activityLog).toContain("Drawing the character silhouette.");
+  expect(activityLog).toContain("Checking the saved artwork and motion");
   expect(saved.data.format).toEqual({width:1920,height:1080,fps:60});
   expect(saved.data.durationFrames).toBeGreaterThan(150);
   expect(saved.data.canvas.source).toContain("function character");

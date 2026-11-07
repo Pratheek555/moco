@@ -12,8 +12,18 @@ import { runRender } from "../src/pipeline/render.ts";
 import { FakeRenderPort } from "../src/testing/fakes.ts";
 import { Semaphore } from "../src/jobs/semaphore.ts";
 import type { StageContext } from "../src/pipeline/context.ts";
+import { EngineError } from "../src/errors.ts";
 
 vi.mock("../src/generator/generate.ts", () => ({generateScene:vi.fn()}));
+
+it.each(["cap_reached", "rate_limited"] as const)("persists review evidence before surfacing %s", async code => {
+  const {ctx,shots,shared,generate}=await fixture();
+  generate.mockRejectedValue(new EngineError(code, "run stopped"));
+  await expect(reviewArtistEpisode(ctx,"ep-01",shots,shared)).rejects.toMatchObject({code});
+  const quality=(await ctx.store.read(files.critique("ep-01"),"Critique")).data.quality!;
+  expect(quality.status).toBe("needs_attention");
+  expect(quality.unresolved).toContain("Review/repair interrupted: run stopped");
+});
 const verdict = (id:string, pass=false):ArtistVerdict => ({id,score:pass?4:3,overall:"Evidence",checks:[{id:"contact",description:"Hand contacts elbow",status:pass?"pass":"fail",severity:"major",evidence:"Sample sequence",fix:"Cup elbow"}]});
 
 it("preserves portrait evidence proportions and keeps review sheets within canvas limits",()=>{

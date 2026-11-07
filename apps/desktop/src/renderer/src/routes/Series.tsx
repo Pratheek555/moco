@@ -187,7 +187,7 @@ export function SeriesPage({ id }: { id: string }) {
     <StudioProduction
       status={status}
       plan={plan}
-      review={(focus) =>
+      review={(focus, hasQueuedDirection) =>
         waiting ? (
           <Review
             key={waiting.key}
@@ -197,6 +197,7 @@ export function SeriesPage({ id }: { id: string }) {
             bible={bible}
             show={show}
             onRequestChanges={focus}
+            hasQueuedDirection={hasQueuedDirection}
           />
         ) : null
       }
@@ -726,6 +727,7 @@ function Review({
   bible,
   show,
   onRequestChanges,
+  hasQueuedDirection = false,
 }: {
   seriesId: string;
   stage: Stage;
@@ -733,6 +735,7 @@ function Review({
   bible?: SeriesBible;
   show?: ShowBible;
   onRequestChanges?: () => void;
+  hasQueuedDirection?: boolean;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null),
     [busy, setBusy] = useState<"approve" | "redo" | null>(null);
@@ -946,6 +949,7 @@ function Review({
         )}
       </CardContent>
       <CardFooter className="justify-end gap-2 border-t">
+        {hasQueuedDirection && <span className="generation-approval-hint">Apply or clear your queued notes before approving.</span>}
         {feedback === null ? (
           <Button
             variant="outline"
@@ -979,7 +983,7 @@ function Review({
           </>
         )}
         <Button
-          disabled={busy !== null || unavailable || Boolean(loadError)}
+          disabled={busy !== null || unavailable || Boolean(loadError) || hasQueuedDirection}
           onClick={() => void approve()}
         >
           {busy === "approve" ? (
