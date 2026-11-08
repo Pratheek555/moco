@@ -124,7 +124,7 @@ it("generates and embeds a requested PNG without deadlocking a one-slot artist",
   expect((await engine.status(id)).next).toMatchObject({kind:"waiting",key:"ep-01/sample"});
 },15000);
 
-it("finishes a 40-shot image episode past 60 calls and 180 files, reusing saved scenes on retry",async()=>{
+it("finishes a 40-shot image episode past 60 calls and 180 files, reusing saved scenes and verdicts on retry",async()=>{
   let authors=0,images=0;
   const png=Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aCWQAAAAASUVORK5CYII=","base64");
   const {engine,id,ai,dir}=await setup(async request=>{
@@ -159,10 +159,14 @@ it("finishes a 40-shot image episode past 60 calls and 180 files, reusing saved 
   expect((await engine.status(id)).next).toMatchObject({kind:"waiting",key:"ep-01/preview"});
   expect(await readFile(join(dir,id,"episodes/ep-01/shots/s01/spec.json"),"utf8")).toBe(saved);
   const usage=(await engine.status(id)).usage.aiCalls["ep-01"]!;
+  events.length=0;
   await advance(engine,id,"ep-01/scenes");
   expect(authors).toBe(40);
   expect(images).toBe(40);
-  expect((await engine.status(id)).usage.aiCalls["ep-01"]).toBe(usage+40); // review only
+  // An unchanged cut restores all saved verdicts without new AI calls.
+  expect((await engine.status(id)).usage.aiCalls["ep-01"]).toBe(usage);
+  expect(events.filter(e=>e.type==="usage.updated")).toHaveLength(0);
+  expect((await engine.status(id)).next).toMatchObject({kind:"waiting",key:"ep-01/preview"});
 },60_000);
 
 it("bounds new scene files and generated images while allowing repairs at the file cap",async()=>{
