@@ -4,7 +4,7 @@ import { join } from "node:path";
 import type { ReferenceCard } from "./agents.ts";
 import type { ReferenceMeta } from "./fetch.ts";
 import type { Measurements } from "./measure.ts";
-import { metricText, type MetricRow, type SkillDraft, type TemplateDraft } from "./merge.ts";
+import { metricText, type ArtistTemplateDraft, type MetricRow, type SkillDraft, type TemplateDraft } from "./merge.ts";
 
 // Skill names are lowercase words joined by hyphens, at most 64 characters.
 export function skillSlug(name: string): string {
@@ -102,14 +102,17 @@ export function renderCard(card: ReferenceCard, meta: ReferenceMeta): string {
 
 const STAGE_ORDER = ["series", "series_extend", "bible", "world", "script", "shots", "scene", "publish"] as const;
 
-export function renderTemplate(draft: TemplateDraft, slug: string, refs: ReferenceMeta[]): string {
+export function renderTemplate(draft: TemplateDraft | ArtistTemplateDraft, slug: string, refs: ReferenceMeta[]): string {
   const sources = refs.map((ref) => ref.url ?? ref.title).join(", ");
+  const artist = "artist" in draft.stages;
+  const stages = artist ? ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "artist", "publish"] : STAGE_ORDER;
+  const guidance = draft.stages as Record<string, string>;
   return [
     `<!-- template: ${slug} v1 -->`,
     `<!-- Learned by moco from ${refs.length} reference video${refs.length === 1 ? "" : "s"} (${sources}): their technique, translated into what moco's`,
-    `     planner, World and scene specs can express. See skill/SKILL.md for the full style guide. -->`,
+    `     ${artist ? "planner and authored Canvas artwork" : "planner, World and scene specs"} can express. See skill/SKILL.md for the full style guide. -->`,
     "",
-    ...STAGE_ORDER.flatMap((stage) => [`# ${stage}`, draft.stages[stage].trim(), ""]),
+    ...stages.flatMap((stage) => [`# ${stage}`, guidance[stage]!.trim(), ""]),
   ].join("\n");
 }
 

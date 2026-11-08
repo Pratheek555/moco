@@ -10,6 +10,10 @@ export interface HostPort {
 }
 
 export const ENGINE_METHODS = [
+  "createStyleSample",
+  "styleSamples",
+  "styleSampleReview",
+  "approveStyleSample",
   "createSeries",
   "extendSeries",
   "listSeries",

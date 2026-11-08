@@ -13,6 +13,7 @@ export interface LearnHostInput {
   name: string;
   sources: string[];
   stylesDir: string;
+  referenceImages?: string[];
 }
 
 // Messages sent to main.
@@ -52,6 +53,8 @@ async function run(input: LearnHostInput) {
     name: input.name,
     sources: input.sources,
     stylesDir: input.stylesDir,
+    referenceImages: input.referenceImages,
+    production: { mode: "artist", localOnly: true, format: { width: 1920, height: 1080, fps: 60 } },
     ai,
     tools,
     exampleTemplate: example ? templateText(example) : undefined,
