@@ -25,6 +25,8 @@ it("calls the engine, forwards events and errors through the port", async () => 
   client.on("*", (event) => events.push(event.type));
 
   const seriesId = await client.createSeries({ idea: "Gita over the wire", language: "en", episodes: 1 });
+  expect(await client.listCharacters(seriesId)).toEqual([]);
+  await expect(client.saveCharacter({ seriesId, episodeId: "ep-01", shotId: "s01" }, { castId: "krishna", sceneHash: "old" })).rejects.toMatchObject({ code: "validation_failed" });
   const job = await client.waitForJob(await client.runStage({ seriesId }));
   expect(job.status).toBe("succeeded");
   expect((await client.status(seriesId)).next).toMatchObject({ kind: "waiting", key: "series_plan" });

@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PageError, PageLoading } from "../components/Page.tsx";
 import { PublishPanel } from "../components/PublishPanel.tsx";
+import { CharacterReuse } from "../components/CharacterReuse.tsx";
 
 // "ep-01/voiceover" → "voiceover": the episode is already on screen.
 const stepOf = (key: string) => stageLabel(key).replace(/^Episode \d+ /, "");
@@ -264,6 +265,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                     </div>
                   )}
                   <Separator />
+                  {status.series.production && <CharacterReuse key={`${seriesId}/${episodeId}/${shot.id}`} seriesId={seriesId} episodeId={episodeId} shotId={shot.id} cast={shot.characters} disabled={running || busy} canApply={scenesDone} />}
                   <FieldSet disabled={running || !scenesDone} className="gap-3">
                     <Field data-disabled={running || !scenesDone}>
                       <FieldLabel htmlFor="shot-note">Redo this shot</FieldLabel>

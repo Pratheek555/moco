@@ -224,6 +224,16 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
           "maxItems": 20,
           "type": "array",
         },
+        "characterRigs": {
+          "additionalProperties": {
+            "pattern": "^[a-f0-9]{64}$",
+            "type": "string",
+          },
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
+        },
         "cues": {
           "default": [],
           "items": {
