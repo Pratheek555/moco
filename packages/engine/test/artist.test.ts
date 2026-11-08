@@ -45,7 +45,12 @@ it("runs artist tools through ordinary planning/generation, skips world building
     await expect(call("write_file",{path:`shots/${id}/production-state.json`,content:"{}"})).rejects.toThrow(/read-only/);
     if(!files.includes("shared/characters.js"))await call("write_file",{path:"shared/characters.js",content:"function character(){helpers.circle(100,100,50,'#48767a')}"});
     await call("write_file",{path:`shots/${id}/draw.js`,content:"ctx.fillStyle='#e9dfcf';ctx.fillRect(0,0,scene.width,scene.height);character();"});
-    await call("write_file",{path:`shots/${id}/scene.json`,content:JSON.stringify({sourceFiles:["shared/characters.js",`shots/${id}/draw.js`],cast:brief.shot.characters,cues:[]})});
+    let labels = [{id:"board-label",text:"Dopamine",x:100,y:80,width:400,height:70,fontSize:40,startFrame:0,endFrame:brief.durationFrames}];
+    if (files.includes(`shots/${id}/scene.json`)) {
+      const previous = JSON.parse((await call("read_file",{path:`shots/${id}/scene.json`})).content.filter(block=>block.type==="text").map(block=>block.text).join(""));
+      if (previous.labels) labels = previous.labels;
+    }
+    await call("write_file",{path:`shots/${id}/scene.json`,content:JSON.stringify({sourceFiles:["shared/characters.js",`shots/${id}/draw.js`],cast:brief.shot.characters,cues:[],labels})});
     await call("render_preview",{});
     if(++authorCalls===1) await call("write_file",{path:`shots/${id}/draw.js`,content:"ctx.fillStyle='#e9dfcf';ctx.fillRect(0,0,scene.width,scene.height);character(); // edited after preview"});
     return {finished:true};
@@ -74,6 +79,7 @@ it("runs artist tools through ordinary planning/generation, skips world building
   expect(saved.data.format).toEqual({width:1920,height:1080,fps:60});
   expect(saved.data.durationFrames).toBeGreaterThan(150);
   expect(saved.data.canvas.source).toContain("function character");
+  expect(saved.data.canvas.labels[0]).toMatchObject({id:"board-label",text:"Dopamine"});
   expect(saved.data.fallback).toBe(false);
   expect(ai.requests.some(request=>request.system.includes("prompt: artist_review"))).toBe(true);
   await expect(readFile(join(dir,id,"episodes/ep-01/shots/s01/stills/0.png"))).resolves.toBeInstanceOf(Buffer);
@@ -88,17 +94,25 @@ it("runs artist tools through ordinary planning/generation, skips world building
   await expect(write.call({path:"shared/versions/character-v2.js",content:"overwrite"})).rejects.toThrow(/read-only/);
   for(const request of ai.requests.filter(request=>!request.artistTools))expect(request.prompt).toContain("FULL-BRIEF-SENTINEL");
   expect(ai.requests.some(request=>request.artistTools?.some(tool=>tool.name==="report_blocker"))).toBe(true);
+  const ref={seriesId:id,episodeId:"ep-01",shotId:"s01"};
+  const labelPreview=await engine.previewLabelEdit(ref,{sceneHash:(await engine.labelEditor(ref)).sceneHash,labelId:"board-label",text:"Reward signal"});
+  await engine.applyLabelEdit(ref,labelPreview.id);
   const repairJob=await engine.waitForJob(await engine.regenerateShot({seriesId:id,episodeId:"ep-01",shotId:"s01"},"Improve the pose"));
   expect(repairJob.status).toBe("succeeded");
+  const reauthored=JSON.parse(await readFile(join(dir,id,"episodes/ep-01/shots/s01/spec.json"),"utf8"));
+  expect(reauthored.data.canvas.labels[0].text).toBe("Reward signal");
   const archived=JSON.parse(await readFile(join(dir,id,`episodes/ep-01/shots/s01/attempts/artist-${firstAttempt.invocationId}-1.json`),"utf8"));
   expect(archived).toEqual(firstAttempt);
   const latest=JSON.parse(await readFile(join(dir,id,"episodes/ep-01/shots/s01/attempts/artist-1.json"),"utf8"));
   expect(latest.invocationId).not.toBe(firstAttempt.invocationId);
   const authorsBeforeReview=authorCalls;
-  const review=await engine.waitForJob(await engine.reviewEpisode({seriesId:id,episodeId:"ep-01"}));
+  expect((await engine.waitForJob(await engine.renderPreview(ref))).status).toBe("succeeded");
+  const previewBefore=(await engine.status(id)).stages.find(stage=>stage.key==="ep-01/preview");
+  const review=await engine.waitForJob(await engine.reviewEpisode({seriesId:id,episodeId:"ep-01"},{repair:false}));
   expect(review.status).toBe("succeeded");
   expect(authorCalls).toBe(authorsBeforeReview);
-},20_000);
+  expect((await engine.status(id)).stages.find(stage=>stage.key==="ep-01/preview")).toEqual(previewBefore);
+},60_000); // Full planning, authoring, review, label editing and regeneration perform many durable Windows writes.
 
 it("recalibrates an artist script's word budget from measured speech instead of rejecting the needed cut", async () => {
   const dir=await mkdtemp(join(tmpdir(),"moco-artist-budget-"));

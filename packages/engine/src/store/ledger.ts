@@ -11,6 +11,7 @@ export interface StageRecord {
   artifactHash?: string; // hash the gate is bound to (or the stage's output hash)
   error?: { code: string; message: string };
   feedback?: string; // from reject() or a send-back; goes into the next prompt, cleared after success
+  preserveArtwork?: boolean; // precise edits disable automatic whole-cut repair on export retries
   sendBacks?: number; // voiceover → script send-backs so far
   narrationWordBudget?: number; // artist projects: recalibrated from actual narration, not a fixed WPM guess
   updatedAt: string;

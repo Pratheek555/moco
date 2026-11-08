@@ -9,6 +9,7 @@
   "main": "out/main/index.js",
   "scripts": {
     "test:character-reuse": "node scripts/character-reuse-test.mjs",
+    "test:label-editor": "node scripts/label-editor-test.mjs",
     "test:recent-chats": "node scripts/recent-chats-test.mjs",
     "test:studio-development": "node scripts/studio-development-test.mjs",
     "test:thumbnail-editor": "node scripts/thumbnail-editor-test.mjs",

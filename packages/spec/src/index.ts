@@ -1,4 +1,4 @@
-// @moco/spec — the single contract between engine, AI and renderer.
+// @moco/spec â€” the single contract between engine, AI and renderer.
 // Every artifact the AI writes or the renderer reads is described here.
 // Kit-specific rules (valid action names, etc.) are NOT here: they live in the
 // engine's semantic validator, fed by the kit catalog, so new packs need no spec release.
@@ -23,9 +23,10 @@ export * from "./thumbnail.ts";
 //   0.13.0: artist project settings, explicit voice-track fps, requirement availability and review evidence.
 //   0.14.0: optional thumbnail design; existing kits parse without changes.
 //   0.15.0: approved series-local character rigs and optional Canvas version pins.
-export const SPEC_VERSION = "0.15.0";
+//   0.16.0: optional renderer-owned bounded Canvas labels; old artwork stays unchanged.
+export const SPEC_VERSION = "0.16.0";
 
-// Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
+// Renderer output is fixed: 1080Ã—1920 at 30 fps (see renderer README).
 export const FPS = 30;
 export const FRAME_WIDTH = 1080;
 export const FRAME_HEIGHT = 1920;
@@ -76,7 +77,7 @@ export const WORLD_WEATHER = ["none", "rain", "snow", "dust", "embers", "firefli
 export const WORLD_LOOKS = ["film", "toon"] as const;
 
 // How something looks. `pattern` mixes `colour` and `colour2`; `glow` makes it give off its own light. `material` is
-// a texture from the asset library (real wood, brick, fabric…), tinted by `colour`; it replaces the pattern.
+// a texture from the asset library (real wood, brick, fabricâ€¦), tinted by `colour`; it replaces the pattern.
 export const WorldSurface = z.object({
   colour: Colour,
   material: Id.optional(),
@@ -143,7 +144,7 @@ export const WorldCharacter = z.object({
 });
 export type WorldCharacter = z.infer<typeof WorldCharacter>;
 
-// `rig: humanoid` promises the standard joint ids and earns the built-in moves (walk, wave, kneel…). A model with a
+// `rig: humanoid` promises the standard joint ids and earns the built-in moves (walk, wave, kneelâ€¦). A model with a
 // `character` needs no parts: the kit builds them (any parts given are added on top, e.g. a prop held in a hand).
 export const WorldModel = z
   .object({
@@ -259,7 +260,7 @@ export const ShowBible = z.object({
     name: z.string().min(1),
     role: z.string().min(1),
     personality: z.string().min(1),
-    appearance: z.string().min(1), // body, face, anatomy (tails, wings, extra arms…), costume, colours
+    appearance: z.string().min(1), // body, face, anatomy (tails, wings, extra armsâ€¦), costume, colours
     movement: z.string().min(1), // how they move and hold themselves
     signature: z.array(z.string().min(1)).max(6), // gestures, poses or props that make them instantly them
     voice: z.string().min(1),
@@ -324,7 +325,7 @@ export const TimedWord = z.object({
 });
 export type TimedWord = z.infer<typeof TimedWord>;
 
-// Lip sync: the mouth shape (a kit viseme name, e.g. "X", "A"…"F") shown from `frame` until the next key.
+// Lip sync: the mouth shape (a kit viseme name, e.g. "X", "A"â€¦"F") shown from `frame` until the next key.
 export const VisemeKey = z.object({ frame: z.number().int().nonnegative(), viseme: z.string().min(1) });
 export const VisemeTrack = z.array(VisemeKey);
 export type VisemeTrack = z.infer<typeof VisemeTrack>;
@@ -454,6 +455,25 @@ export type SceneStage = z.infer<typeof SceneStage>;
 
 // Optional authored drawing path. Source is a draw-function BODY, never executed in Node.
 // Embedded raster assets make the artifact self-contained and part of its content hash.
+// Fixed screen-space labels, composited by the renderer outside authored code.
+// A precise edit may change text only; layout, artwork and timing stay fixed.
+export const CanvasLabel = z.object({
+  id: z.string().regex(/^[a-z0-9][a-z0-9-]{0,80}$/),
+  text: z.string().trim().min(1).max(300).regex(/^[^\u0000-\u001f\u007f]+$/),
+  x: z.number().nonnegative().max(4096),
+  y: z.number().nonnegative().max(4096),
+  width: z.number().positive().max(4096),
+  height: z.number().positive().max(4096),
+  fontFamily: z.string().regex(/^[A-Za-z][A-Za-z0-9 -]{0,79}$/).default("Arial"),
+  fontSize: z.number().min(8).max(300),
+  fontWeight: z.enum(["400", "600", "700", "800"]).default("700"),
+  color: z.string().regex(/^#[0-9a-fA-F]{6}$/).default("#222222"),
+  align: z.enum(["left", "center", "right"]).default("center"),
+  startFrame: z.number().int().nonnegative(),
+  endFrame: z.number().int().positive(),
+});
+export type CanvasLabel = z.infer<typeof CanvasLabel>;
+
 export const CanvasScene = z.object({
   version: z.literal(1),
   fonts: z.record(z.string(), z.string().max(3_000_000).regex(/^data:font\/ttf;base64,[A-Za-z0-9+/=]+$/)).optional(),
@@ -464,6 +484,7 @@ export const CanvasScene = z.object({
   designSources: z.record(z.string(), z.string()).optional(),
   // Exact approved character versions used by this shot; {} means original artwork.
   characterRigs: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)).optional(),
+  labels: z.array(CanvasLabel).max(64).optional(),
 });
 export type CanvasScene = z.infer<typeof CanvasScene>;
 

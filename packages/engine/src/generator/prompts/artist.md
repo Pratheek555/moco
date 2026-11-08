@@ -41,6 +41,16 @@ names in ctx.font, overriding any earlier temporary system-font substitution whe
    and rig components separate for animation; a flattened image with an automatic zoom is not an animated scene.
    Otherwise create Canvas artwork or use provided assets, without claiming a raster model was used.
    Never substitute a different requested model or service. Web fetch and arbitrary shell commands are unavailable.
+   For fixed screen-space titles, board labels and diagram labels, add a `labels` array to scene.json:
+   [{"id":"reward-label","text":"Reward signal","x":100,"y":80,"width":400,"height":70,"fontFamily":"Arial","fontSize":40,"fontWeight":"700","color":"#222222","align":"center","startFrame":0,"endFrame":180}].
+   Use stable unique lowercase/hyphen ids. Bounds are output pixels, timing is shot-local frames with exclusive end.
+   These are single-line, renderer-owned overlays drawn above the artwork, clipped to fixed boxes. Leave the
+   corresponding artwork space blank; do NOT also draw the same text in code or bake it into images. Text must
+   fit at its fixed size with a small margin; render_preview rejects overflow. Use Arial or an available embedded
+   font family. Do not use these overlays for moving/perspective signs, occluded text, or text animated by code:
+   those remain authored artwork and cannot be precisely edited in this first editor. Do not expose label values
+   to drawing code or use them to control layout/artwork. Existing accepted labels are restored into the manifest
+   before an artist invocation; preserve them unless the user explicitly requests a broader shot rewrite.
 5. Call render_preview. Inspect the returned frames IN TIME ORDER, including text entry, pointing, walking and cuts.
    Fix unreadable/overflowing text, blank boards, intersections, empty backgrounds, cropped faces and black edges.
    You may preview specific frames around a gesture. You have at most 8 preview calls per authoring attempt.

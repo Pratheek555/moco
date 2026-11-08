@@ -28,7 +28,10 @@ export async function runStages(ctx: StageContext, firstKey?: string, options: {
     const ep = parseStageKey(key).episodeId!;
     if (ctx.store.has(files.critique(ep))) {
       const quality = (await ctx.store.read(files.critique(ep), "Critique")).data.quality;
-      if (quality?.status === "needs_attention") key = stageKey("scenes", ep);
+      if (quality?.status === "needs_attention") {
+        if (ctx.ledger.stage(stageKey("scenes", ep)).preserveArtwork) throw new EngineError("stage_blocked", "Visual review needs attention. Artwork is locked after a label edit; review without repairs or explicitly redo a shot before exporting.");
+        key = stageKey("scenes", ep);
+      }
     }
   }
 

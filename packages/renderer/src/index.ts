@@ -16,7 +16,7 @@ import { serveEpisodeInput } from "./episode-input.ts";
 
 // Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
 // (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
-export const RENDERER_VERSION = "0.9.0"; // self-contained offline canvas fonts
+export const RENDERER_VERSION = "0.10.0"; // isolated bounded label overlays
 
 // Remotion keeps a persistent webpack cache that doesn't notice a reinstall. When pnpm re-resolves a package under a new
 // peer-dependency folder, the cache still points at the old one and a bundle ends up with two copies of

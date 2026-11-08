@@ -19,6 +19,7 @@ import { readArtwork } from "./manifest.ts";
 import { readCharacterRig } from "./characters.ts";
 export { workspacePath } from "./paths.ts";
 
+import { writeJsonAtomic } from "../store/workspace.ts";
 const Read = z.object({ path: z.string() });
 const Write = Read.extend({ content: z.string().max(10_000_000), encoding: z.enum(["utf8", "base64"]).default("utf8") });
 const Preview = z.object({ frames: z.array(z.number().int().nonnegative()).max(12).optional() });
@@ -111,6 +112,18 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
   await writeContext(`${shotRoot}/brief.json`, { permissions, originalBrief: ctx.series.idea, templateBrief, availableFonts: Object.keys(fonts), production, show: inputs.show, timeline, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback, characterRigs: inputs.characterRigs ?? {}, approvedCharacters: Object.keys(approvedCharacters) });
   await writeContext(`${shotRoot}/production-state.json`, permissions);
   const manifestPath = `${shotRoot}/scene.json`;
+  // The accepted artifact is authoritative after a direct label edit or undo.
+  // Rehydrate editable metadata before the next artist invocation, without
+  // rewriting any drawing source or shared assets during a precise edit.
+  const acceptedFile = files.shotSpec(inputs.episodeId, inputs.shot.id);
+  if (ctx.store.has(acceptedFile)) {
+    const accepted = (await ctx.store.read(acceptedFile, "SceneSpec")).data.canvas;
+    const manifestFile = await workspacePath(root, manifestPath);
+    const existing = await readFile(manifestFile, "utf8").catch(() => undefined);
+    if (existing && accepted?.labels) {
+      await writeJsonAtomic(manifestFile, { ...JSON.parse(existing), labels: accepted.labels });
+    }
+  }
   const lockPath = join(root, "shared.lock.json");
   const sharedLock = await readFile(lockPath, "utf8").then(value => JSON.parse(value) as { inherited?: string }, () => undefined);
   const locked = Boolean(sharedLock && (sharedLock.inherited || ctx.ledger.stage(`${inputs.episodeId}/sample`).status === "approved"));
@@ -144,7 +157,7 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     const { manifest, source, assets, designSources, characterRigs } = artwork;
     if (inputs.shot.characters.length && !artwork.sharedSources.length) throw Error("Characters must use a reusable shared design file from shared/ or an approved character rig");
     if (inputs.requireCharacterRigs && Object.entries(inputs.characterRigs ?? {}).some(([id, version]) => characterRigs[id] !== version)) throw Error("This shot must use the explicitly selected character version");
-    const spec = SceneSpec.parse({ shotId: inputs.shot.id, durationFrames: brief.durationFrames, format: production.format, background: { id: inputs.shot.location }, actors: [], captions: [], canvas: { version: 1, source, cast: manifest.cast, cues: manifest.cues, assets, fonts, designSources, characterRigs } });
+    const spec = SceneSpec.parse({ shotId: inputs.shot.id, durationFrames: brief.durationFrames, format: production.format, background: { id: inputs.shot.location }, actors: [], captions: [], canvas: { version: 1, source, cast: manifest.cast, cues: manifest.cues, assets, fonts, designSources, characterRigs, labels: manifest.labels } });
     const issues = validateScene(spec, { brief, bible: inputs.bible, catalog: ctx.catalog });
     if (issues.length) throw Error(JSON.stringify(issues));
     return spec;

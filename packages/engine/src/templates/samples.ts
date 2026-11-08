@@ -156,6 +156,9 @@ export async function styleSampleReview(ctx: StageContext, template: TemplateInf
     if (ctx.store.has(files.previewReport(ep))) {
       const report = await ctx.store.read(files.previewReport(ep), "RenderReport");
       const inputs = [...shots.map(shot => ctx.store.inputRef(files.shotSpec(ep, shot.id))), ctx.store.inputRef(files.voiceover(ep))];
+      // New preview reports bind approval to cuts too; retain compatibility with
+      // saved previews produced before ShotList was recorded as a render input.
+      if (report.meta.inputs.some(input => input.kind === "ShotList")) inputs.push(ctx.store.inputRef(files.shotList(ep)));
       const expected = hashData({ report: report.meta.contentHash, inputs: inputs.map(({ kind, contentHash }) => ({ kind, contentHash })) });
       if (expected !== preview?.artifactHash) blockers.push("The playable preview is stale. Render it again before approval.");
       media = await fingerprints(join(ctx.dir, "episodes", ep, "renders"));

@@ -21,6 +21,9 @@
 
 # moco — Engine & Backbone Reference
 
+> For the current artist path and bounded label editing, see [authored scenes](authored-scenes.md).
+> Its Canvas contracts supersede the older kit-only assumptions in this reference.
+
 > **For:** Claude Code (and humans) building **moco**: idea → animated 9:16 reels, rendered locally, powered by the user's own Claude/ChatGPT.
 > **Scope:** the backbone — `packages/engine` first, plus the contracts it needs from `spec`, `ai`, `audio`, `kit`, `renderer` and `apps/desktop`.
 > **Repo baseline:** `Pratheek555/moco` @ `b85e7b6` ("basic structure", 29 Oct 2026) — empty package skeletons with READMEs.
