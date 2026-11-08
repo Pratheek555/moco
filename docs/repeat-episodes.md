@@ -47,6 +47,9 @@ Learning remains best effort; an interruption after memory is saved can skip tha
 
 - Engine: `repeatOffer(seriesId)`, `nextEpisode(seriesId, {topic?})`, and `inspectPreview(EpisodeRef)`.
 - Desktop: `series.repeatOffer`, `series.repeat`, `episode.inspect`; existing gate APIs remain in use.
+- Inspection render reports carry an optional `inspection` flag so the current video can be played while
+  scenes need quality review. Playback still checks scene, narration, cut and renderer hashes; inspection
+  does not approve the production preview or allow final export. Rendering inspection requires no AI call.
 - Existing artist source/manifest and embedded SceneSpec formats are unchanged. This branch does not add
   a new asset library, editing model, learned-style system, licensing flow or provider fallback.
 - Voice IDs/backends are reused, not voice recordings copied into projects. Configured voice files and

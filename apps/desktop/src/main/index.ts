@@ -313,11 +313,18 @@ async function episodeMedia(
   const stills: Record<string, string[]> = {};
   for (const shotId of shotIds) {
     stills[shotId] = await stillUrls(path.join(shotsDir, shotId, "stills"));
+    if (existsSync(path.join(dir, "edits", `${shotId}-stills.json`))) {
+      const edited = await engine().labelEditor({ seriesId, episodeId, shotId });
+      if (edited.stills) stills[shotId] = await Promise.all(edited.stills.map(file => versionedUrl(path.join(settings.projectsDir, seriesId, file))));
+    }
   }
+  const fresh = await engine().renderFreshness({ seriesId, episodeId });
   return {
-    preview: existsSync(preview) ? await versionedUrl(preview) : undefined,
-    final: existsSync(final) ? await versionedUrl(final) : undefined,
-    finalPath: existsSync(final) ? final : undefined,
+    preview: fresh.preview && existsSync(preview) ? await versionedUrl(preview) : undefined,
+    final: fresh.final && existsSync(final) ? await versionedUrl(final) : undefined,
+    finalPath: fresh.final && existsSync(final) ? final : undefined,
+    outdatedPreview: existsSync(preview) && !fresh.preview,
+    outdatedFinal: existsSync(final) && !fresh.final,
     thumbnail: existsSync(thumbnail) ? await versionedUrl(thumbnail) : undefined,
     thumbnailPath: existsSync(thumbnail) ? thumbnail : undefined,
     stills,
@@ -544,13 +551,26 @@ app
     handle("episode.media", (seriesId: string, episodeId: string) =>
       episodeMedia(seriesId, episodeId),
     );
-    handle("episode.review", (seriesId: string, episodeId: string) => engine().reviewEpisode({ seriesId, episodeId }));
     handle("episode.inspect", (seriesId: string, episodeId: string) => engine().inspectPreview({ seriesId, episodeId }));
     handle("characters.list", (seriesId: string) => engine().listCharacters(seriesId));
     handle("characters.save", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }) =>
       engine().saveCharacter({ seriesId, episodeId, shotId }, choice));
     handle("characters.apply", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; version: string; sceneHash: string }) =>
       engine().applyCharacter({ seriesId, episodeId, shotId }, choice));
+    handle("episode.labelEditor", (seriesId: string, episodeId: string, shotId: string) => engine().labelEditor({ seriesId, episodeId, shotId }));
+    handle("episode.previewLabelEdit", async (seriesId: string, episodeId: string, shotId: string, input: { sceneHash: string; labelId: string; text: string }) => {
+      const result = await engine().previewLabelEdit({ seriesId, episodeId, shotId }, input);
+      const url = (file: string) => versionedUrl(path.join(settings.projectsDir, safeId(seriesId, "series id"), file));
+      return { ...result, before: await Promise.all(result.before.map(url)), after: await Promise.all(result.after.map(url)) };
+    });
+    const edit = async (method: "applyLabelEdit" | "undoLabelEdit", seriesId: string, episodeId: string, shotId: string, id: string) => {
+      await engine()[method]({ seriesId, episodeId, shotId }, id);
+      send("library", { seriesId });
+    };
+    handle("episode.applyLabelEdit", (seriesId: string, episodeId: string, shotId: string, id: string) => edit("applyLabelEdit", seriesId, episodeId, shotId, id));
+    handle("episode.undoLabelEdit", (seriesId: string, episodeId: string, shotId: string, id: string) => edit("undoLabelEdit", seriesId, episodeId, shotId, id));
+    handle("episode.renderPreview", (seriesId: string, episodeId: string) => engine().renderPreview({ seriesId, episodeId }));
+    handle("episode.review", (seriesId: string, episodeId: string) => engine().reviewEpisode({ seriesId, episodeId }, { repair: false }));
     handle(
       "episode.regenerateShot",
       (seriesId: string, episodeId: string, shotId: string, feedback?: string) =>

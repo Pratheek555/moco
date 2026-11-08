@@ -2,6 +2,7 @@ import { readFile } from "node:fs/promises";
 import { extname } from "node:path";
 import { createHash } from "node:crypto";
 import * as z from "zod";
+import { CanvasLabel } from "@moco/spec";
 import type { StageContext } from "../pipeline/context.ts";
 import { workspacePath } from "./paths.ts";
 import { readCharacterRig, type CharacterSelection } from "./characters.ts";
@@ -12,6 +13,7 @@ export const Manifest = z.object({
   assets: z.record(z.string(), z.string()).default({}),
   cues: z.array(z.object({ id: z.string(), atFrame: z.number().int().nonnegative() })).max(100).default([]),
   characterRigs: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)).optional(),
+  labels: z.array(CanvasLabel).max(64).optional(),
 });
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 

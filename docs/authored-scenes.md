@@ -1,5 +1,70 @@
 # Authored scenes: first working prototype
 
+## Precise label editing
+
+Artist manifests can now declare optional `labels`, copied into `SceneSpec.canvas.labels`:
+
+```json
+{
+  "id": "reward-label", "text": "Reward signal",
+  "x": 100, "y": 80, "width": 400, "height": 70,
+  "fontFamily": "Arial", "fontSize": 40, "fontWeight": "700",
+  "color": "#222222", "align": "center", "startFrame": 0, "endFrame": 180
+}
+```
+
+Coordinates are output pixels. Times are shot-local frames, with exclusive end. Labels are single-line,
+fixed screen-space overlays above the drawing. The artist must leave their space blank in the source/artwork.
+The renderer loads Arial or an embedded font, measures every label, rejects overflow instead of shrinking or
+reflowing it, and clips drawing to its box. Label text is omitted entirely from the source iframe's config.
+Thus changing a label cannot feed a different value into the drawing program. The transparent label layer
+uses separate drawing state; artwork and label rendering start clean at each requested frame.
+
+The episode inspector provides label selection, replacement text, three sampled before/after frames, explicit
+Apply, and Undo of the last label edit for that shot. Previewing does not replace the accepted scene or stills.
+Apply constructs a text-only change in the engine; clients cannot supply changed layout, source, assets,
+narration or timing. Drafts are stored under `episodes/<id>/edits/<uuid>/`, bound to every current shot revision,
+the cut, narration and renderer version. Intervening episode changes reject Apply/Undo rather than overwriting
+newer work. Undo creates a new human revision, retains provenance inputs, and survives reopening the project.
+Undo is one step per shot; no timeline editor, multi-step history browser or redo is included.
+
+The accepted SceneSpec is authoritative. Before the next artist invocation, its labels are copied back into
+the editable manifest. Label edits do not rewrite drawing source, images or shared designs. A later explicit
+shot regeneration is still a broader artist operation. Historical generic artifact restores are not a replacement
+for this label Undo path.
+
+Current comparison stills are selected by scene hash. Old episode MP4s remain on disk but are hidden from the
+player/publishing controls when their input hashes, stage status or renderer versions are stale. Rebuild episode
+preview performs no model call and does not require AI availability. Encoding uses temporary outputs and atomic
+replacement, preserving the old video and cache on failure. The artist final gate still requires current quality
+evidence. “Review without changing artwork” explicitly runs review with zero repair rounds; a failed review does
+not silently rewrite other shots. Export retries after a precise edit also refuse automatic whole-cut repair.
+Reviewing unchanged artwork keeps its current preview and approval intact.
+
+Existing code-drawn text and raster-baked signs remain unchanged and unavailable in this editor. Moving,
+perspective or occluded signs, animated letter effects, spoken-sentence changes, object/background replacement,
+and timing changes are outside this first operation. No automatic conversion is attempted. Existing arbitrary
+Canvas code must still follow the deterministic drawing contract below; label separation does not make an
+otherwise nondeterministic program deterministic. Reviews and comparisons use sampled frames.
+
+Verification commands (no live models):
+
+```powershell
+pnpm exec vitest run packages/engine/test/label-edit.test.ts
+$env:MOCO_RENDER_TESTS='1'; pnpm exec vitest run packages/renderer/test/labels.test.ts
+pnpm --filter @moco/desktop build
+pnpm --filter @moco/desktop test:label-editor
+```
+
+Validation for precise editing: workspace/desktop typechecks and desktop build passed; the deterministic desktop
+test passed comparison, rejected Apply, successful Apply, Undo, stale renders, overflow and unsupported artwork.
+All three real-browser label tests passed, including pixel differences confined to the selected box, timing,
+out-of-order reproducibility, embedded fonts, recovery and an encoded MP4. The filtered workspace suite passed
+318 tests with 15 opt-in/platform tests skipped, using the existing exclusions
+`packages/ai/test/claude-cli.test.ts` and `packages/kit/test/art.test.ts`. This is not an unfiltered-suite claim.
+No live model generation was used. The full artist integration fixture now also exercises label preservation
+through regeneration and uses a 60-second deadline for its many durable filesystem writes.
+
 Issue: https://github.com/Pratheek555/moco/issues/15
 
 Moco can now render a shot from AI-authored Canvas 2D code, in addition to its existing kit/world paths. This gives

@@ -1,5 +1,6 @@
 // Stages preview and final: assemble the episode from its shot specs and hand it to the renderer.
-import { copyFile, link, mkdir, rm } from "node:fs/promises";
+import { copyFile, link, mkdir, rename, rm } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
 import { dirname, join, relative } from "node:path";
 import { FPS, FRAME_HEIGHT, FRAME_WIDTH, type EpisodeSpec, type RenderReport } from "@moco/spec";
 import { hashData } from "../store/hash.ts";
@@ -7,9 +8,9 @@ import { exists } from "../store/workspace.ts";
 import type { StageContext } from "./context.ts";
 import { files } from "./stages.ts";
 
-type RenderContext = Pick<StageContext, "store" | "dir" | "render" | "bus" | "seriesId" | "signal" | "renderSlots"> & {series?:StageContext["series"]};
+type RenderContext = Pick<StageContext, "store" | "dir" | "render" | "bus" | "seriesId" | "signal" | "renderSlots"> & {series?:StageContext["series"];ledger?:StageContext["ledger"]};
 
-export async function runRender(ctx: RenderContext, episodeId: string, quality: "preview" | "final"): Promise<string> {
+export async function runRender(ctx: RenderContext, episodeId: string, quality: "preview" | "final", options: { inspection?: boolean } = {}): Promise<string> {
   if(quality==="final") {
     const critique=ctx.store.has(files.critique(episodeId)) ? (await ctx.store.read(files.critique(episodeId),"Critique")).data : undefined;
     if(ctx.series?.production || critique?.quality){
@@ -25,12 +26,14 @@ export async function runRender(ctx: RenderContext, episodeId: string, quality: 
   const report: RenderReport = {
     file: relative(ctx.dir, rendered.path),
     quality,
+    ...(options.inspection && quality === "preview" ? { inspection: true } : {}),
     durationSeconds: rendered.durationSeconds,
     ...ctx.render.versions(), // recorded so a render can be reproduced
   };
   const file = quality === "preview" ? files.previewReport(episodeId) : files.renderReport(episodeId);
   const inputs = episode.scenes.map((scene) => ctx.store.inputRef(files.shotSpec(episodeId, scene.shotId)));
   inputs.push(ctx.store.inputRef(files.voiceover(episodeId)));
+  inputs.push(ctx.store.inputRef(files.shotList(episodeId)));
   const saved = await ctx.store.save(file, "RenderReport", report, { producedBy: "engine", inputs });
   // The report's path, duration and versions can stay identical after a repair.
   // Bind preview approval to the actual scenes and narration the user receives.
@@ -67,17 +70,61 @@ async function renderCached(ctx: RenderContext, episode: EpisodeSpec, out: strin
     // Movie encoding launches its own Chromium. Release the still-check browser
     // first so large canvas episodes do not keep two copies of the artwork alive.
     await ctx.render.release?.();
-    return ctx.render.renderEpisode(episode, out, quality, onProgress, ctx.signal);
+    const staging = join(dirname(out), `${quality}-${randomUUID()}.mp4`);
+    try {
+      const result = await ctx.render.renderEpisode(episode, staging, quality, onProgress, ctx.signal);
+      ctx.signal.throwIfAborted();
+      await placeFile(result.path, cached);
+      await placeFile(cached, out);
+      return { ...result, path: out };
+    } finally { await rm(staging, { force: true }); }
   });
-  await placeFile(rendered.path, cached);
   return rendered;
 }
 
 // Hard link when possible (no extra disk space), copy otherwise.
 async function placeFile(from: string, to: string): Promise<void> {
   await mkdir(dirname(to), { recursive: true });
-  await rm(to, { force: true });
-  await link(from, to).catch(() => copyFile(from, to));
+  const staging = `${to}.${randomUUID()}.tmp`;
+  try {
+    await link(from, staging).catch(() => copyFile(from, staging));
+    await rename(staging, to);
+  } finally { await rm(staging, { force: true }); }
+}
+
+// Disk presence alone is not evidence that an MP4 represents the current cut.
+// Read artifacts to catch external edits; on incomplete/invalid inputs fail closed.
+export async function renderFreshness(ctx: RenderContext, episodeId: string) {
+  const fresh = async (quality: "preview" | "final") => {
+    try {
+      const file = quality === "preview" ? files.previewReport(episodeId) : files.renderReport(episodeId);
+      const report = await ctx.store.read(file, "RenderReport");
+      if (ctx.ledger) {
+        const status = ctx.ledger.stage(`${episodeId}/${quality === "preview" ? "preview" : "final"}`).status;
+        // Inspection is playable without passing the production preview gate.
+        // Its input hashes and renderer versions must still match the current cut.
+        const inspection = quality === "preview" && report.data.inspection === true
+          && ctx.ledger.stage(`${episodeId}/script`).status === "approved"
+          && ["done", "failed"].includes(ctx.ledger.stage(`${episodeId}/scenes`).status);
+        if (!inspection && !(quality === "preview" ? ["done", "approved", "awaiting_approval"] : ["done"]).includes(status)) return false;
+      }
+      const list = await ctx.store.read(files.shotList(episodeId), "ShotList");
+      const voice = await ctx.store.read(files.voiceover(episodeId), "VoiceoverTrack");
+      // Validate one self-contained drawing at a time; don't retain every
+      // embedded image/font in memory just to compare their metadata hashes.
+      const scenes = [];
+      for (const shot of list.data.shots) scenes.push((await ctx.store.read(files.shotSpec(episodeId, shot.id), "SceneSpec")).meta);
+      const expected = [...scenes.map(scene => scene.contentHash), voice.meta.contentHash];
+      const actual = report.meta.inputs.filter(input => input.kind !== "ShotList").map(input => input.contentHash);
+      if (hashData(expected) !== hashData(actual)) return false;
+      const cut = report.meta.inputs.find(input => input.kind === "ShotList");
+      // Pre-label reports omitted ShotList; scene staleness still detects changed cuts.
+      if (cut ? cut.contentHash !== list.meta.contentHash : scenes.some(scene => !scene.inputs.some(input => input.kind === "ShotList" && input.contentHash === list.meta.contentHash))) return false;
+      const versions = ctx.render.versions();
+      return report.data.rendererVersion === versions.rendererVersion && report.data.kitVersion === versions.kitVersion;
+    } catch { return false; }
+  };
+  return { preview: await fresh("preview"), final: await fresh("final") };
 }
 
 async function assembleEpisode(ctx: RenderContext, episodeId: string): Promise<EpisodeSpec> {

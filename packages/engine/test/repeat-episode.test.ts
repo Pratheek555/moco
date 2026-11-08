@@ -170,18 +170,29 @@ it("blocks changed approved source and changed inherited files instead of silent
 }, 30_000);
 
 it("offers an inspection preview for unresolved quality without approving or exporting it", async () => {
-  const { engine, id, setFailReview, render } = await established();
+  const { engine, id, dir, setFailReview, render } = await established();
   await runNext(engine, id, "Explain gravity");
   await approveNext(engine, id);
   setFailReview(true);
   const failed = await engine.waitForJob(await engine.runStage({ seriesId: id }));
   expect(failed).toMatchObject({ status: "failed", error: { code: "validation_failed" } });
   const rendersBefore = render.renders;
+  const previewBefore = (await engine.status(id)).stages.find(stage => stage.key === "ep-02/preview");
   expect(await engine.waitForJob(await engine.inspectPreview({ seriesId: id, episodeId: "ep-02" }))).toMatchObject({ status: "succeeded" });
   expect(render.renders).toBeGreaterThan(rendersBefore);
+  expect(await engine.renderFreshness({ seriesId: id, episodeId: "ep-02" })).toEqual({ preview: true, final: false });
+  expect((await engine.status(id)).stages.find(stage => stage.key === "ep-02/preview")).toEqual(previewBefore);
   expect((await engine.status(id)).stages.find(stage => stage.key === "ep-02/scenes")?.status).toBe("failed");
   await expect(engine.approve({ seriesId: id, key: "ep-02/preview" }, "anything")).rejects.toMatchObject({ code: "not_awaiting_approval" });
   expect(await engine.waitForJob(await engine.renderFinal({ seriesId: id, episodeId: "ep-02" }))).toMatchObject({ status: "failed" });
+  // An inspection report must not bypass freshness checks after the cut changes.
+  const scenePath = join(dir, id, "episodes/ep-02/shots/s01/spec.json");
+  const sceneBytes = await readFile(scenePath, "utf8");
+  const changedScene = JSON.parse(sceneBytes);
+  changedScene.data.durationFrames += 1;
+  await writeFile(scenePath, JSON.stringify(changedScene));
+  expect(await engine.renderFreshness({ seriesId: id, episodeId: "ep-02" })).toEqual({ preview: false, final: false });
+  await writeFile(scenePath, sceneBytes);
   setFailReview(false);
   await advance(engine, id);
   expect((await engine.status(id)).next).toMatchObject({ key: "ep-02/preview", status: "awaiting_approval" });

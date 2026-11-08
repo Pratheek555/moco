@@ -3,7 +3,7 @@
 import type { VoiceInfo } from "@moco/audio";
 import type { CodexAccountState } from "@moco/ai";
 export type { CodexAccountState } from "@moco/ai";
-import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus, StyleSampleReview } from "@moco/engine";
+import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus, StyleSampleReview, LabelEditorState, LabelEditPreview } from "@moco/engine";
 import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
 import type { ArtistProduction, PublishDefaults, PublishKit, ThumbnailChoice } from "@moco/spec";
@@ -70,6 +70,8 @@ export interface EpisodeMedia {
   thumbnailPath?: string; // on disk, for dragging into YouTube
   stills: Record<string, string[]>; // shot id → still URLs
   savedShots?: string[]; // persisted specs, including shots saved before this UI session
+  outdatedPreview?: boolean;
+  outdatedFinal?: boolean;
 }
 
 // Learning a template from reference videos (@moco/learn), run by main in a background process.
@@ -161,6 +163,11 @@ export interface MocoApi {
   episode: {
     media(seriesId: string, episodeId: string): Promise<EpisodeMedia>;
     regenerateShot(seriesId: string, episodeId: string, shotId: string, feedback?: string): Promise<string>;
+    labelEditor(seriesId: string, episodeId: string, shotId: string): Promise<LabelEditorState>;
+    previewLabelEdit(seriesId: string, episodeId: string, shotId: string, input: { sceneHash: string; labelId: string; text: string }): Promise<LabelEditPreview>;
+    applyLabelEdit(seriesId: string, episodeId: string, shotId: string, id: string): Promise<void>;
+    undoLabelEdit(seriesId: string, episodeId: string, shotId: string, id: string): Promise<void>;
+    renderPreview(seriesId: string, episodeId: string): Promise<string>;
     review(seriesId: string, episodeId: string): Promise<string>;
     inspect(seriesId: string, episodeId: string): Promise<string>;
   };

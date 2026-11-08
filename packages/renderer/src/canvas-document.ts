@@ -4,7 +4,9 @@ import { actingSource } from "./acting.ts";
 // Opaque-origin iframe: no same-origin, network, popups, forms or parent DOM access.
 // CSP is defense in depth, not an OS sandbox. Renderer timeouts bound failed draws.
 export function canvasDocument(canvas: CanvasScene, width: number, height: number): string {
-  const encoded = JSON.stringify({ ...canvas, width, height }).replace(/</g, "\\u003c");
+  // Label values must never reach source: editing a label cannot influence artwork.
+  const { labels: _labels, ...artwork } = canvas;
+  const encoded = JSON.stringify({ ...artwork, width, height }).replace(/</g, "\\u003c");
   return `<!doctype html><html><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'unsafe-inline' 'unsafe-eval'; img-src data:; font-src data:; style-src 'unsafe-inline'; connect-src 'none'; frame-src 'none'; worker-src 'none'; base-uri 'none'; form-action 'none'"><style>html,body{margin:0;overflow:hidden}canvas{display:block}</style></head><body><canvas></canvas><script>
 "use strict";
 const config=${encoded};

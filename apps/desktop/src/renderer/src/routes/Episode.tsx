@@ -10,7 +10,7 @@ import {
   PlayIcon,
   RefreshCwIcon,
 } from "lucide-react";
-import type { EpisodeScript, SeriesPlan, ShotList } from "@moco/spec";
+import type { EpisodeScript, SeriesPlan, ShotList, SceneSpec } from "@moco/spec";
 import { api } from "@/lib/api.ts";
 import { useAsync } from "@/lib/async.ts";
 import { report, stageLabel, useApp } from "@/lib/store.ts";
@@ -34,6 +34,7 @@ import { PageError, PageLoading } from "../components/Page.tsx";
 import { PublishPanel } from "../components/PublishPanel.tsx";
 import { RepeatEpisodePanel } from "../components/RepeatEpisode";
 import { CharacterReuse } from "../components/CharacterReuse.tsx";
+import { LabelEditor } from "../components/LabelEditor.tsx";
 
 // "ep-01/voiceover" → "voiceover": the episode is already on screen.
 const stepOf = (key: string) => stageLabel(key).replace(/^Episode \d+ /, "");
@@ -50,12 +51,15 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
       read(`episodes/${episodeId}/artifacts/shot_list.json`),
       api.episode.media(seriesId, episodeId),
     ]);
+    const firstShot = (shots?.data as ShotList | undefined)?.shots[0];
+    const scene = firstShot ? await read(`episodes/${episodeId}/shots/${firstShot.id}/spec.json`) : null;
     return {
       status,
       plan: plan?.data as SeriesPlan | undefined,
       script: script?.data as EpisodeScript | undefined,
       shots: (shots?.data as ShotList | undefined)?.shots ?? [],
       media,
+      format: (scene?.data as SceneSpec | undefined)?.format ?? status.series.production?.format ?? { width: 1080, height: 1920, fps: 30 },
     };
   }, [seriesId, episodeId, version]);
   const [selected, setSelected] = useState(0),
@@ -72,7 +76,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
       />
     );
   if (!data) return <PageLoading label="Opening episode…" />;
-  const { status, plan, script, shots, media } = data;
+  const { status, plan, script, shots, media, format } = data;
   const number = Number(episodeId.replace(/\D/g, ""));
   const episode = plan?.episodes.find((ep) => ep.id === episodeId);
   const running = status.activeJob !== undefined;
@@ -188,7 +192,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
             <Badge variant={media.final ? "default" : "outline"}>
               {media.final ? "Final render" : media.preview ? "Preview" : "Not rendered yet"}
             </Badge>
-            <span className="text-xs text-muted-foreground tabular-nums">9:16 · 1080 × 1920</span>
+            <span className="text-xs text-muted-foreground tabular-nums">{format.width} × {format.height} · {format.fps} fps</span>
           </div>
           <div className="flex min-h-0 flex-1 items-center justify-center">
             {video ? (
@@ -196,7 +200,8 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                 key={video}
                 src={video}
                 controls
-                className="aspect-[9/16] h-full max-w-full rounded-xl bg-black shadow-lg"
+                style={{ aspectRatio: `${format.width}/${format.height}` }}
+                className="max-h-full w-full max-w-full rounded-xl bg-black shadow-lg"
               />
             ) : (
               <Empty>
@@ -204,12 +209,17 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                   <EmptyMedia variant="icon">
                     <FilmIcon />
                   </EmptyMedia>
-                  <EmptyTitle>Nothing to play yet</EmptyTitle>
-                  <EmptyDescription>The preview renders once every shot is written.</EmptyDescription>
+                  <EmptyTitle>{media.outdatedPreview || media.outdatedFinal ? "Episode renders are out of date" : "Nothing to play yet"}</EmptyTitle>
+                  <EmptyDescription>{media.outdatedPreview || media.outdatedFinal ? "Rebuild the preview to include your changes. Earlier files remain on disk." : "The preview renders once every shot is written."}</EmptyDescription>
                 </EmptyHeader>
               </Empty>
             )}
           </div>
+          {(media.outdatedPreview || media.outdatedFinal) && <p role="status" className="text-center text-xs text-muted-foreground">An earlier render is out of date and is unavailable for publishing until rebuilt.</p>}
+          {scenesDone && <div className="flex flex-wrap justify-center gap-2">
+            <Button variant="outline" disabled={running} onClick={() => void api.episode.renderPreview(seriesId, episodeId).catch(report)}>Rebuild episode preview</Button>
+            {status.series.production && <Button variant="outline" disabled={running} onClick={() => void api.episode.review(seriesId, episodeId).catch(report)}>Review without changing artwork</Button>}
+          </div>}
           <p className="text-center text-xs text-muted-foreground tabular-nums">
             {shots.length} {shots.length === 1 ? "shot" : "shots"} · {seconds(total)}
           </p>
@@ -261,13 +271,16 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                           key={url}
                           src={url}
                           alt={`${humanize(shot.id)} still`}
-                          className="aspect-[9/16] w-full rounded-lg border object-cover"
+                          style={{ aspectRatio: `${format.width}/${format.height}` }}
+                          className="w-full rounded-lg border object-contain"
                         />
                       ))}
                     </div>
                   )}
                   <Separator />
                   {status.series.production && <CharacterReuse key={`${seriesId}/${episodeId}/${shot.id}`} seriesId={seriesId} episodeId={episodeId} shotId={shot.id} cast={shot.characters} disabled={running || busy} canApply={scenesDone} />}
+                  <LabelEditor key={`${seriesId}/${episodeId}/${shot.id}`} seriesId={seriesId} episodeId={episodeId} shotId={shot.id} disabled={running || !scenesDone} />
+                  <Separator />
                   <FieldSet disabled={running || !scenesDone} className="gap-3">
                     <Field data-disabled={running || !scenesDone}>
                       <FieldLabel htmlFor="shot-note">Redo this shot</FieldLabel>
@@ -327,7 +340,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                     </ItemMedia>
                     <ItemContent>
                       <ItemTitle>final.mp4</ItemTitle>
-                      <ItemDescription>1080 × 1920, ready for Reels and Shorts.</ItemDescription>
+                      <ItemDescription>{format.width} × {format.height} · {format.fps} fps</ItemDescription>
                     </ItemContent>
                   </Item>
                   <div className="flex flex-wrap gap-2">

@@ -68,8 +68,13 @@ const api: MocoApi = {
   } as MocoApi["stages"],
   episode: {
     media: call("episode.media"),
-    regenerateShot: call("episode.regenerateShot"),
+    labelEditor: call("episode.labelEditor"),
+    previewLabelEdit: call("episode.previewLabelEdit"),
+    applyLabelEdit: call("episode.applyLabelEdit"),
+    undoLabelEdit: call("episode.undoLabelEdit"),
+    renderPreview: call("episode.renderPreview"),
     review: call("episode.review"),
+    regenerateShot: call("episode.regenerateShot"),
     inspect: call("episode.inspect"),
   } as MocoApi["episode"],
   characters: {
