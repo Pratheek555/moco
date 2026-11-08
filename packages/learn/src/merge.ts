@@ -227,6 +227,13 @@ export const TemplateDraft = z.object({
 });
 export type TemplateDraft = z.infer<typeof TemplateDraft>;
 
+// Canvas guidance is an explicit opt-in. The legacy compiler and saved templates
+// keep their existing schema and renderer choices.
+export const ArtistTemplateDraft = TemplateDraft.extend({
+  stages: TemplateDraft.shape.stages.extend({ show: z.string(), artist: z.string() }),
+});
+export type ArtistTemplateDraft = z.infer<typeof ArtistTemplateDraft>;
+
 export function templatePrompt(skill: string, example: string | undefined): string {
   return [
     `## The skill to translate\n${skill}`,

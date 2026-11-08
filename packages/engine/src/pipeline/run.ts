@@ -21,6 +21,7 @@ type StageOutput = { kind: "done"; hash: string } | { kind: "sent_back" };
 export async function runStages(ctx: StageContext, firstKey?: string, options: { once?: boolean } = {}): Promise<string[]> {
   const ran: string[] = [];
   let key: string | undefined = firstKey ?? runnableNext(ctx);
+  if (ctx.series?.styleSample && key && ["final", "publish", "memory_update"].includes(parseStageKey(key).stage)) throw new EngineError("stage_blocked", "Style samples stop at approved preview; create a series separately for full production");
   // Older jobs completed scenes even when review was interrupted. Retrying
   // export must resume that work, rather than reject the same report again.
   if (key && parseStageKey(key).stage === "final") {
@@ -47,6 +48,7 @@ export async function runStages(ctx: StageContext, firstKey?: string, options: {
 }
 
 function runnableNext(ctx: StageContext): string | undefined {
+  if (ctx.series?.styleSample && ctx.ledger.stage(`${ctx.episodeIds()[0]}/preview`).status === "approved") return undefined;
   const next = nextStage(ctx.ledger, ctx.episodeIds());
   return next.kind === "run" ? next.key : undefined;
 }

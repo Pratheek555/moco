@@ -1,6 +1,6 @@
 // Learning a template from reference videos: the dialog that starts a run, and a card per run with its progress.
 import { useState } from "react";
-import { AlertCircleIcon, SparklesIcon, XIcon } from "lucide-react";
+import { AlertCircleIcon, CheckIcon, FolderOpenIcon, SparklesIcon, XIcon } from "lucide-react";
 import { api, type LearnJob } from "@/lib/api.ts";
 import { report, useApp } from "@/lib/store.ts";
 import { Button } from "@/components/ui/button";
@@ -34,16 +34,20 @@ const STEPS: { key: string; label: string }[] = [
 export function LearnDialog({ open, onOpenChange }: { open: boolean; onOpenChange(open: boolean): void }) {
   const [name, setName] = useState("");
   const [links, setLinks] = useState("");
+  const [files, setFiles] = useState<string[]>([]);
+  const [referenceImages, setReferenceImages] = useState<string[]>([]);
   const [busy, setBusy] = useState(false);
-  const sources = links.split(/\s+/).filter(Boolean);
+  const sources = [...new Set([...links.split(/\r?\n/).map((line) => line.trim()).filter(Boolean), ...files])];
   const valid = name.trim().length > 0 && sources.length > 0 && sources.length <= 10;
 
   async function start() {
     setBusy(true);
     try {
-      await api.templates.learn({ name: name.trim(), sources });
+      await api.templates.learn({ name: name.trim(), sources, referenceImages });
       setName("");
       setLinks("");
+      setFiles([]);
+      setReferenceImages([]);
       onOpenChange(false);
     } catch (e) {
       report(e);
@@ -54,18 +58,17 @@ export function LearnDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle>Learn a template from videos</DialogTitle>
+          <DialogTitle>Learn an illustrated style</DialogTitle>
           <DialogDescription>
-            Paste a few shorts in the style you want. Moco measures every frame, AI studies how they are made, and you get a
-            template that copies the technique, never the content.
+            Add reference videos to study their visual technique. Then try the learned style on your own topic before approving it.
           </DialogDescription>
         </DialogHeader>
         <FieldGroup className="gap-5">
           <Field>
             <FieldLabel htmlFor="learn-name">Template name</FieldLabel>
-            <Input id="learn-name" placeholder="e.g. Deadpan 3D facts" value={name} onChange={(e) => setName(e.target.value)} />
+            <Input id="learn-name" placeholder="e.g. Expressive illustrated science" value={name} onChange={(e) => setName(e.target.value)} />
           </Field>
           <Field>
             <FieldLabel htmlFor="learn-links">YouTube links</FieldLabel>
@@ -77,9 +80,25 @@ export function LearnDialog({ open, onOpenChange }: { open: boolean; onOpenChang
               onChange={(e) => setLinks(e.target.value)}
             />
             <FieldDescription>
-              One per line, up to 10. Two to five from the same channel work best. It takes about 5 minutes per video and uses
-              your selected AI plan (around 8 requests per video).
+              One per line, up to 10 videos in total. Analysis uses your selected AI provider; longer videos take more time and requests.
             </FieldDescription>
+          </Field>
+          <Field>
+            <Button variant="outline" disabled={busy} onClick={() => void api.templates.chooseVideos().then((chosen) => setFiles((current) => [...new Set([...current, ...chosen])])).catch(report)}>
+              <FolderOpenIcon data-icon="inline-start" />Add local videos
+            </Button>
+            {files.map((file) => <div key={file} className="flex items-center justify-between gap-2 text-xs"><span className="truncate" title={file}>{file}</span><Button variant="ghost" size="sm" aria-label={`Remove ${file}`} onClick={() => setFiles((current) => current.filter((item) => item !== file))}><XIcon className="size-3" /></Button></div>)}
+            {sources.length > 10 && <p className="text-sm text-destructive">Choose up to 10 videos.</p>}
+          </Field>
+          <Field>
+            <FieldLabel htmlFor="learn-images">Appearance references (optional)</FieldLabel>
+            <Input id="learn-images" type="file" accept="image/png,image/jpeg,image/webp" multiple disabled={busy} onChange={(event) => {
+              const chosen = Array.from(event.target.files ?? []);
+              if (chosen.length > 5 || chosen.some((file) => file.size > 3_000_000)) { event.target.value = ""; setReferenceImages([]); report("Choose up to five PNG, JPEG or WebP images under 3 MB each"); return; }
+              setBusy(true);
+              void Promise.all(chosen.map((file) => new Promise<string>((resolve, reject) => { const reader = new FileReader(); reader.onload = () => resolve(String(reader.result)); reader.onerror = () => reject(Error("Could not read reference image")); reader.readAsDataURL(file); }))).then(setReferenceImages).catch(report).finally(() => setBusy(false));
+            }} />
+            <FieldDescription>Up to five images under 3 MB each. Images guide appearance; motion and pacing come from the videos. Reference scripts, characters and content are excluded from the new sample.</FieldDescription>
           </Field>
         </FieldGroup>
         <DialogFooter>
@@ -97,32 +116,34 @@ export function LearnDialog({ open, onOpenChange }: { open: boolean; onOpenChang
 }
 
 // Runs still going, and ones that failed or were stopped (finished ones are templates now).
-export function LearnJobs() {
-  const jobs = useApp((s) => s.learnJobs).filter((job) => job.state !== "done");
+export function LearnJobs({ onSample }: { onSample?(templateId: string): void }) {
+  const jobs = useApp((s) => s.learnJobs);
   if (jobs.length === 0) return null;
   return (
     <div className="flex flex-col gap-3">
       {jobs.map((job) => (
-        <LearnJobCard key={job.id} job={job} />
+        <LearnJobCard key={job.id} job={job} onSample={onSample} />
       ))}
     </div>
   );
 }
 
-function LearnJobCard({ job }: { job: LearnJob }) {
+function LearnJobCard({ job, onSample }: { job: LearnJob; onSample?(templateId: string): void }) {
   const index = Math.max(0, STEPS.findIndex((step) => step.key === job.step));
   const running = job.state === "running";
+  const done = job.state === "done";
   const last = job.log.at(-1);
   return (
     <Card className="gap-3">
       <CardHeader>
         <CardTitle className="flex items-center gap-2">
-          {running ? <Spinner /> : <AlertCircleIcon className="size-4 text-destructive" />}
-          Learning “{job.name}”
+          {running ? <Spinner /> : done ? <CheckIcon className="size-4" /> : <AlertCircleIcon className="size-4 text-destructive" />}
+          {done ? "Learned" : "Learning"} “{job.name}”
         </CardTitle>
         <CardDescription>
           {running
             ? `${STEPS[index]!.label} · ${job.sources.length} video${job.sources.length === 1 ? "" : "s"}`
+            : done ? "Style draft ready. Try an original sample on your topic."
             : job.state === "cancelled"
               ? "Stopped. Start again to pick up where it left off."
               : job.error}
@@ -133,11 +154,13 @@ function LearnJobCard({ job }: { job: LearnJob }) {
               <XIcon data-icon="inline-start" />
               Stop
             </Button>
+          ) : done ? (
+            <Button size="sm" disabled={!job.templateId || !onSample} onClick={() => job.templateId && onSample?.(job.templateId)}>Make a sample</Button>
           ) : (
             <Button
               variant="outline"
               size="sm"
-              onClick={() => void api.templates.learn({ name: job.name, sources: job.sources }).catch(report)}
+              onClick={() => void api.templates.learn({ name: job.name, sources: job.sources, referenceImages: job.referenceImages }).catch(report)}
             >
               Try again
             </Button>

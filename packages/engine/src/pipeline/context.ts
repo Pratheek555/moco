@@ -17,6 +17,7 @@ export interface SeriesInfo {
   episodes: number;
   template?: string; // a template id from templates/index.ts; its guidance joins every stage's prompt
   production?: ArtistProduction;
+  styleSample?: import("../templates/samples.ts").StyleSampleInfo;
   createdAt: string;
   engineVersion: string;
   specVersion: string;

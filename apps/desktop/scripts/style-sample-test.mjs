@@ -1,0 +1,85 @@
+// Deterministic Electron/IPC workflow; no AI, TTS or render calls.
+import { _electron as electron, expect } from "@playwright/test";
+import assert from "node:assert/strict";
+import { mkdtemp, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+const profile = await mkdtemp(path.join(tmpdir(), "moco-style-sample-ui-"));
+await writeFile(path.join(profile, "settings.json"), JSON.stringify({ onboarded: true, projectsDir: path.join(profile, "projects") }));
+const env = { ...process.env, MOCO_USER_DATA: profile, CODEX_HOME: path.join(profile, "codex-home") };
+delete env.ELECTRON_RUN_AS_NODE;
+const app = await electron.launch({ args: [desktop], cwd: desktop, env });
+try {
+  const page = await app.firstWindow();
+  const errors = [];
+  page.on("pageerror", (error) => errors.push(error.message));
+  await app.evaluate(({ ipcMain }) => {
+    const f = { calls: [], samples: [], opened: [] };
+    globalThis.__styleSampleFixture = f;
+    const handle = (name, fn) => { ipcMain.removeHandler(`moco:${name}`); ipcMain.handle(`moco:${name}`, (_event, ...args) => fn(...args)); };
+    const template = { id: "learned-science", name: "Illustrated science", tagline: "Original illustrated explanations", description: "Learned technique", tags: ["2D"], story: [], look: [], ideas: [], world: "auto", defaults: { episodes: 1 }, palette: { sky: ["#112233", "#334455"], ground: "#556677", accents: ["#aabbcc", "#ddeeff"] }, production: { mode: "artist", localOnly: true, format: { width: 1920, height: 1080, fps: 60 } }, learned: { dir: "C:/fixtures/style", sources: ["https://youtube.com/watch?v=test"] } };
+    const gates = ["series_plan", "bible", "ep-01/script", "ep-01/sample", "ep-01/preview"];
+    const status = (sample) => ({ series: { id: sample.id, idea: sample.input.topic, language: sample.input.language, episodes: 1, production: { ...template.production, format: sample.input.format, targetSeconds: sample.input.seconds }, createdAt: sample.at, styleSample: { templateId: template.id, revisionId: sample.id, topic: sample.input.topic, choices: sample.input.choices } }, stages: gates.map((key, index) => ({ key, status: index < sample.step || sample.approved ? "approved" : index === sample.step ? "awaiting_approval" : "pending", artifactHash: `${sample.id}-${index}` })), next: { kind: "waiting", key: gates[sample.step], status: "awaiting_approval" }, jobs: [], decisions: [], usage: { aiCalls: {} } });
+    handle("ai.status", () => ({ ok: true }));
+    handle("series.list", () => []);
+    handle("templates.list", () => [template]);
+    handle("templates.jobs", () => []);
+    handle("templates.chooseVideos", () => ["C:/My references/reference one.mp4"]);
+    handle("templates.learn", (input) => { f.calls.push({ type: "learn", input }); return "learn-1"; });
+    handle("templates.samples", () => f.samples.map(status).reverse());
+    handle("templates.createSample", (input) => { const id = `sample-${f.samples.length + 1}`; f.calls.push({ type: "create", input }); f.samples.push({ id, input, step: 0, at: new Date().toISOString() }); return id; });
+    handle("templates.sampleReview", (id) => { const sample = f.samples.find((item) => item.id === id); return { contentHash: `review-${id}`, canApprove: sample.step === 4, blockers: sample.step === 4 ? [] : ["Complete the sample preview"], deviations: [{ kind: "measured", label: "Cut rhythm", detail: "Reference median 4 seconds per picture" }, { kind: "judgment", label: "Acting", detail: "Sampled frames cannot prove every intermediate pose" }], rules: { sections: [{ title: "Pacing", rules: [{ title: "Motivated cuts", default: "4 seconds", range: "3–5 seconds", deviateWhen: "Reveals" }] }] }, folder: "C:/fixtures/sample", ...(sample.approved && { approved: { contentHash: `review-${id}`, approvedAt: sample.at } }) }; });
+    handle("series.artifact", (_id, file) => ({ meta: { contentHash: "artifact" }, data: file === "artifacts/series_plan.json" ? { title: "Bread rises", premise: "Explain yeast", episodes: [{ title: "One visible mechanism", synopsis: "Gas expands the dough" }] } : file === "artifacts/show.json" ? { logline: "An original kitchen scientist", cast: [{ id: "baker", appearance: "Round glasses and an orange apron" }], look: { palette: ["#112233"] } } : { lines: [{ id: "line-1", text: "Yeast makes tiny bubbles of gas." }], shotPlan: [{ lineId: "line-1", picture: "A diagram reveals the growing bubbles" }] } }));
+    handle("episode.media", () => ({ preview: "data:video/mp4;base64,AAAA", stills: { s01: ["data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg=="] } }));
+    handle("stages.approve", (id, key, hash) => { const sample = f.samples.find((item) => item.id === id); f.calls.push({ type: "gate", key, hash }); sample.step++; });
+    handle("stages.run", (_id) => { f.calls.push({ type: "run" }); return "job-1"; });
+    handle("templates.approveSample", (id, contentHash) => { f.calls.push({ type: "approveSample", id, contentHash }); f.samples.find((item) => item.id === id).approved = true; });
+    handle("app.openPath", (folder) => { f.opened.push(folder); return ""; });
+  });
+  await page.reload();
+  await page.getByRole("button", { name: "Templates", exact: true }).click();
+  await page.getByRole("button", { name: "Learn from videos", exact: true }).click();
+  await page.getByLabel("Template name").fill("My illustrated style");
+  await page.getByLabel("YouTube links").fill("https://youtube.com/watch?v=abc123");
+  await page.getByRole("button", { name: "Add local videos", exact: true }).click();
+  await page.getByLabel("Appearance references (optional)").setInputFiles({ name: "style.png", mimeType: "image/png", buffer: Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVQIHWP4z8DwHwAFgAI/ScLbtAAAAABJRU5ErkJggg==", "base64") });
+  await page.getByRole("button", { name: "Learn template", exact: true }).click();
+  const learn = await app.evaluate(() => globalThis.__styleSampleFixture.calls.find((call) => call.type === "learn").input);
+  assert.deepEqual(learn.sources, ["https://youtube.com/watch?v=abc123", "C:/My references/reference one.mp4"]);
+  assert.match(learn.referenceImages[0], /^data:image\/png;base64,/);
+  await page.getByRole("button", { name: "Make a sample", exact: true }).click();
+  await expect(page.getByLabel("Target seconds")).toHaveValue("12");
+  await expect(page.getByRole("combobox", { name: "Video shape", exact: true })).toHaveValue("landscape");
+  assert.equal(await app.evaluate(() => globalThis.__styleSampleFixture.samples.length), 0);
+  await page.getByRole("textbox", { name: "Your topic", exact: true }).fill("Why does bread rise?");
+  await page.getByLabel("Palette override").fill("#f0a123, #233b61");
+  await page.getByLabel("Illustration detail").selectOption("simple");
+  await page.getByLabel("Direction or changes").fill("Make the diagram reveal follow the pointing hand.");
+  await page.getByRole("button", { name: "Generate sample", exact: true }).click();
+  await expect(page.getByText("Gas expands the dough", { exact: true })).toBeVisible();
+  assert.equal(await app.evaluate(() => globalThis.__styleSampleFixture.calls.filter((call) => call.type === "gate").length), 0);
+  for (const label of ["sample plan", "character and visual design", "script and storyboard", "first shot"]) {
+    await page.getByRole("button", { name: `Approve ${label} and continue`, exact: true }).click();
+  }
+  await expect(page.getByRole("button", { name: "Approve sample", exact: true })).toBeEnabled();
+  await expect(page.getByText("Reference median 4 seconds per picture", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Approve sample", exact: true }).click();
+  await expect(page.getByText("Approved sample", { exact: true })).toBeVisible();
+  await page.getByRole("button", { name: "Open sample files", exact: true }).click();
+  const calls = await app.evaluate(() => globalThis.__styleSampleFixture.calls);
+  assert.equal(calls.filter((call) => call.type === "run").length, 4, "Sample approval must not start export or publishing");
+  assert.deepEqual(calls.find((call) => call.type === "approveSample"), { type: "approveSample", id: "sample-1", contentHash: "review-sample-1" });
+  assert.deepEqual(calls.find((call) => call.type === "create").input.choices.palette, ["#f0a123", "#233b61"]);
+  await page.getByLabel("Direction or changes").fill("Use a stronger reaction pose.");
+  await page.getByRole("button", { name: "Generate new revision", exact: true }).click();
+  await expect(page.getByLabel("Saved revisions")).toHaveValue("sample-2");
+  assert.equal(await app.evaluate(() => globalThis.__styleSampleFixture.samples[0].approved), true);
+  await page.getByLabel("Saved revisions").selectOption("sample-1");
+  await expect(page.getByText("Approved sample", { exact: true })).toBeVisible();
+  assert.deepEqual(await app.evaluate(() => globalThis.__styleSampleFixture.opened), ["C:/fixtures/sample"]);
+  assert.deepEqual(errors, []);
+  console.log("PASS style sample UI: local videos and stills, explicit gates, visual choices, exact revision approval, retained history; no live generation");
+} finally { await app.close(); }
