@@ -10,7 +10,7 @@ import { files } from "./stages.ts";
 
 type RenderContext = Pick<StageContext, "store" | "dir" | "render" | "bus" | "seriesId" | "signal" | "renderSlots"> & {series?:StageContext["series"];ledger?:StageContext["ledger"]};
 
-export async function runRender(ctx: RenderContext, episodeId: string, quality: "preview" | "final"): Promise<string> {
+export async function runRender(ctx: RenderContext, episodeId: string, quality: "preview" | "final", options: { inspection?: boolean } = {}): Promise<string> {
   if(quality==="final") {
     const critique=ctx.store.has(files.critique(episodeId)) ? (await ctx.store.read(files.critique(episodeId),"Critique")).data : undefined;
     if(ctx.series?.production || critique?.quality){
@@ -26,6 +26,7 @@ export async function runRender(ctx: RenderContext, episodeId: string, quality: 
   const report: RenderReport = {
     file: relative(ctx.dir, rendered.path),
     quality,
+    ...(options.inspection && quality === "preview" ? { inspection: true } : {}),
     durationSeconds: rendered.durationSeconds,
     ...ctx.render.versions(), // recorded so a render can be reproduced
   };
@@ -96,12 +97,17 @@ async function placeFile(from: string, to: string): Promise<void> {
 export async function renderFreshness(ctx: RenderContext, episodeId: string) {
   const fresh = async (quality: "preview" | "final") => {
     try {
-      if (ctx.ledger) {
-        const status = ctx.ledger.stage(`${episodeId}/${quality === "preview" ? "preview" : "final"}`).status;
-        if (!(quality === "preview" ? ["done", "approved", "awaiting_approval"] : ["done"]).includes(status)) return false;
-      }
       const file = quality === "preview" ? files.previewReport(episodeId) : files.renderReport(episodeId);
       const report = await ctx.store.read(file, "RenderReport");
+      if (ctx.ledger) {
+        const status = ctx.ledger.stage(`${episodeId}/${quality === "preview" ? "preview" : "final"}`).status;
+        // Inspection is playable without passing the production preview gate.
+        // Its input hashes and renderer versions must still match the current cut.
+        const inspection = quality === "preview" && report.data.inspection === true
+          && ctx.ledger.stage(`${episodeId}/script`).status === "approved"
+          && ["done", "failed"].includes(ctx.ledger.stage(`${episodeId}/scenes`).status);
+        if (!inspection && !(quality === "preview" ? ["done", "approved", "awaiting_approval"] : ["done"]).includes(status)) return false;
+      }
       const list = await ctx.store.read(files.shotList(episodeId), "ShotList");
       const voice = await ctx.store.read(files.voiceover(episodeId), "VoiceoverTrack");
       // Validate one self-contained drawing at a time; don't retain every

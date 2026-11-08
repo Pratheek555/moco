@@ -22,6 +22,7 @@
     "test:voice-settings": "node scripts/voice-settings-test.mjs",
     "test:account-switch": "node scripts/account-switch-test.mjs",
     "test:duration-settings": "node scripts/duration-settings-test.mjs",
+    "test:repeat-episode": "node scripts/repeat-episode-test.mjs",
     "test:style-sample": "node scripts/style-sample-test.mjs",
     "test:voice-audio": "node scripts/voice-audio-test.mjs"
   },

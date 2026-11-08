@@ -26,6 +26,8 @@ it("uses track fps for shot words, durations, lip sync and speaker intervals", (
   expect(shotSpeech(shot,track)?.[0]?.visemes).toEqual([{frame:0,viseme:"X"},{frame:15,viseme:"A"},{frame:30,viseme:"X"}]);
 });
 
+// Full-cut authoring, sampled reviews and regeneration write hundreds of artifacts.
+// Allow a loaded Windows workstation to finish the fixture without changing its assertions.
 it("runs artist tools through ordinary planning/generation, skips world building and retains 60fps", async () => {
   const dir=await mkdtemp(join(tmpdir(),"moco-artist-engine-"));
   let authorCalls=0;

@@ -3,7 +3,7 @@
 import type { VoiceInfo } from "@moco/audio";
 import type { CodexAccountState } from "@moco/ai";
 export type { CodexAccountState } from "@moco/ai";
-import type { DailyUsage, EngineEvent, SeriesStatus, StyleSampleReview, LabelEditorState, LabelEditPreview } from "@moco/engine";
+import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus, StyleSampleReview, LabelEditorState, LabelEditPreview } from "@moco/engine";
 import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
 import type { ArtistProduction, PublishDefaults, PublishKit, ThumbnailChoice } from "@moco/spec";
@@ -148,6 +148,8 @@ export interface MocoApi {
     list(): Promise<SeriesSummary[]>;
     create(input: { idea: string; language: string; episodes: number; template?: string; production?: ArtistProduction }): Promise<string>; // creates and starts planning
     extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
+    repeat(id: string, input: { topic?: string }): Promise<string>;
+    repeatOffer(id: string): Promise<RepeatOffer>;
     status(id: string): Promise<SeriesStatus>;
     artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;
     remove(id: string): Promise<void>;
@@ -167,6 +169,7 @@ export interface MocoApi {
     undoLabelEdit(seriesId: string, episodeId: string, shotId: string, id: string): Promise<void>;
     renderPreview(seriesId: string, episodeId: string): Promise<string>;
     review(seriesId: string, episodeId: string): Promise<string>;
+    inspect(seriesId: string, episodeId: string): Promise<string>;
   };
   characters: {
     list(seriesId: string): Promise<CharacterSummary[]>;

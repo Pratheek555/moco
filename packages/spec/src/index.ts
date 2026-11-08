@@ -646,6 +646,8 @@ export type EpisodeSpec = z.infer<typeof EpisodeSpec>;
 export const RenderReport = z.object({
   file: z.string(),
   quality: z.enum(["preview", "final"]),
+  // Playable for inspection without satisfying the production preview approval gate.
+  inspection: z.boolean().optional(),
   durationSeconds: z.number().positive(),
   kitVersion: z.string(),
   rendererVersion: z.string(),
