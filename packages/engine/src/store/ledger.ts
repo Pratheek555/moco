@@ -3,6 +3,7 @@
 // shortcut: JSON file, not SQLite; move to SQLite if projects grow past a few thousand artifacts.
 import { join } from "node:path";
 import { exists, readJson, writeJsonAtomic } from "./workspace.ts";
+import type { RepeatEpisode } from "../repeat/episode.ts";
 
 export type StageStatus = "pending" | "running" | "awaiting_approval" | "approved" | "done" | "failed" | "stale";
 
@@ -57,6 +58,8 @@ export interface LedgerData {
   // Set by extendSeries until the longer plan is approved: series_plan keeps the first `keep` episodes and plans
   // the rest, steered by `note`.
   planExtension?: { keep: number; note?: string };
+  // Opt-in repeat workflow. A new outline is approved together with its script.
+  repeatEpisodes?: Record<string, RepeatEpisode>;
   artifacts: Record<string, ArtifactRecord>; // key: file path relative to the series folder
   stages: Record<string, StageRecord>; // key: "bible" or "ep-01/script"
   jobs: Record<string, JobRecord>;

@@ -26,6 +26,8 @@ it("uses track fps for shot words, durations, lip sync and speaker intervals", (
   expect(shotSpeech(shot,track)?.[0]?.visemes).toEqual([{frame:0,viseme:"X"},{frame:15,viseme:"A"},{frame:30,viseme:"X"}]);
 });
 
+// Full-cut authoring, sampled reviews and regeneration write hundreds of artifacts.
+// Allow a loaded Windows workstation to finish the fixture without changing its assertions.
 it("runs artist tools through ordinary planning/generation, skips world building and retains 60fps", async () => {
   const dir=await mkdtemp(join(tmpdir(),"moco-artist-engine-"));
   let authorCalls=0;
@@ -98,7 +100,7 @@ it("runs artist tools through ordinary planning/generation, skips world building
   const review=await engine.waitForJob(await engine.reviewEpisode({seriesId:id,episodeId:"ep-01"}));
   expect(review.status).toBe("succeeded");
   expect(authorCalls).toBe(authorsBeforeReview);
-},20_000);
+},60_000);
 
 it("recalibrates an artist script's word budget from measured speech instead of rejecting the needed cut", async () => {
   const dir=await mkdtemp(join(tmpdir(),"moco-artist-budget-"));

@@ -116,6 +116,10 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
   const key = hashData({
     creativeBrief: ctx.series.idea,
     production: ctx.series.production,
+    repeatReuse: ctx.ledger.data.repeatEpisodes?.[inputs.episodeId] && {
+      basis: ctx.ledger.data.repeatEpisodes[inputs.episodeId]!.basis,
+      sharedFiles: ctx.ledger.data.repeatEpisodes[inputs.episodeId]!.sharedFiles,
+    },
     shot: shotContent,
     durationFrames: brief.durationFrames,
     words: brief.words,

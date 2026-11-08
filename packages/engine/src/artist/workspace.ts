@@ -80,6 +80,7 @@ export async function snapshotShotWorkspace(ctx: Pick<StageContext,"dir">, episo
 
 export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, production: ArtistProduction) {
   const permissions = await artistPermissions(ctx, inputs.episodeId);
+  const repeat = ctx.ledger.data.repeatEpisodes?.[inputs.episodeId];
   if (permissions.images.requested && !permissions.images.available) throw new EngineError("stage_blocked", permissions.images.reason);
   if ((inputs.voiceover.fps ?? 30) !== production.format.fps) throw Error("Voice-track fps differs from the project format; regenerate narration/timing before authoring shots");
   const root = join(ctx.dir, "episodes", inputs.episodeId, "artist");
@@ -180,6 +181,7 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     }),
     tool("write_file", "Create/edit JS canvas artwork, JSON manifests/design notes, or base64 PNG/JPEG/WebP assets. No shell or outside files. Shared designs freeze after the first accepted shot.", Write, async (args) => {
       const { path, content, encoding } = Write.parse(args);
+      if (repeat && !path.startsWith(`${shotRoot}/`)) throw new EngineError("stage_blocked", "This repeat episode reuses approved designs. Use the standard series review workflow for a new or changed recurring design; only this shot's files can be written here.");
       const version=path.startsWith("shared/versions/") && !await lstat(await workspacePath(root,path)).then(()=>true,()=>false);
       if (!ownFile(path) || path.endsWith("/brief.json") || path.endsWith("/production-state.json") || (!path.startsWith(`${shotRoot}/`) && locked && !version)) throw Error("Write only this shot's files; approved shared files and production state are read-only. Publish new shared designs under shared/versions/ with a new name.");
       if (!/\.(js|json|md|png|jpg|jpeg|webp)$/.test(path)) throw Error("Unsupported artist file extension");

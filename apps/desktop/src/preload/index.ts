@@ -49,6 +49,8 @@ const api: MocoApi = {
     list: call("series.list"),
     create: call("series.create"),
     extend: call("series.extend"),
+    repeat: call("series.repeat"),
+    repeatOffer: call("series.repeatOffer"),
     status: call("series.status"),
     artifact: call("series.artifact"),
     remove: call("series.remove"),
@@ -62,6 +64,8 @@ const api: MocoApi = {
   episode: {
     media: call("episode.media"),
     regenerateShot: call("episode.regenerateShot"),
+    review: call("episode.review"),
+    inspect: call("episode.inspect"),
   } as MocoApi["episode"],
   publish: {
     save: call("publish.save"),

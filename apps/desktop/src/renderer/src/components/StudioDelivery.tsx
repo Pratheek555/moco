@@ -7,6 +7,7 @@ import { report, useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { PublishPanel } from "./PublishPanel";
+import { NextEpisode } from "./RepeatEpisode";
 
 export function StudioDelivery({ status, episode, nextEpisode }: {
   status: SeriesStatus; episode: SeriesPlan["episodes"][number]; nextEpisode?: SeriesPlan["episodes"][number];
@@ -36,7 +37,7 @@ export function StudioDelivery({ status, episode, nextEpisode }: {
       </>}
     </div>
     <footer className="generation-sidebar-footer">
-      {nextEpisode ? <><p>The next episode starts when you’re ready.</p><Button disabled={busy || Boolean(status.activeJob)} onClick={() => void startNext()}>{busy ? <Spinner /> : <ArrowRightIcon />}Start episode {Number(nextEpisode.id.slice(3))}</Button></>
+      {status.series.production ? <NextEpisode status={status} /> : nextEpisode ? <><p>The next episode starts when you’re ready.</p><Button disabled={busy || Boolean(status.activeJob)} onClick={() => void startNext()}>{busy ? <Spinner /> : <ArrowRightIcon />}Start episode {Number(nextEpisode.id.slice(3))}</Button></>
         : <p>All episodes are complete. Your videos and publishing details are saved.</p>}
     </footer>
   </div>;
