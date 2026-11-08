@@ -46,7 +46,12 @@ try {
   const page = await app.firstWindow();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await expect(page.getByLabel("What story will you tell?")).toBeVisible();
+  await expect(page.getByLabel("What would you like to explain?")).toBeVisible();
+  // This regression covers the existing freeform story workflow explicitly.
+  await page.getByRole("button", { name: "Story options", exact: true }).click();
+  await page.getByLabel("Visual approach").click();
+  await page.getByRole("option", { name: "Animation & 3D", exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeDisabled();
   await expect(page.locator('[data-slot="sidebar"]')).toBeVisible();
   await page.getByRole("button", { name: "My series", exact: true }).click();

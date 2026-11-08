@@ -94,7 +94,7 @@ try {
   await expect(page.getByRole("option", { name: /English/ })).toHaveText(/download English voice model/);
   await page.getByRole("option", { name: /Hindi/ }).click();
   await page.getByRole("button", { name: "Done", exact: true }).click();
-  await page.getByLabel("What story will you tell?").fill("A 45-second reel about Arjuna and Krishna.");
+  await page.locator("#idea").fill("A 45-second reel about Arjuna and Krishna.");
   await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeEnabled();
   await page.screenshot({ path: path.join(artifacts, "hindi-composer.png"), fullPage: true });
   await page.evaluate(() => window.moco.settings.set({ voice: { backend: "system" } }));

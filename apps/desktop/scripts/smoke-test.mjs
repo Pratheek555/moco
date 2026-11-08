@@ -48,7 +48,7 @@ try {
     if (m.type() === "error") errors.push(m.text());
   });
 
-  await expect(page.getByRole("heading", { name: /Small idea/ })).toBeVisible({ timeout: 30_000 });
+  await expect(page.getByRole("heading", { name: "What would you like to explain?" })).toBeVisible({ timeout: 30_000 });
   await page.screenshot({ path: path.join(artifacts, "01-studio.png") });
   console.log(`PASS studio opens (${elapsed()})`);
 
@@ -78,12 +78,17 @@ try {
     }
     console.log(`PASS resumed ${resume} (${elapsed()})`);
   } else {
-    // The prompt.
-    await page.getByLabel("What story will you tell?").fill(idea);
+    // Keep this older kit/world smoke run explicit; the default is now an explainer.
+    await page.getByRole("button", { name: "Story options", exact: true }).click();
+    await page.getByLabel("Visual approach").click();
+    await page.getByRole("option", { name: "Animation & 3D", exact: true }).click();
     if (language !== "English") {
       await page.getByLabel("Story language").click();
       await page.getByRole("option", { name: new RegExp(`${language}$`) }).click();
     }
+    await page.getByRole("button", { name: "Done", exact: true }).click();
+    // The prompt.
+    await page.getByLabel("What story will you tell?").fill(idea);
     await page.getByRole("button", { name: /Create series/ }).click();
     await expect(page.getByText("The episode board")).toBeVisible({ timeout: 30_000 });
     console.log(`PASS series created from the idea (${elapsed()})`);

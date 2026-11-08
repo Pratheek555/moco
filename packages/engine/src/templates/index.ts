@@ -2,6 +2,8 @@
 // for each planning stage (series.md → "# series", "# script", …) plus a few rules the engine enforces in code.
 // This file is plain data so the desktop UI can list templates without loading the engine.
 import { KURZGESAT_STYLE_PROMPT } from "./kurzgesat-style.ts";
+import { illustratedExplainer } from "./illustrated-explainer.ts";
+export { ILLUSTRATED_EXPLAINER_ID } from "./illustrated-explainer.ts";
 
 // The planning stages a template can guide; each is a "# <stage>" section of the template's .md file.
 export const TEMPLATE_STAGES = ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "artist", "publish"] as const;
@@ -33,6 +35,7 @@ export interface TemplateInfo {
 }
 
 export const TEMPLATES: TemplateInfo[] = [
+  illustratedExplainer,
   {
     id: "kurzgesat-style",
     name: "kurzgesat style",

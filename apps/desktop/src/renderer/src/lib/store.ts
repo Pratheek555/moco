@@ -1,5 +1,6 @@
 import { create } from "zustand";
 import { toast as sonner } from "sonner";
+import { ILLUSTRATED_EXPLAINER_ID } from "@moco/engine/templates";
 import {
   api,
   type AiStatus,
@@ -49,7 +50,7 @@ interface AppState {
   palette: boolean;
   setPalette(open: boolean): void;
   composerIdea: string;
-  /** The template the next series starts from; null = from scratch. */
+  /** The launch format; null explicitly starts from scratch. */
   composerTemplate: string | null;
   setComposerTemplate(id: string | null): void;
   templates: TemplateInfo[];
@@ -117,7 +118,7 @@ export const useApp = create<AppState>((set, get) => ({
   setPalette(open) {
     set({ palette: open });
   },
-  composerTemplate: null,
+  composerTemplate: ILLUSTRATED_EXPLAINER_ID,
   setComposerTemplate(id) {
     set({ composerTemplate: id });
   },

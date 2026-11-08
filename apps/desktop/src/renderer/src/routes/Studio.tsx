@@ -56,6 +56,7 @@ import { Page, PageHeader } from "../components/Page.tsx";
 import { SeriesCard } from "../components/SeriesCard.tsx";
 import { TemplateCover, TemplateSheet } from "../components/Templates.tsx";
 import { voiceLanguageProblem } from "../../../shared/voice-availability.ts";
+import { findTemplate, ILLUSTRATED_EXPLAINER_ID } from "@moco/engine/templates";
 
 // Quick starts under the idea box: a label and the idea it fills in.
 const SPARKS = [
@@ -75,15 +76,20 @@ export function Studio() {
     templates = useApp((s) => s.templates),
     templateId = useApp((s) => s.composerTemplate),
     setTemplateId = useApp((s) => s.setComposerTemplate);
-  const template = templates.find((t) => t.id === templateId);
+  // Settings can mount Studio before the asynchronous template list arrives.
+  // Built-in defaults must already be available for state initialization.
+  const template = templates.find((t) => t.id === templateId) ?? findTemplate(templateId ?? undefined);
+  const isExplainer = template?.id === ILLUSTRATED_EXPLAINER_ID;
   const ideaInput = useRef<HTMLTextAreaElement>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
   const [details, setDetails] = useState<TemplateInfo | null>(null);
   const [productionMode, setProductionMode] = useState("standard");
-  const [artistShape, setArtistShape] = useState("landscape");
-  const [artistSeconds, setArtistSeconds] = useState("");
+  const [artistShape, setArtistShape] = useState(() => template?.production?.format.width === 1080 ? "portrait" : "landscape");
+  const [artistSeconds, setArtistSeconds] = useState(() => template?.production?.targetSeconds?.toString() ?? "");
+  const [audience, setAudience] = useState("");
+  const [visualDirection, setVisualDirection] = useState("");
   const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
@@ -113,17 +119,21 @@ export function Studio() {
 
   const submit = async () => {
     if (!idea.trim() || starting) return;
-    if (productionMode === "artist" && artistSeconds.trim() && (!Number.isFinite(Number(artistSeconds)) || Number(artistSeconds) <= 0)) {
+    if (templateId && !template) { report("The selected template is unavailable. Choose a format in Story options."); return; }
+    if ((productionMode === "artist" || isExplainer) && artistSeconds.trim() && (!Number.isFinite(Number(artistSeconds)) || Number(artistSeconds) <= 0)) {
       report("Enter a positive duration in seconds, or leave it blank to use your prompt."); return;
     }
+    const brief = [idea.trim(), ...(isExplainer ? [audience.trim() && `Intended viewer: ${audience.trim()}`, visualDirection.trim() && `Visual direction: ${visualDirection.trim()}`].filter(Boolean) : [])].join("\n\n");
+    if (brief.length > 32000) { report("Keep your topic, intended viewer and visual direction within 32,000 characters in total."); return; }
     if (selectedVoiceProblem) { report(`Narration unavailable: ${selectedVoiceProblem}. Check Voice & narration in Settings.`); return; }
     setStarting(true);
     try {
-      const id = await api.series.create({ idea: idea.trim(), episodes, language,
-        ...(productionMode === "artist" ? { production: { mode: "artist" as const, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 60 }, ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : template ? { template: template.id } : {}),
+      const id = await api.series.create({ idea: brief, episodes, language,
+        ...(template ? { template: template.id } : {}),
+        ...((productionMode === "artist" || isExplainer) ? { production: { mode: "artist" as const, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 60 }, ...(isExplainer ? { localOnly: true } : {}), ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : {}),
       });
       setIdea("");
-      setTemplateId(null);
+      setTemplateId(ILLUSTRATED_EXPLAINER_ID);
       go({ name: "series", id });
     } catch (e) {
       report(e);
@@ -154,19 +164,22 @@ export function Studio() {
   const chooseTemplate = (next: TemplateInfo | undefined) => {
     setTemplateId(next?.id ?? null);
     setProductionMode("standard");
+    setArtistShape(next?.production?.format.width === 1080 ? "portrait" : "landscape");
+    setArtistSeconds(next?.production?.targetSeconds?.toString() ?? "");
   };
 
   return (
-    <section className="studio-landing" aria-label="Create a story">
+    <section className="studio-landing" aria-label={isExplainer ? "Create an illustrated explainer" : "Create a story"}>
       <AsciiOcean paused={motionPaused} dark={dark} />
       <div className="landing-halo" aria-hidden="true" />
       <header className="landing-header">
         <button className="landing-history" onClick={() => setHistoryOpen(true)}><Clock3Icon /> History <ChevronDownIcon /></button>
       </header>
       <div className="landing-center">
-        <h1>What story will you tell?</h1>
+        <h1>{isExplainer ? "What would you like to explain?" : "What story will you tell?"}</h1>
+        {isExplainer && <p className="landing-description">An original presenter. A clear diagram. One idea that clicks.</p>}
         <form className="landing-prompt" aria-busy={starting} onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-          <textarea ref={ideaInput} id="idea" aria-label="What story will you tell?" placeholder="A small idea. A whole new world." maxLength={32000} disabled={starting} value={idea} onChange={(e) => setIdea(e.target.value)} onKeyDown={(e) => {
+          <textarea ref={ideaInput} id="idea" aria-label={isExplainer ? "What would you like to explain?" : "What story will you tell?"} placeholder={isExplainer ? "Your topic, who it’s for, and what they should understand…" : "A small idea. A whole new world."} maxLength={32000} disabled={starting} value={idea} onChange={(e) => setIdea(e.target.value)} onKeyDown={(e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void submit(); }
           }} />
           <div className="landing-prompt-tools">
@@ -179,6 +192,10 @@ export function Studio() {
             <button className="landing-submit" type="submit" aria-label="Create series" title="Create series (Ctrl+Enter)" disabled={!idea.trim() || starting || Boolean(selectedVoiceProblem)}>{starting ? <Spinner /> : <ArrowUpRightIcon />}</button>
           </div>
         </form>
+        {isExplainer && <div className="landing-explainer-start">
+          <span>{artistSeconds.trim() ? `${artistSeconds}s` : "Length from your prompt"} &middot; {artistShape === "portrait" ? "Portrait" : "Landscape"} &middot; Review before production</span>
+          <button type="button" disabled={starting} onClick={() => pickIdea(template.ideas[0]!.idea)}>Try “How a queue works” <ArrowRightIcon /></button>
+        </div>}
         <div className="landing-messages" aria-live="polite">
           {ai && !ai.ok && <button className="landing-notice" onClick={() => go({ name: "settings", section: "ai" })}>Connect your AI to start creating <ArrowRightIcon /></button>}
           {selectedVoiceProblem && <button className="landing-notice" onClick={() => go({ name: "settings", section: "voice" })}>Narration unavailable: {selectedVoiceProblem}. Open voice settings.</button>}
@@ -204,11 +221,13 @@ export function Studio() {
                 <Field>
                   <FieldLabel htmlFor="story-approach">Visual approach</FieldLabel>
                   <Select
-                    value={template?.production ? "template" : productionMode}
+                    value={isExplainer ? "explainer" : template?.production ? "template" : productionMode}
                     onValueChange={value => {
                       if (value === "template") return;
+                      if (value === "explainer") { chooseTemplate(templates.find(t => t.id === ILLUSTRATED_EXPLAINER_ID)); return; }
                       setProductionMode(value);
                       if (template?.production || value === "artist") setTemplateId(null);
+                      setArtistSeconds("");
                     }}
                     disabled={starting}
                   >
@@ -216,7 +235,8 @@ export function Studio() {
                       <SelectValue className="min-w-0 truncate" />
                     </SelectTrigger>
                     <SelectContent position="popper" align="start">
-                      {template?.production && <SelectItem value="template">Prompt template &middot; 2D canvas</SelectItem>}
+                      {templates.some(t => t.id === ILLUSTRATED_EXPLAINER_ID) && <SelectItem value="explainer">Illustrated explainer</SelectItem>}
+                      {template?.production && !isExplainer && <SelectItem value="template">Prompt template &middot; 2D canvas</SelectItem>}
                       <SelectItem value="standard">Animation &amp; 3D</SelectItem>
                       <SelectItem value="artist">Custom illustration &middot; experimental</SelectItem>
                     </SelectContent>
@@ -238,7 +258,7 @@ export function Studio() {
                 </Field>
               </div>
               <FieldDescription>
-                {template?.production ? "Your template brings its own artwork and animation direction." : productionMode === "artist" ? "Original artwork and movement, shaped around your brief." : "Bring your world to life with ready-made styles and 3D scenes."}
+                {isExplainer ? "An original presenter, explanatory diagrams and purposeful cuts. Drawn artwork and your configured narration voice." : template?.production ? "Your template brings its own artwork and animation direction." : productionMode === "artist" ? "Original artwork and movement, shaped around your brief." : "Bring your world to life with ready-made styles and 3D scenes."}
               </FieldDescription>
               {template && (
                 <Item variant="outline" size="sm">
@@ -253,10 +273,10 @@ export function Studio() {
                   </ItemActions>
                 </Item>
               )}
-              {template?.production && (
+              {template?.production && !isExplainer && (
                 <FieldDescription>{template.production.format.width} &times; {template.production.format.height} &middot; {template.production.format.fps} fps &middot; {template.production.targetSeconds ? `${template.production.targetSeconds}s` : "Length from your prompt"}</FieldDescription>
               )}
-              {productionMode === "artist" && (
+              {(productionMode === "artist" || isExplainer) && (
                 <FieldGroup className="rounded-lg border bg-muted/30 p-4">
                   <div className="grid gap-4 sm:grid-cols-2">
                     <Field>
@@ -278,11 +298,22 @@ export function Studio() {
                         placeholder="From your prompt" aria-describedby="story-duration-help"
                         aria-invalid={Boolean(artistSeconds.trim() && (!Number.isFinite(Number(artistSeconds)) || Number(artistSeconds) <= 0))}
                       />
-                      <FieldDescription id="story-duration-help">Leave blank to follow your prompt.</FieldDescription>
+                      <FieldDescription id="story-duration-help">{isExplainer ? "Starts at 30 seconds. Change it, or clear it to follow your prompt." : "Leave blank to follow your prompt."}</FieldDescription>
                     </Field>
                   </div>
                 </FieldGroup>
               )}
+              {isExplainer && <FieldGroup>
+                <Field>
+                  <FieldLabel htmlFor="explainer-audience">Intended viewer (optional)</FieldLabel>
+                  <Input id="explainer-audience" value={audience} onChange={event => setAudience(event.target.value)} maxLength={200} placeholder="General audience" disabled={starting} />
+                </Field>
+                <Field>
+                  <FieldLabel htmlFor="explainer-direction">Visual direction (optional)</FieldLabel>
+                  <Input id="explainer-direction" value={visualDirection} onChange={event => setVisualDirection(event.target.value)} maxLength={2000} placeholder="Paper textures, warm colors, an owl presenter…" disabled={starting} />
+                  <FieldDescription>Your own characters and artwork are welcome. You review the direction and script before narration, then a sample before the full video.</FieldDescription>
+                </Field>
+              </FieldGroup>}
             </FieldSet>
             <Separator />
             <FieldSet>
