@@ -72,6 +72,11 @@ const api: MocoApi = {
     review: call("episode.review"),
     inspect: call("episode.inspect"),
   } as MocoApi["episode"],
+  characters: {
+    list: call("characters.list"),
+    save: call("characters.save"),
+    apply: call("characters.apply"),
+  } as MocoApi["characters"],
   publish: {
     save: call("publish.save"),
     rewrite: call("publish.rewrite"),

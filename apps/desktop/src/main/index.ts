@@ -139,7 +139,7 @@ let host: { process: UtilityProcess; engine: Engine } | null = null;
 const running = new Set<string>();
 const codexAccount = createCodexAccountManager();
 let pendingJobStarts = 0;
-const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "publish.rewrite", "publish.setThumbnail", "templates.learn", "templates.createSample"]);
+const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "characters.apply", "publish.rewrite", "publish.setThumbnail", "templates.learn", "templates.createSample"]);
 
 function startEngineHost(): Engine {
   const entry = path.join(app.getAppPath(), "src", "main", "engine-host.ts");
@@ -546,6 +546,11 @@ app
     );
     handle("episode.review", (seriesId: string, episodeId: string) => engine().reviewEpisode({ seriesId, episodeId }));
     handle("episode.inspect", (seriesId: string, episodeId: string) => engine().inspectPreview({ seriesId, episodeId }));
+    handle("characters.list", (seriesId: string) => engine().listCharacters(seriesId));
+    handle("characters.save", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }) =>
+      engine().saveCharacter({ seriesId, episodeId, shotId }, choice));
+    handle("characters.apply", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; version: string; sceneHash: string }) =>
+      engine().applyCharacter({ seriesId, episodeId, shotId }, choice));
     handle(
       "episode.regenerateShot",
       (seriesId: string, episodeId: string, shotId: string, feedback?: string) =>

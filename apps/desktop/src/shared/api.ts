@@ -7,6 +7,7 @@ import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus, StyleSampleRev
 import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
 import type { ArtistProduction, PublishDefaults, PublishKit, ThumbnailChoice } from "@moco/spec";
+import type { CharacterSummary } from "@moco/engine";
 
 export type Theme = "light" | "dark" | "system";
 export type VoiceModelId = "english" | "multilingual";
@@ -162,6 +163,11 @@ export interface MocoApi {
     regenerateShot(seriesId: string, episodeId: string, shotId: string, feedback?: string): Promise<string>;
     review(seriesId: string, episodeId: string): Promise<string>;
     inspect(seriesId: string, episodeId: string): Promise<string>;
+  };
+  characters: {
+    list(seriesId: string): Promise<CharacterSummary[]>;
+    save(seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }): Promise<{ castId: string; version: string }>;
+    apply(seriesId: string, episodeId: string, shotId: string, choice: { castId: string; version: string; sceneHash: string }): Promise<string>;
   };
   // The YouTube details for an episode, pasted into Studio by the user (no YouTube API yet).
   publish: {

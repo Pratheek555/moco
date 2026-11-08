@@ -23,10 +23,13 @@ import { feedbackSection, joinSections, jsonSection, loadPrompt, promptRef, sele
 import { compileScene, checkTimelines, sequencesFrom } from "./compiler.ts";
 import { readBible } from "../canon/merge.ts";
 import { lessonsSection, readPlaybook } from "../learn/playbook.ts";
+import { selectCharacterRigs, type CharacterSelection } from "../artist/characters.ts";
 
 const sceneJsonSchema = toAiJsonSchema(AiSceneSpec);
 
 export interface SceneInputs {
+  characterRigs?: CharacterSelection;
+  requireCharacterRigs?: boolean; // an explicit user-selected upgrade cannot be omitted
   episodeId: string;
   shot: Shot;
   voiceover: VoiceoverTrack;
@@ -50,6 +53,7 @@ export interface SceneOutcome {
 }
 
 export async function generateScene(ctx: StageContext, inputs: SceneInputs): Promise<SceneOutcome> {
+  if (ctx.series.production) inputs = { ...inputs, characterRigs: inputs.characterRigs ?? await selectCharacterRigs(ctx, inputs.episodeId, inputs.shot.id, inputs.shot.characters) };
   const { episodeId, shot } = inputs;
   const activity = { episodeId, shotId: shot.id, key: `${episodeId}/${ctx.ledger.stage(`${episodeId}/sample`).status === "running" ? "sample" : "scenes"}` };
   await ctx.bus.emit(ctx.seriesId, "shot.started", { ...activity, intent: shot.intent });
@@ -104,7 +108,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
   const saved = await ctx.store.save(specFile, "SceneSpec", spec, {
     producedBy: result.ok ? "ai" : "engine",
     backend: result.ok ? ctx.ai.backendId : undefined,
-    inputs: [ctx.store.inputRef(files.shotList(episodeId)), ctx.store.inputRef(files.voiceover(episodeId)), sceneInput],
+    inputs: [ctx.store.inputRef(files.shotList(episodeId)), ctx.store.inputRef(files.voiceover(episodeId)), spec.canvas ? sceneInputRef(ctx, { ...inputs, characterRigs: spec.canvas.characterRigs }, brief) : sceneInput],
   });
   return complete({ shotId: shot.id, fallback: !result.ok, attempts: result.attempts, contentHash: saved.meta.contentHash });
 }
@@ -120,6 +124,7 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
       basis: ctx.ledger.data.repeatEpisodes[inputs.episodeId]!.basis,
       sharedFiles: ctx.ledger.data.repeatEpisodes[inputs.episodeId]!.sharedFiles,
     },
+    characterRigs: inputs.characterRigs,
     shot: shotContent,
     durationFrames: brief.durationFrames,
     words: brief.words,

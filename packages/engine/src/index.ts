@@ -31,6 +31,8 @@ import { repeatOffer, captureRepeat, prepareRepeat, repeatScriptHash, type Repea
 import { runRender } from "./pipeline/render.ts";
 import { hashData } from "./store/hash.ts";
 import { StyleSampleInput, snapshotStyle, sampleBrief, styleSampleReview, retainApprovedSample, type StyleSampleReview } from "./templates/samples.ts";
+import { characterLibraryFile, listCharacters, saveCharacter, readCharacterRig, type CharacterSummary } from "./artist/characters.ts";
+import { snapshotShotWorkspace } from "./artist/workspace.ts";
 
 export { EngineError } from "./errors.ts";
 export type { EngineErrorCode } from "./errors.ts";
@@ -39,6 +41,7 @@ export type { AudioPort, RenderPort, RenderError, RenderCheck } from "./ports.ts
 export type { EngineConfig, EngineLimits } from "./config.ts";
 export type { DailyUsage } from "./store/ledger.ts";
 export { defaultConfig } from "./config.ts";
+export type { CharacterSummary } from "./artist/characters.ts";
 export { TEMPLATES, findTemplate, type TemplateInfo } from "./templates/index.ts";
 export { allTemplates, learnedTemplates } from "./templates/registry.ts";
 export type { RepeatOffer, RepeatEpisode, RepeatReuse } from "./repeat/episode.ts";
@@ -99,6 +102,9 @@ export interface Engine {
   reject(ref: Required<StageRef>, feedback: string): Promise<void>;
   status(seriesId: SeriesId): Promise<SeriesStatus>;
   regenerateShot(ref: ShotRef, feedback?: string): Promise<JobId>;
+  listCharacters(seriesId: SeriesId): Promise<CharacterSummary[]>;
+  saveCharacter(ref: ShotRef, choice: { castId: string; sceneHash: string }): Promise<{ castId: string; version: string }>;
+  applyCharacter(ref: ShotRef, choice: { castId: string; version: string; sceneHash: string }): Promise<JobId>;
   reviewEpisode(ref: EpisodeRef): Promise<JobId>;
   // Inspection only: never marks the production preview approved or unblocks final export.
   inspectPreview(ref: EpisodeRef): Promise<JobId>;
@@ -572,6 +578,65 @@ export function createEngine(options: CreateEngineOptions): Engine {
       });
     },
 
+    async listCharacters(seriesId) {
+      return listCharacters(await readSeries(seriesId));
+    },
+
+    async saveCharacter(ref, choice) {
+      assertSafeId(ref.episodeId, "episode id");
+      assertSafeId(ref.shotId, "shot id");
+      return mutate(ref.seriesId, async () => {
+        const series = await load(ref.seriesId);
+        await ensureSampleEditable(series);
+        if (series.activeJob) throw new EngineError("busy", "Wait for the current job before approving a character");
+        if (!series.info.production) throw new EngineError("validation_failed", "Reusable characters require a Canvas production");
+        const result = await saveCharacter(series, ref.episodeId, ref.shotId, choice.castId, choice.sceneHash);
+        series.ledger.decide("edit", `character/${result.castId}`, `approved reusable version ${result.version} from ${ref.episodeId}/${ref.shotId}`);
+        await series.ledger.save();
+        await bus.emit(ref.seriesId, "artifact.saved", { file: characterLibraryFile, ...result });
+        return result;
+      });
+    },
+
+    async applyCharacter(ref, choice) {
+      assertSafeId(ref.episodeId, "episode id");
+      assertSafeId(ref.shotId, "shot id");
+      assertSafeId(choice.castId, "character id");
+      return startJob(ref.seriesId, "shot", `${ref.episodeId}/shots/${ref.shotId}/character`, async ctx => {
+        if (!ctx.series.production) throw new EngineError("validation_failed", "Reusable characters require a Canvas production");
+        const scenesKey = stageKey("scenes", ref.episodeId);
+        if (ctx.ledger.stage(scenesKey).status !== "done") throw new EngineError("stage_blocked", "Finish generating the episode before changing a shot's character version");
+        const shotList = (await ctx.store.read(files.shotList(ref.episodeId), "ShotList")).data;
+        const shot = shotList.shots.find(s => s.id === ref.shotId);
+        if (!shot?.characters.includes(choice.castId)) throw new EngineError("validation_failed", "This character is not in the selected shot");
+        await readCharacterRig(ctx, choice.castId, choice.version);
+        const before = await ctx.store.read(files.shotSpec(ref.episodeId, ref.shotId), "SceneSpec");
+        if (before.meta.contentHash !== choice.sceneHash) throw new EngineError("gate_mismatch", "The shot changed. Reload before applying a character version.");
+        const restoreWorkspace = await snapshotShotWorkspace(ctx, ref.episodeId, ref.shotId);
+        const shared = await sceneSharedInputs(ctx, ref.episodeId);
+        const series = await load(ref.seriesId);
+        // Reopen preview approval before authoring. Even an interrupted review
+        // cannot leave a previously approved preview eligible for final export.
+        await outputChanged(series, scenesKey, await scenesHash(ctx, ref.episodeId));
+        try {
+          await generateScene(ctx, { ...shared, shot, force: true,
+            characterRigs: { ...before.data.canvas?.characterRigs, [choice.castId]: choice.version }, requireCharacterRigs: true,
+            feedback: `Use the explicitly selected approved character versions in brief.characterRigs. Set scene.json characterRigs to that mapping, remove superseded shared rig files from sourceFiles, and adapt only this shot's drawing to those functions. Preserve the narration, cuts, character identity and original action requirements. Bespoke motion remains allowed.`,
+          });
+          await reviewArtistEpisode(ctx, ref.episodeId, shotList.shots, shared, { maxRounds: 0 });
+          const quality = (await ctx.store.read(files.critique(ref.episodeId), "Critique")).data.quality;
+          if (quality?.status !== "passed") throw new EngineError("validation_failed", "The changed cut did not pass review. The previous shot has been retained; inspect the saved quality report.");
+          ctx.ledger.decide("edit", `${ref.episodeId}/${ref.shotId}`, `applied character ${choice.castId} version ${choice.version}`);
+        } catch (error) {
+          await ctx.store.save(files.shotSpec(ref.episodeId, ref.shotId), "SceneSpec", before.data, { producedBy: before.meta.producedBy, backend: before.meta.backend, inputs: before.meta.inputs });
+          await restoreWorkspace();
+          throw error;
+        } finally {
+          await outputChanged(series, scenesKey, await scenesHash(ctx, ref.episodeId));
+        }
+      });
+    },
+
     async reviewEpisode(ref) {
       assertSafeId(ref.episodeId,"episode id");
       return startJob(ref.seriesId,"stage",`${ref.episodeId}/review`,async ctx=>{
@@ -641,6 +706,8 @@ export function createEngine(options: CreateEngineOptions): Engine {
         const series = await load(ref.seriesId);
         await ensureSampleEditable(series);
         if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
+        if (ref.file === characterLibraryFile) throw new EngineError("stage_blocked", "Character approval history is append-only; save a reviewed character to change the default version instead");
+        if (/^artifacts\/characters\/[^/]+\/[a-f0-9]{64}\.json$/.test(ref.file)) throw new EngineError("stage_blocked", "Approved character versions are immutable; save an improved character as a new version instead");
         const record = series.ledger.data.artifacts[ref.file];
         if (!record) throw new EngineError("not_found", `artifact ${ref.file} does not exist`);
 
