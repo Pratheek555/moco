@@ -8,13 +8,12 @@ import {
 import type { SeriesPlan } from "@moco/spec";
 import { api, type SeriesStatus } from "@/lib/api";
 import { languageName, MOD_KEY } from "@/lib/format";
-import { report, stageLabel, useApp } from "@/lib/store";
+import { activeStageKey, report, stageLabel, useApp } from "@/lib/store";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import "../studio-conversation.css";
 
-const phases = ["Plan", "World", "Script", "Visuals", "Preview", "Deliver"];
 export function phaseFor(key: string) {
   if (key === "series_plan") return 0;
   if (key === "bible") return 1;
@@ -25,16 +24,17 @@ export function phaseFor(key: string) {
 }
 
 export function StudioProgress({ status }: { status: SeriesStatus }) {
+  const phases = ["Plan", status.series.production ? "Direction" : "World", "Script", "Visuals", "Preview", "Deliver"];
   const active = status.stages.find(s => s.status === "running")
     ?? status.stages.find(s => s.status === "awaiting_approval");
-  const key = active?.key ?? ("key" in status.next ? status.next.key : "series_plan");
+  const key = activeStageKey(status) ?? active?.key ?? ("key" in status.next ? status.next.key : "series_plan");
   const delivered = !status.activeJob && status.next.kind === "run" && status.next.key.endsWith("/script") && status.stages.some(s => s.key.endsWith("/final") && s.status === "done");
   const finished = status.next.kind === "finished" || delivered;
   const current = finished ? 6 : phaseFor(key);
   return <Popover.Root>
     <Popover.Trigger className="generation-progress-trigger" aria-label="Production progress">
       <span className="generation-status-dot" data-running={Boolean(status.activeJob)} />
-      {delivered ? "Ready to publish" : finished ? "Complete" : active?.status === "awaiting_approval" ? "Your review" : phases[current]}
+      {delivered ? "Ready to publish" : finished ? "Complete" : !status.activeJob && active?.status === "awaiting_approval" ? "Your review" : phases[current]}
       <span>{finished ? "6 / 6" : `${current + 1} / 6`}</span><ChevronDownIcon />
     </Popover.Trigger>
     <Popover.Portal>

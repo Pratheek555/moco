@@ -71,6 +71,9 @@ it("runs artist tools through ordinary planning/generation, skips world building
   const activityLog = await readFile(join(dir,id,"events.jsonl"),"utf8");
   expect(activityLog).toContain("Drawing the character silhouette.");
   expect(activityLog).toContain("Checking the saved artwork and motion");
+  const sampleReviewUpdates = activityLog.trim().split("\n").map(line => JSON.parse(line)).filter(event => event.type === "ai.activity" && String(event.data.message).startsWith("Preparing visual review frames"));
+  expect(sampleReviewUpdates.length).toBeGreaterThan(0);
+  expect(sampleReviewUpdates.every(event => event.data.key === "ep-01/sample")).toBe(true);
   expect(saved.data.format).toEqual({width:1920,height:1080,fps:60});
   expect(saved.data.durationFrames).toBeGreaterThan(150);
   expect(saved.data.canvas.source).toContain("function character");

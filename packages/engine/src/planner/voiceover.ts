@@ -39,7 +39,9 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
     let updates = Promise.resolve();
     try {
       return await speak.call(ctx.audio, lines, narrator, narrator.language, join(ctx.dir, files.audioDir(episodeId)), ctx.signal, (completed, total) => {
-        updates = updates.then(() => activity(`Narration: ${completed} of ${total} lines saved. Completed lines will be reused on retry.`)).catch(() => {});
+        updates = updates.then(() => activity(completed === 0
+          ? `Preparing ${total} narration lines. The first line can take longer while the voice model loads; completed lines will be reused on retry.`
+          : `Narration: ${completed} of ${total} lines saved. Completed lines will be reused on retry.`)).catch(() => {});
       });
     } finally { await updates; }
   });

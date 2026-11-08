@@ -75,6 +75,11 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
   const episode = plan?.episodes.find((ep) => ep.id === episodeId);
   const running = status.activeJob !== undefined;
   const scenesDone = status.stages.find((s) => s.key === `${episodeId}/scenes`)?.status === "done";
+  const recovering = Boolean(status.series.production) && status.stages.some(s => s.key === `${episodeId}/scenes` && s.status === "failed")
+    && shots.length > 0 && shots.every(s => media.savedShots?.includes(s.id))
+    && status.stages.some(s => s.key === `${episodeId}/script` && s.status === "approved")
+    && ["voiceover", "shot_list"].every(step => status.stages.some(s => s.key === `${episodeId}/${step}` && s.status === "done"));
+  const canRedo = scenesDone || recovering;
   const here = (key: string) => key.startsWith(`${episodeId}/`);
   const nextHere = status.next.kind === "run" && here(status.next.key) ? status.next.key : undefined;
   const reviewHere =
@@ -264,8 +269,8 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                     </div>
                   )}
                   <Separator />
-                  <FieldSet disabled={running || !scenesDone} className="gap-3">
-                    <Field data-disabled={running || !scenesDone}>
+                  <FieldSet disabled={running || !canRedo} className="gap-3">
+                    <Field data-disabled={running || !canRedo}>
                       <FieldLabel htmlFor="shot-note">Redo this shot</FieldLabel>
                       <Textarea
                         id="shot-note"
@@ -275,7 +280,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
                         onChange={(e) => setNote(e.target.value)}
                       />
                       <FieldDescription>
-                        {scenesDone
+                        {recovering ? "All shots are saved. Repair this shot and Moco will recheck the cut. Final export still requires a passing review." : scenesDone
                           ? "The AI rewrites only this shot. Render the preview again afterwards."
                           : "You can redo a shot once every scene is written."}
                       </FieldDescription>

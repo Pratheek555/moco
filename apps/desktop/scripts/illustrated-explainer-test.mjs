@@ -63,6 +63,18 @@ try {
   await page.getByLabel("Intended viewer (optional)").fill("People new to programming");
   await page.getByLabel("Visual direction (optional)").fill("An original owl presenter, ink and paper");
   await duration.fill("37.5");
+  await page.getByLabel("Number of episodes").click();
+  await page.getByRole("option", { name: "2 episodes", exact: true }).click();
+  await done();
+  const draftTopic = await idea.inputValue();
+  await page.getByRole("button", { name: "Voice settings", exact: true }).click();
+  await page.getByRole("button", { name: "Studio", exact: true }).click();
+  await expect(idea).toHaveValue(draftTopic);
+  await options();
+  await expect(page.getByLabel("Intended viewer (optional)")).toHaveValue("People new to programming");
+  await expect(page.getByLabel("Visual direction (optional)")).toHaveValue("An original owl presenter, ink and paper");
+  await expect(page.getByLabel("Number of episodes")).toContainText("2 episodes");
+  await expect(duration).toHaveValue("37.5");
   await done();
   await submit();
   await expect.poll(async () => (await requests()).length).toBe(2);
@@ -70,11 +82,18 @@ try {
   assert.match(second.idea, /Intended viewer: People new to programming/);
   assert.match(second.idea, /Visual direction: An original owl presenter, ink and paper/);
   assert.equal(second.production.targetSeconds, 37.5);
+  assert.equal(second.episodes, 2);
 
   await options();
   await duration.fill("");
   await page.getByLabel("Video shape").click();
   await page.getByRole("option", { name: "Landscape · 16:9", exact: true }).click();
+  await done();
+  await page.getByRole("button", { name: "My series", exact: true }).click();
+  await page.getByRole("button", { name: "Studio", exact: true }).click();
+  await options();
+  await expect(duration).toHaveValue("");
+  await expect(page.getByLabel("Video shape")).toContainText("Landscape");
   await done();
   await submit();
   await expect.poll(async () => (await requests()).length).toBe(3);
@@ -102,6 +121,9 @@ try {
   await expect(duration).toHaveValue("");
   await expect(page.getByLabel("Intended viewer (optional)")).toHaveCount(0);
   await done();
+  await page.getByRole("button", { name: "Voice settings", exact: true }).click();
+  await page.getByRole("button", { name: "Studio", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Animation style", exact: true })).toHaveText("ILLUSTRATE");
   await submit();
   await expect.poll(async () => (await requests()).length).toBe(4);
   const custom = (await requests())[3];
@@ -130,6 +152,33 @@ try {
   assert.equal(other.template, "kurzgesat-style");
   assert.equal(other.production, undefined, "another template keeps its own production settings");
   assert.equal(other.episodes, 3);
+
+  // A successful creation clears the previous draft, while ongoing work remains
+  // discoverable through the normal series page. No model or renderer is invoked.
+  await app.evaluate(({ ipcMain }) => {
+    const handle = (name, fn) => { ipcMain.removeHandler(`moco:${name}`); ipcMain.handle(`moco:${name}`, (_event, ...args) => fn(...args)); };
+    handle("series.create", () => "created-draft-test");
+    handle("series.artifact", () => null);
+    handle("series.status", () => ({
+      series: { id: "created-draft-test", idea: "A saved explainer", language: "en", episodes: 1, production: { mode: "artist", localOnly: true, format: { width: 1080, height: 1920, fps: 60 } } },
+      stages: [{ key: "series_plan", status: "approved" }, { key: "bible", status: "running" }],
+      activeJob: { id: "fake-job", target: "bible", startedAt: new Date().toISOString(), status: "running" },
+      next: { kind: "waiting", key: "bible", status: "running" }, jobs: [], decisions: [], usage: { aiCalls: {}, costUsdEstimate: 0 },
+    }));
+  });
+  await submit();
+  await expect(page.getByRole("button", { name: "Production progress" })).toContainText("Direction");
+  await page.getByRole("button", { name: "Production progress" }).click();
+  await expect(page.getByRole("navigation", { name: "Production stages" })).toContainText("Direction");
+  await page.keyboard.press("Escape");
+  await page.getByRole("button", { name: "New series", exact: true }).click();
+  await expect(idea).toHaveValue("");
+  await options();
+  await expect(page.getByLabel("Number of episodes")).toContainText("1 episode");
+  await expect(page.getByLabel("Intended viewer (optional)")).toHaveValue("");
+  await expect(page.getByLabel("Visual direction (optional)")).toHaveValue("");
+  await expect(duration).toHaveValue("30");
+  await expect(page.getByLabel("Video shape")).toContainText("Portrait");
   assert.deepEqual(errors, []);
-  console.log("PASS explainer first run: portrait defaults, original example, viewer/direction, overrides, custom art, existing templates, provider preserved; no generation");
+  console.log("PASS explainer workflow: portrait defaults, viewer/direction, navigation preserves drafts and custom modes, successful creation resets drafts, artist direction progress, overrides, templates and provider preserved; no generation");
 } finally { await app.close(); }

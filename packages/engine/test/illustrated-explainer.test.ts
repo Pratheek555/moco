@@ -1,4 +1,4 @@
-import { mkdtemp, readFile } from "node:fs/promises";
+import { mkdtemp, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { expect, it } from "vitest";
@@ -21,9 +21,10 @@ it("keeps the original acceptance story short, complete and storyboarded", () =>
 
 // This exercises real engine orchestration with deterministic model/audio/render
 // doubles. It verifies contracts and gates, not the artistic quality of generated video.
-it.each(["codex-cli", "claude-cli"])("runs the portrait format through approvals without changing %s", async (provider) => {
+it.each([{ provider: "codex-cli", recover: false }, { provider: "claude-cli", recover: false }, { provider: "codex-cli", recover: true }])("runs $provider through approvals and quality recovery=$recover", async ({ provider, recover }) => {
   const dir = await mkdtemp(join(tmpdir(), "moco-explainer-"));
   let authors = 0, narration = 0;
+  let corrected = false;
   const audio = new FakeAudio(.37);
   const speak = audio.tts.bind(audio);
   audio.tts = async (...args) => { narration++; return speak(...args); };
@@ -53,6 +54,7 @@ it.each(["codex-cli", "claude-cli"])("runs the portrait format through approvals
       authors++;
       const call = async (name: string, args: object) => request.artistTools!.find(tool => tool.name === name)!.call(args);
       const id = /Create shot (s\d+)/.exec(request.prompt)![1]!;
+      if (id === "s04" && request.prompt.includes("Fix the recovery gaze")) corrected = true;
       const result = await call("read_file", { path: `shots/${id}/brief.json` });
       const brief = JSON.parse(result.content.filter(block => block.type === "text").map(block => block.text).join(""));
       expect(brief.permissions).toMatchObject({ authoringAuthorized: true, storyboard: { status: "approved" }, images: { enabled: false } });
@@ -63,7 +65,7 @@ it.each(["codex-cli", "claude-cli"])("runs the portrait format through approvals
         await call("write_file", { path: "shared/design.md", content: example.visualDirection });
         await call("write_file", { path: "shared/characters.js", content: "function presenter(){helpers.circle(300,600,80,'#48767a')}" });
       }
-      await call("write_file", { path: `shots/${id}/draw.js`, content: "ctx.fillStyle='#f3ecdf';ctx.fillRect(0,0,scene.width,scene.height);presenter();" });
+      await call("write_file", { path: `shots/${id}/draw.js`, content: `ctx.fillStyle='#f3ecdf';ctx.fillRect(0,0,scene.width,scene.height);presenter();${id === "s04" && corrected ? "helpers.circle(500,600,20,'#333333');" : ""}` });
       await call("write_file", { path: `shots/${id}/scene.json`, content: JSON.stringify({ sourceFiles: ["shared/characters.js", `shots/${id}/draw.js`], cast: ["presenter"] }) });
       await call("render_preview", {});
       return { finished: true };
@@ -71,7 +73,10 @@ it.each(["codex-cli", "claude-cli"])("runs the portrait format through approvals
     if (task === "artist_review") {
       const parsed = JSON.parse(request.prompt);
       const targets = parsed.targets?.map((target: { shot: unknown }) => target.shot) ?? [parsed.target];
-      const verdicts = targets.map((shot: { id: string; actionChecks: { id: string; description: string }[] }) => ({ id: shot.id, score: 4, overall: "Mock acceptance for orchestration test only", checks: shot.actionChecks.map(action => ({ ...action, status: "pass", severity: "major", evidence: "Test double", fix: "" })) }));
+      const verdicts = targets.map((shot: { id: string; actionChecks: { id: string; description: string }[] }) => {
+        const pass = !recover || shot.id !== "s04" || corrected;
+        return { id: shot.id, score: pass ? 4 : 3, overall: "Mock acceptance for orchestration test only", checks: shot.actionChecks.map(action => ({ ...action, status: pass ? "pass" : "fail", severity: "major", evidence: "Test double", fix: pass ? "" : "Correct the gaze" })) };
+      });
       return parsed.targets ? { verdicts } : verdicts[0];
     }
     if (task === "memory") return { storySoFar: "The presenter demonstrated first in, first out at a ticket booth.", newFacts: [{ entity: "presenter", fact: example.visualDirection, sinceEpisode: "ep-01" }] };
@@ -93,9 +98,32 @@ it.each(["codex-cli", "claude-cli"])("runs the portrait format through approvals
   expect(narration).toBe(1);
   expect(authors).toBe(1);
   await approveNext(engine, id);
+  if (recover) {
+    const before = authors;
+    const incomplete = await engine.waitForJob(await engine.regenerateShot({ seriesId: id, episodeId: "ep-01", shotId: "s01" }, "Too early"));
+    expect(incomplete.error?.code).toBe("stage_blocked");
+    expect(authors).toBe(before);
+    const failed = await engine.waitForJob(await engine.runStage({ seriesId: id }));
+    expect(failed.error?.code).toBe("validation_failed");
+    expect((await engine.status(id)).stages.find(stage => stage.key === "ep-01/scenes")?.status).toBe("failed");
+    const unchanged = await readFile(join(dir, id, "episodes/ep-01/shots/s02/spec.json"), "utf8");
+    const authorsBeforeFix = authors;
+    const stale = JSON.parse(unchanged);
+    stale.meta.inputs = stale.meta.inputs.filter((input: { kind: string }) => input.kind !== "VoiceoverTrack");
+    await writeFile(join(dir, id, "episodes/ep-01/shots/s02/spec.json"), JSON.stringify(stale));
+    const blocked = await engine.waitForJob(await engine.regenerateShot({ seriesId: id, episodeId: "ep-01", shotId: "s04" }, "Do not repair a stale cut"));
+    expect(blocked.error?.code).toBe("stage_blocked");
+    expect(authors).toBe(authorsBeforeFix);
+    await writeFile(join(dir, id, "episodes/ep-01/shots/s02/spec.json"), unchanged);
+    const fix = await engine.waitForJob(await engine.regenerateShot({ seriesId: id, episodeId: "ep-01", shotId: "s04" }, "Fix the recovery gaze"));
+    expect(fix.status).toBe("succeeded");
+    expect(authors).toBe(authorsBeforeFix + 1);
+    expect(await readFile(join(dir, id, "episodes/ep-01/shots/s02/spec.json"), "utf8")).toBe(unchanged);
+    expect((await engine.status(id)).stages.find(stage => stage.key === "ep-01/scenes")?.error).toBeUndefined();
+  }
   await advance(engine, id);
   expect((await engine.status(id)).next).toMatchObject({ kind: "waiting", key: "ep-01/preview" });
-  expect(authors).toBe(5);
+  if (!recover) expect(authors).toBe(5);
   for (let n = 1; n <= 5; n++) {
     const scene = JSON.parse(await readFile(join(dir, id, `episodes/ep-01/shots/s0${n}/spec.json`), "utf8"));
     expect(scene.data).toMatchObject({ format: { width: 1080, height: 1920, fps: 60 }, actors: [], captions: [], fallback: false });

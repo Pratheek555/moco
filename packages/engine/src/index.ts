@@ -278,7 +278,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
   // A stage's output changed outside a normal run: rebind its hash, re-open its gate, stale its dependants.
   async function outputChanged(series: OpenSeries, key: string, hash: string): Promise<void> {
     const gated = GATED.has(parseStageKey(key).stage);
-    series.ledger.setStage(key, { status: gated ? "awaiting_approval" : "done", artifactHash: hash });
+    series.ledger.setStage(key, { status: gated ? "awaiting_approval" : "done", artifactHash: hash, error: undefined });
     const stale = markDependantsStale(series.ledger, key, series.ledger.data.episodeIds);
     await series.ledger.save();
     if (gated) await bus.emit(series.info.id, "stage.awaiting_approval", { key, contentHash: hash });
@@ -400,9 +400,29 @@ export function createEngine(options: CreateEngineOptions): Engine {
       const scenesKey = stageKey("scenes", ref.episodeId);
       return startJob(ref.seriesId, "shot", `${ref.episodeId}/shots/${ref.shotId}`, async (ctx) => {
         const series = await load(ref.seriesId);
-        // Every shot must already have a spec from the current shot list; otherwise run the scenes stage.
-        if (ctx.ledger.stage(scenesKey).status !== "done") throw new EngineError("stage_blocked", `run ${scenesKey} before regenerating single shots`);
+        // Visual review can fail after every shot was saved. Let the user repair
+        // that cut without requiring the failed quality gate to pass first.
+        const sceneStage = ctx.ledger.stage(scenesKey);
+        const recovering = ctx.series.production && sceneStage.status === "failed";
+        if (sceneStage.status !== "done" && !recovering) throw new EngineError("stage_blocked", `run ${scenesKey} before regenerating single shots`);
         const shotList = (await ctx.store.read(files.shotList(ref.episodeId), "ShotList")).data;
+        if (recovering) {
+          if (ctx.ledger.stage(stageKey("script", ref.episodeId)).status !== "approved" ||
+            ctx.ledger.stage(stageKey("voiceover", ref.episodeId)).status !== "done" ||
+            ctx.ledger.stage(stageKey("shot_list", ref.episodeId)).status !== "done") {
+            throw new EngineError("stage_blocked", "Approve the current script and finish narration and cuts before repairing saved shots");
+          }
+          for (const savedShot of shotList.shots) {
+            if (!ctx.store.has(files.shotSpec(ref.episodeId, savedShot.id))) throw new EngineError("stage_blocked", "Finish generating every shot before repairing this cut");
+            const saved = await ctx.store.read(files.shotSpec(ref.episodeId, savedShot.id), "SceneSpec");
+            for (const file of [files.shotList(ref.episodeId), files.voiceover(ref.episodeId)]) {
+              const required = ctx.store.inputRef(file);
+              if (!saved.meta.inputs.some(input => input.kind === required.kind && input.contentHash === required.contentHash)) {
+                throw new EngineError("stage_blocked", "Saved scenes are stale against the narration or cuts; regenerate them first");
+              }
+            }
+          }
+        }
         const shot = shotList.shots.find((candidate) => candidate.id === ref.shotId);
         if (!shot) throw new EngineError("not_found", `shot ${ref.shotId} not found in ${ref.episodeId}`);
 

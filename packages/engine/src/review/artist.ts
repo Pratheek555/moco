@@ -15,7 +15,7 @@ import { lookupTemplate, templateImages } from "../templates/registry.ts";
 import { loadPrompt } from "../generator/prompts.ts";
 import { EngineError } from "../errors.ts";
 
-const progress = (ctx:StageContext,ep:string,message:string) => ctx.bus.emit(ctx.seriesId,"ai.activity",{key:`${ep}/scenes`,episodeId:ep,phase:"working",message});
+const progress = (ctx:StageContext,ep:string,message:string) => ctx.bus.emit(ctx.seriesId,"ai.activity",{key:`${ep}/${ctx.ledger.stage(`${ep}/sample`).status === "running" ? "sample" : "scenes"}`,episodeId:ep,phase:"working",message});
 
 // A verdict describes a particular cut, including continuity, not just one drawing.
 export function reviewContext(ctx:StageContext,shots:Shot[],shared:Shared) {

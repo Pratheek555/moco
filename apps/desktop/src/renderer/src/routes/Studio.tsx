@@ -80,19 +80,25 @@ export function Studio() {
   // Built-in defaults must already be available for state initialization.
   const template = templates.find((t) => t.id === templateId) ?? findTemplate(templateId ?? undefined);
   const isExplainer = template?.id === ILLUSTRATED_EXPLAINER_ID;
+  const savedOptions = useApp.getState().composerOptions;
+  const draft = savedOptions?.templateId === templateId ? savedOptions : null;
   const ideaInput = useRef<HTMLTextAreaElement>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
   const [details, setDetails] = useState<TemplateInfo | null>(null);
-  const [productionMode, setProductionMode] = useState("standard");
-  const [artistShape, setArtistShape] = useState(() => template?.production?.format.width === 1080 ? "portrait" : "landscape");
-  const [artistSeconds, setArtistSeconds] = useState(() => template?.production?.targetSeconds?.toString() ?? "");
-  const [audience, setAudience] = useState("");
-  const [visualDirection, setVisualDirection] = useState("");
-  const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
-    [language, setLanguage] = useState(settings.defaults.language),
+  const [productionMode, setProductionMode] = useState(() => draft?.productionMode ?? "standard");
+  const [artistShape, setArtistShape] = useState(() => draft?.artistShape ?? (template?.production?.format.width === 1080 ? "portrait" : "landscape"));
+  const [artistSeconds, setArtistSeconds] = useState(() => draft?.artistSeconds ?? template?.production?.targetSeconds?.toString() ?? "");
+  const [audience, setAudience] = useState(() => draft?.audience ?? "");
+  const [visualDirection, setVisualDirection] = useState(() => draft?.visualDirection ?? "");
+  const [episodes, setEpisodes] = useState(() => draft?.episodes ?? template?.defaults.episodes ?? settings.defaults.episodes),
+    [language, setLanguage] = useState(() => draft?.language ?? settings.defaults.language),
     [starting, setStarting] = useState(false);
+
+  useEffect(() => {
+    useApp.getState().setComposerOptions({ templateId, productionMode, artistShape, artistSeconds, audience, visualDirection, episodes, language });
+  }, [templateId, productionMode, artistShape, artistSeconds, audience, visualDirection, episodes, language]);
 
   useLayoutEffect(() => {
     const input = ideaInput.current;
@@ -133,6 +139,7 @@ export function Studio() {
         ...((productionMode === "artist" || isExplainer) ? { production: { mode: "artist" as const, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 60 }, ...(isExplainer ? { localOnly: true } : {}), ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : {}),
       });
       setIdea("");
+      useApp.getState().setComposerOptions(null);
       setTemplateId(ILLUSTRATED_EXPLAINER_ID);
       go({ name: "series", id });
     } catch (e) {

@@ -19,6 +19,12 @@ own production settings. Freeform **Custom illustration** and **Animation & 3D**
 remain available in Visual approach. Changing the look does not replace an episode
 count the user has already chosen.
 
+Unsaved creation choices survive navigation within the current app session,
+including a visit to voice settings or the library. Topic, episode count,
+language, visual approach, shape, length, viewer and visual direction return
+together. A successful creation clears that draft for the next project. These
+drafts are held in memory; restarting or reloading the app is not disk autosave.
+
 ## Production and approvals
 
 This built-in template uses the ordinary artist pipeline and saved contracts:
@@ -30,12 +36,42 @@ This built-in template uses the ordinary artist pipeline and saved contracts:
 5. Author the rest using the approved shared design; review the full preview.
 6. Export through the existing artist quality gate bound to current artifacts.
 
+Sample review shows one larger frame with previous/next buttons, a position
+indicator and a keyboard-accessible scrubber. Select the image to enlarge it;
+frame navigation remains available in the enlarged view. These are sampled poses,
+not a video player or proof of continuous motion. The full preview remains the
+place to watch the animated cut.
+
+A saved preview with unresolved visual checks lists them above the player and
+links to **Review saved shots**. Approval stays disabled while that review needs
+attention, instead of sending the user straight into a blocked final-export job.
+Approval also waits for the report to load, and a changed preview starts a fresh
+review panel. The engine's artifact-bound export gate remains authoritative.
+
+If visual review fails after the scenes are saved, **Review saved shots** opens
+the existing episode inspector. Single-shot redo is available when the script is
+approved, narration and cuts are complete, and every planned shot is saved against
+those current input hashes. Stale or incomplete cuts stay blocked. This removes a
+circular prerequisite where a shot could not be repaired until its failed review
+already passed. The whole cut is independently rechecked after a change; final
+export still requires the unchanged quality gate. This is recovery through the
+existing redo API, not a new selective-editing feature. The sibling editing
+workstream should preserve these eligibility and input-freshness checks.
+
 The directing brief asks for a concrete question, a diagram that demonstrates the
 answer, narration-linked poses, sparse labels and motivated cuts. At the starting
 length it aims for four to six editorial pictures. Presenter identity, diagram
 correctness, label readability and purposeful cuts enter the show rubric; shot
 actions enter the existing word-indexed action checks. These are directing and
 review instructions, not a deterministic guarantee that every model output passes.
+Picture-plan prose is kept short and written for the reviewer; technical action
+check metadata belongs in the later measured-word shot list. Artist production
+calls its second progress phase **Direction**, and planning commentary uses the
+active stage's key so it appears in the live status line.
+When measured narration requires a longer or shorter script, its next script
+review explains the timing adjustment and that approval is needed before a new
+recording. A later user-requested revision replaces that reason, avoiding a stale
+automatic-timing explanation.
 
 Both configured CLI providers retain their existing artist-tool path; this format
 does not change providers. Artwork is procedural Canvas, using bundled Montserrat
@@ -85,9 +121,10 @@ out-of-order seek reproducibility and recovery after a deliberate source error.
 That check uses hand-authored drawing source, not model-generated art; its report
 is at `artifacts/illustrated-explainer/canvas-check/verification.json`.
 
-No live model generation is part of these tests. Visual acceptance of a fresh
-autonomous queue video remains unverified. Existing sampled visual review can miss
-motion defects and does not verify audio playback; see `artist-benchmark.md`.
+No live model generation is part of these automated tests. The separate live
+workflow exercise below produced a fresh queue preview, with unresolved quality
+checks. Existing sampled visual review can miss motion defects and does not verify
+audio playback; see `artist-benchmark.md`.
 
 ### Verification results, 8 November 2026
 
@@ -110,3 +147,63 @@ pnpm --filter @moco/desktop test:illustrated-explainer
 pnpm --filter @moco/desktop test:duration-settings
 pnpm --filter @moco/desktop test:studio-development
 ```
+
+### Live workflow exercise, 8–9 November 2026
+
+Created **Small Systems**, a two-episode portrait series in the ordinary desktop
+app, using the user's configured Codex CLI and local Chatterbox narration. The
+planned episodes explain queues and moving one task through a checklist board.
+The original presenter is Mina, wearing teal against a warm paper palette. The
+project is saved under `Documents/Moco/small-systems-a-two-episode-illustrated-explaine`.
+
+The live exercise covered plan and visual-direction approval, script feedback,
+measured narration and a timing send-back, sample review, reopening the app,
+full-shot generation, failed visual review, individual-shot repair and preview
+encoding. It found and fixed:
+
+- Lost episode count, audience, direction and other creation choices after
+  navigating to Settings. The complete in-memory draft now returns together.
+- Planning and sample-review commentary using the wrong stage key. Real progress
+  now reaches the current live status line, including during individual-shot work.
+- Unclear local voice startup and unexplained script reapproval after a narration
+  timing correction. Both now explain what is happening.
+- Small sample frames with no position/navigation controls. The larger viewer
+  supports keyboard scrubbing and enlargement; Escape leaves the review open.
+- Failed-review recovery that hid saved work and disabled shot repair until the
+  same review had already passed. Saved, current cuts now permit targeted repair;
+  missing or stale inputs remain blocked by the engine.
+- Preview approval offered while the visual review still needed attention.
+  The preview now names unresolved issues, links to saved shots and withholds
+  approval. The final-export quality gate is unchanged.
+
+The latest encoded draft is H.264/AAC, 540 x 960, 60 fps, 1,731 frames and 28.864
+seconds. Its underlying production is 1080 x 1920; the ordinary preview encoder
+halves the dimensions. Measured narration is 28.84675 seconds, inside the existing
+5% fitting tolerance for a 30-second target. The file is
+`episodes/ep-01/renders/preview.mp4` inside the saved project. A 15-frame encoded
+contact sheet is at `artifacts/illustrated-explainer/workflow-test/12-episode-one-preview-sheet.png`.
+That sheet samples the film; it does not establish continuous motion or audio
+quality. The preview is a review draft, not a quality-approved final export.
+The final encoding was resumed after an app interruption using only saved shots
+and narration, with generation disabled. Its preview gate is awaiting review;
+there are no remaining running jobs. The contact sheet was refreshed from that
+encoded file.
+
+The test also exposed a production bottleneck: repeated pointing/gaze repairs,
+weak closing-pose motion, and reviewer variation make a short film slow to finish.
+One reviewer demanded that a pointing hand reach a distant slot, which encouraged
+an overextended arm. No acceptance checks were removed or marked passed by hand.
+This is separate from the UI improvements; a fluent, finished two-episode live
+series has not been demonstrated. Episode two remains planned, not produced.
+The last independent review passed shots 1, 2, 3 and 5, while still rejecting shot
+4's pointing/gaze check. It accepted the closing pose without a source change,
+which reinforces the limitation of sampled model review. Further automatic
+repairs were not launched; the draft remains inspectable and final export blocked.
+
+Verification of the workflow fixes: workspace and desktop typechecks, desktop
+production build, explainer/duration/Studio Electron checks, 19 focused engine
+tests and 18 quality/retry tests passed. The recovery test also rejects a cut whose
+saved shot omits its current narration input. These model-double checks cover
+both provider selections without live calls; the live exercise used only Codex.
+The Electron preview check also holds the report request pending and verifies
+that approval stays disabled until the new report arrives.

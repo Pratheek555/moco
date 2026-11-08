@@ -4,7 +4,7 @@ import { api } from "@/lib/api";
 import { useAsync } from "@/lib/async";
 import { ActivityIcon, CheckIcon, ChevronRightIcon, CircleAlertIcon, MessageSquareIcon } from "lucide-react";
 import type { EngineEvent, SeriesStatus } from "@/lib/api";
-import { stageLabel, useApp } from "@/lib/store";
+import { activeStageKey, stageLabel, useApp } from "@/lib/store";
 import { Spinner } from "@/components/ui/spinner";
 
 function message(e: EngineEvent): string | undefined {
@@ -47,7 +47,7 @@ export function StudioActivity({ status }: { status: SeriesStatus }) {
       return text ? [{ e, text, id: `${e.at}-${i}` }] : [];
     }).slice(-100);
   // Only show work from the current job; completed shots drop out of the live line.
-  const current = status.stages.find(s => s.status === "running");
+  const currentKey = activeStageKey(status);
   const live = updates.filter(({ e }) => (!status.activeJob || e.at >= status.activeJob.startedAt));
   const completedShots = new Set<string>();
   for (const { e } of live) {
@@ -55,7 +55,7 @@ export function StudioActivity({ status }: { status: SeriesStatus }) {
     if (e.type === "shot.done") completedShots.add(String(e.data.shotId));
   }
   const latest = live.filter(({ e }) => ["ai.activity", "shot.started", "stage.started", "render.progress", "usage.rate_limited"].includes(e.type)
-    && (!current || !e.data.key || e.data.key === current.key)
+    && (!currentKey || !e.data.key || e.data.key === currentKey)
     && (!e.data.shotId || !completedShots.has(String(e.data.shotId)))).at(-1);
   const seconds = Math.max(0, Math.floor((now - Date.parse(status.activeJob?.startedAt ?? new Date(now).toISOString())) / 1000));
   return <section className="studio-feed" aria-label="Production activity">
@@ -71,7 +71,7 @@ export function StudioActivity({ status }: { status: SeriesStatus }) {
     </details>
     <StudioShots status={status} />
     {running && <div className="studio-feed-working" role="status" aria-live="polite">
-      <Spinner aria-hidden="true" /><div><span>{stageLabel(current?.key ?? ("key" in status.next ? status.next.key : "the next step"))}</span>
+      <Spinner aria-hidden="true" /><div><span>{stageLabel(currentKey ?? ("key" in status.next ? status.next.key : "the next step"))}</span>
       <p className="generation-live-message">{latest?.text ?? "Preparing the next production step."}</p></div>
       <time aria-label="Elapsed run time" aria-live="off">{Math.floor(seconds / 60)}:{String(seconds % 60).padStart(2, "0")}</time>
     </div>}
@@ -82,7 +82,8 @@ export function StudioActivity({ status }: { status: SeriesStatus }) {
 function StudioShots({ status }: { status: SeriesStatus }) {
   const events = useApp(s => s.events);
   const stage = status.stages.find(s => s.status === "running") ?? status.stages.find(s => s.status === "awaiting_approval");
-  const episodeId = stage?.key.includes("/") ? stage.key.split("/")[0] : undefined;
+  const key = activeStageKey(status) ?? stage?.key;
+  const episodeId = key?.includes("/") ? key.split("/")[0] : undefined;
   const shotEvents = events.filter(e => e.seriesId === status.series.id && e.data.episodeId === episodeId && ["shot.started", "shot.done"].includes(e.type));
   const milestone = shotEvents.at(-1);
   const listHash = status.stages.find(s => s.key === `${episodeId}/shot_list`)?.artifactHash;
