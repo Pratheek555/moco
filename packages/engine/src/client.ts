@@ -53,6 +53,10 @@ export function createEngineClient(port: ClientPort): EngineClient {
     });
 
   return {
+    createStyleSample: call("createStyleSample"),
+    styleSamples: call("styleSamples"),
+    styleSampleReview: call("styleSampleReview"),
+    approveStyleSample: call("approveStyleSample"),
     createSeries: call("createSeries"),
     extendSeries: call("extendSeries"),
     nextEpisode: call("nextEpisode"),

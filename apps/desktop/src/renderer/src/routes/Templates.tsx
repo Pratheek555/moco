@@ -18,6 +18,7 @@ import { report } from "@/lib/store.ts";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
+import { StyleSampleDialog } from "../components/StyleSample.tsx";
 
 export function TemplatesPage({ id }: { id?: string }) {
   const templates = useApp((s) => s.templates),
@@ -25,11 +26,12 @@ export function TemplatesPage({ id }: { id?: string }) {
   const [open, setOpen] = useState<TemplateInfo | null>(() => templates.find((t) => t.id === id) ?? null);
   const [learning, setLearning] = useState(false);
   const [importing, setImporting] = useState(false);
+  const [sampling, setSampling] = useState<TemplateInfo | null>(null);
   return (
     <Page>
       <PageHeader
         title="Templates"
-        description="Ready-made styles the AI follows for the story, the world and the cut. Pick one, add your idea, and Moco does the rest. Or teach Moco a new one from videos you like."
+        description="Learn visual technique from references, then review an original illustrated sample on your topic. Keep the artwork and motion you approve."
         actions={
           <div className="flex gap-2">
             <Button variant="outline" onClick={() => setImporting(true)}>Paste a prompt</Button>
@@ -50,7 +52,11 @@ export function TemplatesPage({ id }: { id?: string }) {
           </div>
         }
       />
-      <LearnJobs />
+      <LearnJobs onSample={(templateId) => {
+        const template = useApp.getState().templates.find((item) => item.id === templateId);
+        if (template?.production) setSampling(template);
+        else void useApp.getState().refreshTemplates().then(() => { const refreshed = useApp.getState().templates.find((item) => item.id === templateId); if (refreshed?.production) setSampling(refreshed); }).catch(report);
+      }} />
       {templates.length ? (
         <div className="grid grid-cols-2 gap-4 xl:grid-cols-3">
           {templates.map((template) => (
@@ -60,6 +66,7 @@ export function TemplatesPage({ id }: { id?: string }) {
               selected={selected === template.id}
               onSelect={() => startFromTemplate(template)}
               onDetails={() => setOpen(template)}
+              onSample={template.production && template.learned ? () => setSampling(template) : undefined}
             />
           ))}
         </div>
@@ -74,7 +81,8 @@ export function TemplatesPage({ id }: { id?: string }) {
           </EmptyHeader>
         </Empty>
       )}
-      <TemplateSheet template={open} onOpenChange={(isOpen) => !isOpen && setOpen(null)} />
+      <TemplateSheet template={open} onOpenChange={(isOpen) => !isOpen && setOpen(null)} onSample={setSampling} />
+      {sampling && <StyleSampleDialog key={sampling.id} template={sampling} onOpenChange={(isOpen) => !isOpen && setSampling(null)} />}
       <LearnDialog open={learning} onOpenChange={setLearning} />
       <PromptDialog open={importing} onOpenChange={setImporting} />
     </Page>

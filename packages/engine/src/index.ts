@@ -30,6 +30,7 @@ import { lookupTemplate, setStylesDir } from "./templates/registry.ts";
 import { repeatOffer, captureRepeat, prepareRepeat, repeatScriptHash, type RepeatOffer } from "./repeat/episode.ts";
 import { runRender } from "./pipeline/render.ts";
 import { hashData } from "./store/hash.ts";
+import { StyleSampleInput, snapshotStyle, sampleBrief, styleSampleReview, retainApprovedSample, type StyleSampleReview } from "./templates/samples.ts";
 
 export { EngineError } from "./errors.ts";
 export type { EngineErrorCode } from "./errors.ts";
@@ -41,6 +42,7 @@ export { defaultConfig } from "./config.ts";
 export { TEMPLATES, findTemplate, type TemplateInfo } from "./templates/index.ts";
 export { allTemplates, learnedTemplates } from "./templates/registry.ts";
 export type { RepeatOffer, RepeatEpisode, RepeatReuse } from "./repeat/episode.ts";
+export type { StyleSampleInput, StyleSampleInfo, StyleSampleReview } from "./templates/samples.ts";
 
 export const ENGINE_VERSION = "0.1.0";
 
@@ -82,6 +84,10 @@ export interface SeriesStatus {
 }
 
 export interface Engine {
+  createStyleSample(input: StyleSampleInput): Promise<SeriesId>;
+  styleSamples(templateId: string): Promise<SeriesStatus[]>;
+  styleSampleReview(seriesId: string): Promise<StyleSampleReview>;
+  approveStyleSample(seriesId: string, contentHash: string): Promise<void>;
   createSeries(input: { idea: string; language: string; episodes?: number; template?: string; production?: ArtistProduction }): Promise<SeriesId>;
   // Plan `episodes` more after the approved ones, steered by an optional note. The longer plan waits for approval.
   extendSeries(seriesId: SeriesId, input: { episodes: number; note?: string }): Promise<JobId>;
@@ -142,6 +148,18 @@ export function createEngine(options: CreateEngineOptions): Engine {
   const ttsSlots = new Semaphore(1);
   const open = new Map<SeriesId, OpenSeries>();
   const jobOwners = new Map<JobId, SeriesId>();
+  const mutations = new Set<SeriesId>();
+  async function mutate<T>(seriesId: string, work: () => Promise<T>): Promise<T> {
+    if (mutations.has(seriesId)) throw new EngineError("busy", "A change or approval is being saved for this project");
+    mutations.add(seriesId);
+    try { return await work(); } finally { mutations.delete(seriesId); }
+  }
+
+  async function ensureSampleEditable(series: OpenSeries) {
+    if (!series.info.styleSample) return;
+    const folder = lookupTemplate(series.info.template)?.learned?.dir;
+    if (folder && await exists(join(folder, "approval.json"))) throw new EngineError("stage_blocked", "This sample revision is approved. Generate a new revision to make changes.");
+  }
 
   // ---------- series loading ----------
 
@@ -156,6 +174,14 @@ export function createEngine(options: CreateEngineOptions): Engine {
     const ledger = await Ledger.load(dir);
     const store = new ArtifactStore(dir, ledger, (file) => void bus.emit(seriesId, "artifact.modified_externally", { file }));
     recoverAfterCrash(ledger);
+    // The durable approval marker is written before the ledger gate. Complete
+    // that gate after a crash between the two atomic writes.
+    const sampleFolder = info.styleSample && lookupTemplate(info.template)?.learned?.dir;
+    if (sampleFolder && await exists(join(sampleFolder, "approval.json"))) {
+      const approval = await readJson<{ previewHash?: string }>(join(sampleFolder, "approval.json"));
+      const key = `${ledger.data.episodeIds[0]}/preview`;
+      if (approval.previewHash && ledger.stage(key).status === "awaiting_approval" && ledger.stage(key).artifactHash === approval.previewHash) ledger.setStage(key, { status: "approved", feedback: undefined });
+    }
     await ledger.save();
 
     // A generated world is its approved build plus what later episodes added to it (canon/merge.ts).
@@ -205,7 +231,8 @@ export function createEngine(options: CreateEngineOptions): Engine {
       // never the legacy short-reel defaults.
       config: series.info.production ? { ...config, targetSeconds: series.info.production.targetSeconds
         ? { min: series.info.production.targetSeconds, max: series.info.production.targetSeconds }
-        : { min: 0, max: Number.MAX_SAFE_INTEGER } } : config,
+        : { min: 0, max: Number.MAX_SAFE_INTEGER },
+        ...(series.info.styleSample && { shotSecondsBounds: { min: Math.min(config.shotSecondsBounds.min, (series.info.production.targetSeconds ?? 12) / 4), max: Math.max(config.shotSecondsBounds.max, series.info.production.targetSeconds ?? 12) } }) } : config,
       catalog: series.world ? worldCatalog(catalog, series.world) : catalog,
       world: series.world,
       useWorld: (world) => {
@@ -231,47 +258,41 @@ export function createEngine(options: CreateEngineOptions): Engine {
 
   // Start background work for a series. One job per series at a time keeps the ledger simple and safe.
   async function startJob(seriesId: SeriesId, kind: JobRecord["kind"], target: string, work: (ctx: StageContext, job: JobRecord) => Promise<void>): Promise<JobId> {
-    const series = await load(seriesId);
-    if (series.activeJob) throw new EngineError("busy", `a job is already running for ${seriesId}`);
+    return mutate(seriesId, async () => {
+      const series = await load(seriesId);
+      await ensureSampleEditable(series);
+      if (series.activeJob) throw new EngineError("busy", `a job is already running for ${seriesId}`);
 
-    const job: JobRecord = { id: randomUUID(), kind, target, status: "running", stagesRun: [], startedAt: new Date().toISOString() };
-    const controller = new AbortController();
-    // Reserve before the first async save: two rapid launch requests must not start two episodes/jobs.
-    let settle!: () => void;
-    const reservation = new Promise<void>(resolve => { settle = resolve; });
-    series.activeJob = { id: job.id, controller, done: reservation };
-    series.ledger.data.jobs[job.id] = job;
-    jobOwners.set(job.id, seriesId);
-    try {
+      const job: JobRecord = { id: randomUUID(), kind, target, status: "running", stagesRun: [], startedAt: new Date().toISOString() };
+      const controller = new AbortController();
+      series.ledger.data.jobs[job.id] = job;
+      jobOwners.set(job.id, seriesId);
       await series.ledger.save();
       await bus.emit(seriesId, "job.started", { jobId: job.id, kind, target });
-    } catch (err) {
-      series.activeJob = undefined;
-      settle();
-      throw err;
-    }
 
-    const done = (async () => {
-      try {
-        const available = await options.ai.available();
-        if (!available.ok) throw new EngineError("ai_unavailable", available.reason ?? "AI backend is not available");
-        await work(contextFor(series, controller.signal), job);
-        job.status = "succeeded";
-      } catch (err) {
-        const cancelled = controller.signal.aborted;
-        job.status = cancelled ? "cancelled" : "failed";
-        job.error = err instanceof EngineError ? { code: err.code, message: err.message } : { code: "internal", message: err instanceof Error ? err.message : String(err) };
-      } finally {
-        job.endedAt = new Date().toISOString();
-        series.activeJob = undefined;
-        await series.ledger.save();
-        await bus.emit(seriesId, "job.finished", { jobId: job.id, status: job.status, error: job.error });
-      }
-    })();
+      const done = (async () => {
+        try {
+          const available = await options.ai.available();
+          if (!available.ok) throw new EngineError("ai_unavailable", available.reason ?? "AI backend is not available");
+          await work(contextFor(series, controller.signal), job);
+          job.status = "succeeded";
+        } catch (err) {
+          const cancelled = controller.signal.aborted;
+          job.status = cancelled ? "cancelled" : "failed";
+          job.error = err instanceof EngineError ? { code: err.code, message: err.message } : { code: "internal", message: err instanceof Error ? err.message : String(err) };
+        } finally {
+          job.endedAt = new Date().toISOString();
+          await series.ledger.save();
+          // Keep the job owned until its final ledger write settles. A fast failed
+          // sample run must not let a restart race this write on Windows.
+          series.activeJob = undefined;
+          await bus.emit(seriesId, "job.finished", { jobId: job.id, status: job.status, error: job.error });
+        }
+      })();
 
-    series.activeJob = { id: job.id, controller, done };
-    void done.then(settle, settle);
-    return job.id;
+      series.activeJob = { id: job.id, controller, done };
+      return job.id;
+    });
   }
 
   async function seriesOfJob(jobId: JobId): Promise<OpenSeries> {
@@ -310,6 +331,48 @@ export function createEngine(options: CreateEngineOptions): Engine {
   // ---------- public API ----------
 
   return {
+    async createStyleSample(value) {
+      const input = StyleSampleInput.parse(value);
+      if (!options.stylesDir) throw new EngineError("validation_failed", "Configure the learned styles folder first");
+      const template = lookupTemplate(input.templateId);
+      if (!template) throw new EngineError("invalid_id", "Unknown template");
+      if (!options.ai.supportsArtist || !options.ai.seesImages) throw new EngineError("validation_failed", "Style samples require artist tools and visual review on the selected AI backend. No other provider was selected.");
+      const snapshot = await snapshotStyle(options.stylesDir, template, input);
+      const id = await this.createSeries({ idea: sampleBrief(input), language: input.language, episodes: 1, template: snapshot.revisionId });
+      const series = await load(id);
+      series.info.styleSample = { templateId: input.templateId, revisionId: snapshot.revisionId, topic: input.topic, choices: input.choices };
+      await writeJsonAtomic(join(series.dir, "series.json"), series.info);
+      return id;
+    },
+
+    async styleSamples(templateId) {
+      const infos = (await this.listSeries()).filter(info => info.styleSample?.templateId === templateId);
+      return Promise.all(infos.sort((a, b) => b.createdAt.localeCompare(a.createdAt)).map(info => this.status(info.id)));
+    },
+
+    async styleSampleReview(seriesId) {
+      const series = await load(seriesId);
+      const template = lookupTemplate(series.info.template);
+      if (!series.info.styleSample || !template) throw new EngineError("invalid_id", "This project is not a style sample");
+      return styleSampleReview(contextFor(series, new AbortController().signal), template);
+    },
+
+    async approveStyleSample(seriesId, contentHash) {
+      return mutate(seriesId, async () => {
+        const series = await load(seriesId);
+        await ensureSampleEditable(series);
+        if (series.activeJob) throw new EngineError("busy", "Wait for the sample job to finish");
+        const template = lookupTemplate(series.info.template);
+        if (!series.info.styleSample || !template) throw new EngineError("invalid_id", "This project is not a style sample");
+        const approval = await retainApprovedSample(contextFor(series, new AbortController().signal), template, contentHash);
+        const key = `${series.ledger.data.episodeIds[0]}/preview`;
+        await writeJsonAtomic(join(template.learned!.dir, "approval.json"), { ...approval, previewHash: series.ledger.stage(key).artifactHash });
+        approveGate(series.ledger, key, series.ledger.stage(key).artifactHash!);
+        await series.ledger.save();
+        await bus.emit(seriesId, "stage.approved", { key, contentHash });
+      });
+    },
+
     async createSeries(input) {
       const idea = input.idea.trim();
       const template = lookupTemplate(input.template);
@@ -378,6 +441,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
 
     async extendSeries(seriesId, input) {
       const series = await load(seriesId);
+      if (series.info.styleSample) throw new EngineError("stage_blocked", "A style sample contains one short episode. Start a series separately.");
       if (series.activeJob) throw new EngineError("busy", `a job is already running for ${seriesId}`);
       const { ledger } = series;
       if (ledger.data.planExtension || ledger.stage("series_plan").status !== "approved") {
@@ -407,54 +471,63 @@ export function createEngine(options: CreateEngineOptions): Engine {
     },
 
     async runStage(ref) {
+      const series = await load(ref.seriesId);
+      if (series.info.styleSample && ref.key && ["final", "publish", "memory_update"].includes(parseStageKey(ref.key).stage)) throw new EngineError("stage_blocked", "Style samples stop at approved preview");
       return startJob(ref.seriesId, "stage", ref.key ?? "next", async (ctx, job) => {
         job.stagesRun = await runStages(ctx, ref.key);
       });
     },
 
     async approve(ref, contentHash) {
-      const series = await load(ref.seriesId);
-      if (series.activeJob) throw new EngineError("busy", "Wait for the current job to finish before approving.");
-      const { episodeId, stage } = parseStageKey(ref.key);
-      const repeat = episodeId && series.ledger.data.repeatEpisodes?.[episodeId];
-      if (repeat) {
-        const ctx = contextFor(series, new AbortController().signal);
-        await prepareRepeat(ctx, episodeId!);
-        if (stage === "script") {
-          const plan = await ctx.store.read(files.seriesPlan, "SeriesPlan");
-          if (hashData(plan.data.episodes.find(ep => ep.id === episodeId)) !== repeat.outlineHash) throw new EngineError("gate_mismatch", "The episode outline changed. Review it again before continuing.");
-          const script = await ctx.store.read(files.script(episodeId!), "EpisodeScript");
-          if (repeatScriptHash(ctx, episodeId!, script.meta.contentHash) !== contentHash) throw new EngineError("gate_mismatch", "The script or its reused context changed. Review it again.");
+      return mutate(ref.seriesId, async () => {
+        const series = await load(ref.seriesId);
+        await ensureSampleEditable(series);
+        if (series.info.styleSample && ref.key.endsWith("/preview")) throw new EngineError("stage_blocked", "Approve the style sample with its full evidence hash through approveStyleSample");
+        if (series.activeJob) throw new EngineError("busy", "Wait for the current job to finish before approving.");
+        const { episodeId, stage } = parseStageKey(ref.key);
+        const repeat = episodeId && series.ledger.data.repeatEpisodes?.[episodeId];
+        if (repeat) {
+          const ctx = contextFor(series, new AbortController().signal);
+          await prepareRepeat(ctx, episodeId!);
+          if (stage === "script") {
+            const plan = await ctx.store.read(files.seriesPlan, "SeriesPlan");
+            if (hashData(plan.data.episodes.find(ep => ep.id === episodeId)) !== repeat.outlineHash) throw new EngineError("gate_mismatch", "The episode outline changed. Review it again before continuing.");
+            const script = await ctx.store.read(files.script(episodeId!), "EpisodeScript");
+            if (repeatScriptHash(ctx, episodeId!, script.meta.contentHash) !== contentHash) throw new EngineError("gate_mismatch", "The script or its reused context changed. Review it again.");
+          }
         }
-      }
-      approveGate(series.ledger, ref.key, contentHash);
-      if (repeat && stage === "script" && repeat.outlinePending) {
-        repeat.outlinePending = false;
-        series.ledger.setStage("series_plan", { status: "approved" });
-        series.ledger.data.planExtension = undefined;
-      }
-      if (ref.key === "series_plan") series.ledger.data.planExtension = undefined;
-      await series.ledger.save();
-      await bus.emit(ref.seriesId, "stage.approved", { key: ref.key, contentHash });
+        approveGate(series.ledger, ref.key, contentHash);
+        if (repeat && stage === "script" && repeat.outlinePending) {
+          repeat.outlinePending = false;
+          series.ledger.setStage("series_plan", { status: "approved" });
+          series.ledger.data.planExtension = undefined;
+        }
+        if (ref.key === "series_plan") series.ledger.data.planExtension = undefined;
+        await series.ledger.save();
+        await bus.emit(ref.seriesId, "stage.approved", { key: ref.key, contentHash });
+      });
     },
 
     async reject(ref, feedback) {
-      const series = await load(ref.seriesId);
-      const record = series.ledger.stage(ref.key);
-      if (record.status !== "awaiting_approval") {
-        throw new EngineError("not_awaiting_approval", `${ref.key} is ${record.status}, not awaiting approval`);
-      }
-      // The feedback is put into the stage's next prompt. A preview has no prompt, so its note goes to the shots.
-      const note = feedback.trim().slice(0, 2000);
-      const { stage, episodeId } = parseStageKey(ref.key);
-      series.ledger.setStage(ref.key, { status: "pending" });
-      if (stage === "script" && episodeId && series.ledger.data.repeatEpisodes?.[episodeId]?.outlinePending) {
-        // Both drafts are under review. A change request must be able to revise the new outline too.
-        series.ledger.setStage("series_plan", { status: "pending", feedback: note });
-      }
-      series.ledger.setStage(stage === "preview" ? stageKey("scenes", episodeId) : ref.key, { status: "pending", feedback: note });
-      if (note) series.ledger.decide("feedback", ref.key, note); // kept for the episode retro (learn/playbook.ts)
-      await series.ledger.save();
+      return mutate(ref.seriesId, async () => {
+        const series = await load(ref.seriesId);
+        await ensureSampleEditable(series);
+        const record = series.ledger.stage(ref.key);
+        if (record.status !== "awaiting_approval") {
+          throw new EngineError("not_awaiting_approval", `${ref.key} is ${record.status}, not awaiting approval`);
+        }
+        // The feedback is put into the stage's next prompt. A preview has no prompt, so its note goes to the shots.
+        const note = feedback.trim().slice(0, 2000);
+        const { stage, episodeId } = parseStageKey(ref.key);
+        series.ledger.setStage(ref.key, { status: "pending" });
+        if (stage === "script" && episodeId && series.ledger.data.repeatEpisodes?.[episodeId]?.outlinePending) {
+          // Both drafts are under review. A change request must be able to revise the new outline too.
+          series.ledger.setStage("series_plan", { status: "pending", feedback: note });
+        }
+        series.ledger.setStage(stage === "preview" ? stageKey("scenes", episodeId) : ref.key, { status: "pending", feedback: note });
+        if (note) series.ledger.decide("feedback", ref.key, note); // kept for the episode retro (learn/playbook.ts)
+        await series.ledger.save();
+      });
     },
 
     async status(seriesId) {
@@ -467,7 +540,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       return {
         series: series.info,
         stages,
-        next: nextStage(ledger, ledger.data.episodeIds),
+        next: series.info.styleSample && ledger.stage(`${ledger.data.episodeIds[0]}/preview`).status === "approved" ? { kind: "finished" as const } : nextStage(ledger, ledger.data.episodeIds),
         activeJob,
         jobs: Object.values(ledger.data.jobs),
         decisions: ledger.data.decisions,
@@ -564,28 +637,31 @@ export function createEngine(options: CreateEngineOptions): Engine {
 
     // Restoring the current revision of an externally edited file accepts the edit as a human revision.
     async restore(ref, revision) {
-      const series = await load(ref.seriesId);
-      if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
-      const record = series.ledger.data.artifacts[ref.file];
-      if (!record) throw new EngineError("not_found", `artifact ${ref.file} does not exist`);
+      return mutate(ref.seriesId, async () => {
+        const series = await load(ref.seriesId);
+        await ensureSampleEditable(series);
+        if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
+        const record = series.ledger.data.artifacts[ref.file];
+        if (!record) throw new EngineError("not_found", `artifact ${ref.file} does not exist`);
 
-      const data = await series.store.readRevision(ref.file, revision);
-      const kind = record.kind as Parameters<ArtifactStore["save"]>[1];
-      const saved = await series.store.save(ref.file, kind, data, { producedBy: "human" });
-      if (ref.file === files.seriesPlan) {
-        series.ledger.data.episodeIds = (saved.data as { episodes: { id: string }[] }).episodes.map((episode) => episode.id);
-        // An older plan may be shorter or longer than the last request; a redo of it should keep its length.
-        series.ledger.data.planExtension = undefined;
-        series.info = { ...series.info, episodes: series.ledger.data.episodeIds.length };
-        await writeJsonAtomic(join(series.dir, "series.json"), series.info);
-      }
-      series.ledger.decide("restore", ref.file, `restored revision ${revision} as revision ${saved.meta.revision}`);
+        const data = await series.store.readRevision(ref.file, revision);
+        const kind = record.kind as Parameters<ArtifactStore["save"]>[1];
+        const saved = await series.store.save(ref.file, kind, data, { producedBy: "human" });
+        if (ref.file === files.seriesPlan) {
+          series.ledger.data.episodeIds = (saved.data as { episodes: { id: string }[] }).episodes.map((episode) => episode.id);
+          // An older plan may be shorter or longer than the last request; a redo of it should keep its length.
+          series.ledger.data.planExtension = undefined;
+          series.info = { ...series.info, episodes: series.ledger.data.episodeIds.length };
+          await writeJsonAtomic(join(series.dir, "series.json"), series.info);
+        }
+        series.ledger.decide("restore", ref.file, `restored revision ${revision} as revision ${saved.meta.revision}`);
 
-      const key = stageOfFile(ref.file);
-      const ctx = contextFor(series, new AbortController().signal);
-      const hash = key?.endsWith("/scenes") ? await scenesHash(ctx, parseStageKey(key).episodeId!) : saved.meta.contentHash;
-      if (key) await outputChanged(series, key, hash);
-      else await series.ledger.save();
+        const key = stageOfFile(ref.file);
+        const ctx = contextFor(series, new AbortController().signal);
+        const hash = key?.endsWith("/scenes") ? await scenesHash(ctx, parseStageKey(key).episodeId!) : saved.meta.contentHash;
+        if (key) await outputChanged(series, key, hash);
+        else await series.ledger.save();
+      });
     },
 
     async readArtifact(ref) {
@@ -598,6 +674,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
     async savePublish(ref, kit) {
       assertSafeId(ref.episodeId, "episode id");
       const series = await load(ref.seriesId);
+      if (series.info.styleSample) throw new EngineError("stage_blocked", "Style samples do not enter publishing");
       if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
       const key = stageKey("publish", ref.episodeId);
       if (!series.store.has(files.publish(ref.episodeId))) throw new EngineError("stage_blocked", `${key} hasn't run yet`);
@@ -622,6 +699,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       assertSafeId(ref.episodeId, "episode id");
       assertSafeId(choice.shotId, "shot id");
       const series = await load(ref.seriesId);
+      if (series.info.styleSample) throw new EngineError("stage_blocked", "Style samples do not enter publishing");
       if (series.activeJob) throw new EngineError("busy", `a job is running for ${ref.seriesId}`);
       const key = stageKey("publish", ref.episodeId);
       if (!series.store.has(files.publish(ref.episodeId))) throw new EngineError("stage_blocked", `${key} hasn't run yet`);
@@ -637,6 +715,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
     // Kits already written keep their text; rewritePublish applies new defaults to one.
     async setPublishDefaults(seriesId, defaults) {
       const series = await load(seriesId);
+      if (series.info.styleSample) throw new EngineError("stage_blocked", "Style samples do not enter publishing");
       const current = series.store.has(files.publishDefaults) ? (await series.store.read(files.publishDefaults, "PublishDefaults")).data : {};
       const parsed = PublishDefaults.safeParse({ ...current, ...defaults });
       if (!parsed.success) throw new EngineError("validation_failed", `publish defaults are invalid: ${parsed.error.message}`);
@@ -647,6 +726,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       assertSafeId(ref.episodeId, "episode id");
       const key = stageKey("publish", ref.episodeId);
       const series = await load(ref.seriesId);
+      if (series.info.styleSample) throw new EngineError("stage_blocked", "Style samples do not enter publishing");
       if (series.activeJob) throw new EngineError("busy", `a job is already running for ${ref.seriesId}`);
       const note = feedback?.trim().slice(0, 2000);
       series.ledger.setStage(key, { feedback: note || undefined });

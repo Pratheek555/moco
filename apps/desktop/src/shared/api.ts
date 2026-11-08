@@ -3,7 +3,7 @@
 import type { VoiceInfo } from "@moco/audio";
 import type { CodexAccountState } from "@moco/ai";
 export type { CodexAccountState } from "@moco/ai";
-import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus } from "@moco/engine";
+import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus, StyleSampleReview } from "@moco/engine";
 import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
 import type { ArtistProduction, PublishDefaults, PublishKit, ThumbnailChoice } from "@moco/spec";
@@ -76,6 +76,7 @@ export interface LearnJob {
   id: string;
   name: string;
   sources: string[];
+  referenceImages?: string[];
   state: "running" | "done" | "error" | "cancelled";
   step: string; // fetch, measure, sheets, agents, merge, template, done
   log: string[]; // recent progress lines, newest last
@@ -122,7 +123,16 @@ export interface MocoApi {
   templates: {
     importPrompt(input: { name: string; prompt: string; production: ArtistProduction; referenceImages?: string[] }): Promise<TemplateInfo>;
     list(): Promise<TemplateInfo[]>; // built-in plus learned
-    learn(input: { name: string; sources: string[] }): Promise<string>; // job id; progress arrives on "learn"
+    learn(input: { name: string; sources: string[]; referenceImages?: string[] }): Promise<string>; // job id; progress arrives on "learn"
+    chooseVideos(): Promise<string[]>;
+    createSample(input: {
+      templateId: string; topic: string; language: string; seconds: number;
+      format: { width: number; height: number; fps: number };
+      choices: { palette: string[]; detail: "simple" | "balanced" | "rich"; acting: "restrained" | "expressive"; pacing: "calm" | "balanced" | "brisk"; feedback: string };
+    }): Promise<string>;
+    samples(templateId: string): Promise<SeriesStatus[]>;
+    sampleReview(seriesId: string): Promise<StyleSampleReview>;
+    approveSample(seriesId: string, contentHash: string): Promise<void>;
     jobs(): Promise<LearnJob[]>;
     cancelLearn(jobId: string): Promise<void>;
     openFolder(id: string): Promise<void>; // a learned template's folder (skill, measurements, sheets)
