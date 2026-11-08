@@ -46,6 +46,8 @@ kit/world scene formats still work without the new artifacts.
   and dependent shots; `saveCharacter(ShotRef,{castId,sceneHash})` records approval;
   `applyCharacter(ShotRef,{castId,version,sceneHash})` starts an upgrade/review job.
   These also work through the engine host/client protocol and desktop IPC.
+  Character approval shares the engine's project mutation lock and respects
+  approved style-sample revisions; those samples cannot be changed through reuse APIs.
 - The episode-page controls are a small entry point. The editing workstream can
   use these APIs for its wider UI. Repeat workflows can use the library when
   creating new shots; no sibling branch/worktree changes are required here.
@@ -97,6 +99,25 @@ An explicitly requested version upgrade must retain the selected pins.
   character bundles may require deliberately authored compatible versions.
 
 ## Verification
+
+### Desktop screenshots
+
+`pnpm --filter @moco/desktop test:character-reuse` exercises the actual
+Electron/preload/React controls using a fresh temporary profile and deterministic
+IPC fixtures. It checks exact approval/upgrade payloads, retained old pins,
+version selection, and error recovery, without a live model or changes to the
+user's profile. Captures are written to `artifacts/character-reuse-ui/`.
+The checked-in screenshots below document control behavior, not live-generated art:
+
+| Save a reviewed character | Saved version available for new shots |
+| --- | --- |
+| ![Save a reviewed character](images/reusable-characters/01-save-approved-character.png) | ![Saved version available for reuse](images/reusable-characters/02-saved-for-new-shots.png) |
+
+| Choose v2 while the existing shot still uses v1 | Only the selected shot now uses v2 |
+| --- | --- |
+| ![Deliberate upgrade with old pin retained](images/reusable-characters/03-deliberate-version-upgrade.png) | ![Selected shot updated](images/reusable-characters/04-selected-shot-updated.png) |
+
+### Engine and renderer
 
 `packages/engine/test/characters.test.ts` uses fake model/audio/render ports for
 approval, provenance, immutable bytes, drift/staleness rejection, unapproved
