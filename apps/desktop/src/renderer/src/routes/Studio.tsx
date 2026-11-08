@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import {
   ArrowRightIcon,
   ArrowUpRightIcon,
@@ -76,6 +76,7 @@ export function Studio() {
     templateId = useApp((s) => s.composerTemplate),
     setTemplateId = useApp((s) => s.setComposerTemplate);
   const template = templates.find((t) => t.id === templateId);
+  const ideaInput = useRef<HTMLTextAreaElement>(null);
   const [optionsOpen, setOptionsOpen] = useState(false);
   const [historyOpen, setHistoryOpen] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
@@ -86,6 +87,13 @@ export function Studio() {
   const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
+
+  useLayoutEffect(() => {
+    const input = ideaInput.current;
+    if (!input) return;
+    input.style.height = "auto";
+    input.style.height = `${Math.min(input.scrollHeight, 200)}px`;
+  }, [idea]);
 
   const { data: voices } = useAsync(() => api.voice.list(), []);
   const { data: models, error: modelError, reload: reloadModels } = useAsync(() => api.voice.models(), [settings.voice.backend]);
@@ -142,11 +150,10 @@ export function Studio() {
     if (others.length) pickIdea(others[Math.floor(Math.random() * others.length)]!);
   };
 
-  // Picking a template sets its usual episode count; the user can still change it.
+  // Changing the look must not replace the episode count the user chose.
   const chooseTemplate = (next: TemplateInfo | undefined) => {
     setTemplateId(next?.id ?? null);
     setProductionMode("standard");
-    setEpisodes(next ? next.defaults.episodes : settings.defaults.episodes);
   };
 
   return (
@@ -159,14 +166,14 @@ export function Studio() {
       <div className="landing-center">
         <h1>What story will you tell?</h1>
         <form className="landing-prompt" aria-busy={starting} onSubmit={(e) => { e.preventDefault(); void submit(); }}>
-          <textarea id="idea" aria-label="What story will you tell?" placeholder="A small idea. A whole new world." maxLength={32000} disabled={starting} value={idea} onChange={(e) => setIdea(e.target.value)} onKeyDown={(e) => {
+          <textarea ref={ideaInput} id="idea" aria-label="What story will you tell?" placeholder="A small idea. A whole new world." maxLength={32000} disabled={starting} value={idea} onChange={(e) => setIdea(e.target.value)} onKeyDown={(e) => {
             if ((e.ctrlKey || e.metaKey) && e.key === "Enter") { e.preventDefault(); void submit(); }
           }} />
           <div className="landing-prompt-tools">
             <button type="button" aria-label="Story options" title="Story options and templates" disabled={starting} onClick={() => setOptionsOpen(true)}><PlusIcon /></button>
             <button type="button" aria-label="Voice settings" title="Voice and narration settings" onClick={() => go({ name: "settings", section: "voice" })}><MicIcon /></button>
             <div className="landing-modes">
-              <button type="button" disabled={starting} onClick={() => setOptionsOpen(true)} aria-label="Animation style" title={template?.name ?? "Animation style"}>{template ? "TEMPLATE" : productionMode === "artist" ? "ILLUSTRATE" : "ANIMATE"}<ChevronDownIcon /></button>
+              <button type="button" disabled={starting} onClick={() => setOptionsOpen(true)} aria-label="Animation style" title={template?.name ?? "Animation style"}><span>{template?.name ?? (productionMode === "artist" ? "ILLUSTRATE" : "ANIMATE")}</span><ChevronDownIcon /></button>
               <button type="button" disabled={starting} onClick={() => setOptionsOpen(true)} aria-label="Choose episode count">{episodes} {episodes === 1 ? "EPISODE" : "EPISODES"}</button>
             </div>
             <button className="landing-submit" type="submit" aria-label="Create series" title="Create series (Ctrl+Enter)" disabled={!idea.trim() || starting || Boolean(selectedVoiceProblem)}>{starting ? <Spinner /> : <ArrowUpRightIcon />}</button>

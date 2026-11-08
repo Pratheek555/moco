@@ -1,5 +1,31 @@
 # Prompt templates
 
+The built-in **kurzgesat style** template adds original layered 2D science
+storytelling, source-linked claims, expressive rigs and script/storyboard approval
+before assets or narration. It preserves explicit runtimes, including long-form
+films. It does not include copied characters or artwork, a reference video, or
+automatic connections to image and voice providers.
+
+`examples/series/deep-ocean.txt` contains the complete five-minute film script,
+40-shot storyboard and three one-minute short scripts. Its companion
+`deep-ocean.plan.json` includes source URLs, isolated-asset prompts and the
+shorts' parent-shot/asset mappings. All artwork remains planned, not generated.
+The shorts need a separate derivative edit/render pass because an ordinary Moco
+series currently uses one format and duration. GPT Image 2 and Kokoro are selected
+for this draft; its capability report explains the external image route and local
+Kokoro runner needed, rather than silently using the desktop voice.
+
+Rebuild this planning package without any generation or spending:
+
+```powershell
+pnpm exec tsx scripts/prepare-deep-ocean.ts
+```
+
+Add `--projects-dir <folder>` to seed a new app draft with plan, bible and script
+gates awaiting approval. This refuses to overwrite an existing draft. No gate is
+auto-approved; no voice, image or render port is called. Narration also refuses
+a configured backend that differs from the approved bible's selected backend.
+
 In Templates, choose **Paste a prompt**, supply a name and your full instructions,
 and choose portrait or landscape. Both use 1080p at 60 fps. An optional length
 overrides duration references in the prompt; otherwise the show planner proposes
@@ -31,6 +57,14 @@ canvas voice stage with setup guidance rather than silently estimating words.
 The first authored shot is independently reviewed before the rest of the episode
 is generated, so a broken shared character rig can be corrected early.
 
+Artist production uses the AI safety allowance separately for each scene and each
+visual-review batch, rather than sharing 60 calls across the entire film. Author
+retries, generated images and later repairs share the same scene allowance within
+a job. Review rounds and author attempts remain bounded; provider quotas still
+stop production. Usage totals include every call. Workspace file limits likewise
+apply to each shot and to the shared asset library separately. Retrying reuses
+completed scenes whose inputs still match.
+
 The complete creative prompt is included in every planning stage and artist
 authoring call, and is also available as `templateBrief` in each artist brief.
 Template content participates in prompt hashes and scene reuse keys. Prompts are
@@ -42,6 +76,25 @@ Templates are saved atomically under the existing styles folder using
 `moco-template.md`. They are listed alongside learned templates and can be
 removed through the existing template controls when no series uses them. Explicit format settings avoid
 guessing from example resolutions or negated instructions in long prompts.
+
+Requested image generation is available to Codex artist projects. Mention `GPT Image 2`
+in the brief (or set `production.imageGeneration` to `gpt-image-2`) to expose the
+application-owned `generate_image` tool. It uses the installed Codex CLI's native
+image tool and existing login, consuming the user's Codex allowance rather than
+requiring an API key. Ordinary planning, review and authoring calls keep native
+image generation disabled; the bounded workspace tool saves generated PNGs and
+records their prompt, model and content hash. Reference PNGs can be supplied from
+the workspace. Saved assets are reused, embedded in the scene manifest and
+animated as Canvas layers or rig components. Local-only projects never enable it.
+Unsupported providers produce a specific blocker instead of a silent substitution.
+
+Artist briefs include a read-only `permissions` snapshot from the current ledger
+and validated artifact hashes, also saved as `production-state.json`. A script
+approval covers the storyboard attached in `script.shotPlan`. Historical text in
+an imported brief or old `production-status.json` does not revoke that approval.
+Changed or unapproved scripts still block artwork. Artists can call `report_blocker`
+to stop with a clear explanation; capability and authorization blockers do not
+consume the three artwork-repair attempts.
 
 The two supplied prompts are in `examples/templates/`. Run real application
 benchmarks with:
@@ -73,6 +126,12 @@ narration/cuts, preserves portrait frame proportions in the evidence sheets,
 and samples intermediate motion. Prompt-template reviews batch three target
 shots per request while retaining individual verdicts, action checks and repair
 decisions. Export still requires a passing review bound to current artifact hashes.
+Completed verdicts are checkpointed against the entire cut and review context,
+so retries resume after a disconnect. Motion frames are cached by scene, sample
+frames and renderer version. Repairs recheck the changed shots and both adjacent
+cuts against a fresh whole-episode overview. Review and repair progress appears
+in production activity; interrupted or unresolved reviews fail visibly instead
+of completing scenes and repeatedly requesting approval of the same preview.
 Silent authored cues are sampled alongside word anchors. Short rewind cues get
 consecutive frame evidence so a missing motion sample does not look like failed art.
 For a precise repair, set `MOCO_SHOT` and `MOCO_SHOT_FEEDBACK`; the benchmark uses

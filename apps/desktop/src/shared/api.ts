@@ -6,7 +6,7 @@ export type { CodexAccountState } from "@moco/ai";
 import type { DailyUsage, EngineEvent, SeriesStatus } from "@moco/engine";
 import type { TemplateInfo } from "@moco/engine/templates";
 import type { Catalog } from "@moco/kit";
-import type { ArtistProduction, PublishDefaults, PublishKit } from "@moco/spec";
+import type { ArtistProduction, PublishDefaults, PublishKit, ThumbnailChoice } from "@moco/spec";
 
 export type Theme = "light" | "dark" | "system";
 export type VoiceModelId = "english" | "multilingual";
@@ -28,6 +28,7 @@ export interface Settings {
   projectsDir: string;
   voice: {
     backend?: "chatterbox" | "system";
+    device?: "auto" | "cpu" | "gpu";
     reference?: string; // local performance reference WAV
     characterVoices?: { id: string; reference: string }[];
     expressiveness?: number;
@@ -67,6 +68,7 @@ export interface EpisodeMedia {
   thumbnail?: string;
   thumbnailPath?: string; // on disk, for dragging into YouTube
   stills: Record<string, string[]>; // shot id → still URLs
+  savedShots?: string[]; // persisted specs, including shots saved before this UI session
 }
 
 // Learning a template from reference videos (@moco/learn), run by main in a background process.
@@ -151,7 +153,7 @@ export interface MocoApi {
   publish: {
     save(seriesId: string, episodeId: string, kit: PublishKit): Promise<void>;
     rewrite(seriesId: string, episodeId: string, note?: string): Promise<string>; // job id
-    setThumbnail(seriesId: string, episodeId: string, choice: { shotId: string; text: string }): Promise<void>;
+    setThumbnail(seriesId: string, episodeId: string, choice: ThumbnailChoice): Promise<void>;
     setDefaults(seriesId: string, defaults: Partial<PublishDefaults>): Promise<void>;
     openStudio(): Promise<void>;
   };

@@ -30,8 +30,11 @@ export async function runRender(ctx: RenderContext, episodeId: string, quality: 
   };
   const file = quality === "preview" ? files.previewReport(episodeId) : files.renderReport(episodeId);
   const inputs = episode.scenes.map((scene) => ctx.store.inputRef(files.shotSpec(episodeId, scene.shotId)));
+  inputs.push(ctx.store.inputRef(files.voiceover(episodeId)));
   const saved = await ctx.store.save(file, "RenderReport", report, { producedBy: "engine", inputs });
-  return saved.meta.contentHash;
+  // The report's path, duration and versions can stay identical after a repair.
+  // Bind preview approval to the actual scenes and narration the user receives.
+  return hashData({report:saved.meta.contentHash,inputs:inputs.map(({kind,contentHash})=>({kind,contentHash}))});
 }
 
 // Same scenes + same voiceover + same kit/renderer + same quality → same video, so reuse it.

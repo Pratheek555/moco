@@ -23,7 +23,7 @@ import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { StudioAscii } from "./StudioAscii";
 
-import { DirectionQueue, GenerationBrief, GenerationComposer, GenerationHeader, GenerationIdentity } from "./GenerationWorkspace";
+import { DirectionQueue, GenerationBrief, GenerationComposer, GenerationHeader, GenerationIdentity, GenerationSidebar } from "./GenerationWorkspace";
 
 type Note = { text: string; at: string };
 const notesKey = (id: string) => `moco.series-direction.${id}`;
@@ -57,10 +57,11 @@ export function SeriesDevelopment({
   const [busy, setBusy] = useState<
     "approve" | "revise" | "retry" | "stop" | null
   >(null);
-  const [reviewing, setReviewing] = useState(false);
+  const [reviewing, setReviewing] = useState(true);
   const [following, setFollowing] = useState(true);
   const scroller = useRef<HTMLDivElement>(null);
   const review = useRef<HTMLElement>(null);
+  const episodeRows = useRef(new Map<string, HTMLLIElement>());
   const follow = useRef(true);
   const input = useRef<HTMLTextAreaElement>(null);
   const stage = status.stages.find((s) => s.key === "series_plan");
@@ -170,7 +171,7 @@ export function SeriesDevelopment({
       // The engine records feedback before starting the replacement draft.
       setNotes([]);
       if (clearDraft) setDirection("");
-      setReviewing(false);
+      setReviewing(true);
       follow.current = true;
       setFollowing(true);
       await api.stages.run(id);
@@ -192,6 +193,7 @@ export function SeriesDevelopment({
       aria-label="Series development"
     >
       <GenerationHeader status={status} plan={plan} />
+      <div className="generation-shell" data-sidebar={Boolean(reviewing && ready && plan)}>
       <div className="development-layout generation-layout">
         <div
           ref={scroller}
@@ -267,7 +269,7 @@ export function SeriesDevelopment({
             <article className="development-active" aria-busy={running}>
               <div className="development-active-text">
                 <span className="development-phase generation-current-status">
-                  <span className="generation-status-dot" data-running={running} />
+                  {running ? <Spinner aria-hidden="true" /> : ready ? <CheckIcon aria-hidden="true" /> : <span className="generation-status-dot" />}
                   {failure
                     ? "Needs attention"
                     : ready
@@ -304,13 +306,15 @@ export function SeriesDevelopment({
               <div className="generation-plan-result">
                 <span className="generation-results-label">Made for your story</span>
                 <button className="generation-result" aria-label="Review series plan" onClick={() => {
+                  follow.current = false;
+                  setFollowing(false);
                   setReviewing(true);
-                  requestAnimationFrame(() => scroller.current?.scrollTo({
-                    top: review.current ? review.current.offsetTop - scroller.current.offsetTop : 0,
-                    behavior: matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
-                  }));
+                  requestAnimationFrame(() => {
+                    review.current?.focus({ preventScroll: true });
+                    review.current?.scrollIntoView({ block: "start", behavior: "instant" });
+                  });
                 }}><span className="generation-result-icon"><FileTextIcon /></span><div><strong>Review series plan</strong><span>{plan?.title} · {plan?.episodes.length} {plan?.episodes.length === 1 ? "episode" : "episodes"}</span></div><span className="generation-result-state">Ready for review</span><ChevronRightIcon /></button>
-                <button className="generation-text-action" onClick={() => input.current?.focus()}>Have another idea? Keep exploring <ArrowUpIcon /></button>
+                <button className="generation-text-action" onClick={() => { setReviewing(false); requestAnimationFrame(() => input.current?.focus()); }}>Have another idea? Keep exploring <ArrowUpIcon /></button>
               </div>
             )}
             {!running && !ready && (
@@ -324,21 +328,54 @@ export function SeriesDevelopment({
                 </Button>
               </div>
             )}
-            {reviewing && ready && plan && (
+
+          </div>
+        </div>
+        <div className="development-composer-dock">
+          {!following && (
+            <Button
+              className="development-latest"
+              size="sm"
+              variant="outline"
+              onClick={scrollLatest}
+            >
+              Latest update
+              <ArrowDownIcon />
+            </Button>
+          )}
+          <DirectionQueue notes={notes} canApply={ready} busy={busy !== null} onApply={() => void revise(notes.map(n => n.text).join("\n\n"), false)} onClear={() => setNotes([])} />
+          <GenerationComposer status={status} inputRef={input} value={direction} onChange={setDirection} onSubmit={submit}
+            label="Add direction to your series" context="Series plan" placeholder={ready ? "What would you like to change?" : "A new thought? Add it to the story…"}
+            busy={busy !== null} onStop={() => void work("stop", () => api.stages.cancel(status.activeJob!.id))} sendLabel={ready ? "Revise series plan" : "Add direction"} />
+        </div>
+      </div>
+        {reviewing && ready && plan && (
+          <GenerationSidebar label="Review series plan" onClose={() => setReviewing(false)}>
               <section
                 ref={review}
                 className="development-review"
                 role="region"
                 aria-label="Review"
+                tabIndex={-1}
               >
                 <span className="development-label">
                   Series plan · first draft
                 </span>
                 <h2>{plan.title}</h2>
                 <p>{plan.premise}</p>
+                {plan.episodes.length > 1 && <nav className="development-episode-nav" aria-label="Jump to episode">
+                  <span>{plan.episodes.length} episodes</span>
+                  <div>{plan.episodes.map((episode, i) => <button key={episode.id} title={episode.title} aria-label={`Episode ${i + 1}: ${episode.title}`} onClick={() => {
+                    follow.current = false;
+                    setFollowing(false);
+                    const row = episodeRows.current.get(episode.id);
+                    row?.focus({ preventScroll: true });
+                    row?.scrollIntoView({ block: "start", behavior: "instant" });
+                  }}>{String(i + 1).padStart(2, "0")}</button>)}</div>
+                </nav>}
                 <ol aria-label="The episode board">
                   {plan.episodes.map((episode, i) => (
-                    <li key={episode.id}>
+                    <li key={episode.id} tabIndex={-1} ref={node => { if (node) episodeRows.current.set(episode.id, node); else episodeRows.current.delete(episode.id); }}>
                       <span>{String(i + 1).padStart(2, "0")}</span>
                       <div>
                         <h3>{episode.title}</h3>
@@ -347,7 +384,7 @@ export function SeriesDevelopment({
                     </li>
                   ))}
                 </ol>
-                <div className="development-actions">
+                <div className="development-actions generation-sidebar-footer">
                   <Button
                     disabled={busy !== null || notes.length > 0}
                     onClick={() =>
@@ -366,7 +403,7 @@ export function SeriesDevelopment({
                   </Button>
                   <Button
                     variant="outline"
-                    onClick={() => input.current?.focus()}
+                    onClick={() => { setReviewing(false); requestAnimationFrame(() => input.current?.focus()); }}
                   >
                     Ask for changes
                   </Button>
@@ -377,27 +414,8 @@ export function SeriesDevelopment({
                   </p>
                 )}
               </section>
-            )}
-          </div>
-        </div>
-        <div className="development-composer-dock">
-          {!following && (
-            <Button
-              className="development-latest"
-              size="sm"
-              variant="outline"
-              onClick={scrollLatest}
-            >
-              Latest update
-              <ArrowDownIcon />
-            </Button>
-          )}
-          <DirectionQueue notes={notes} canApply={ready} busy={busy !== null} onApply={() => void revise(notes.map(n => n.text).join("\n\n"), false)} onClear={() => setNotes([])} />
-          <GenerationComposer status={status} inputRef={input} value={direction} onChange={setDirection} onSubmit={submit}
-            label="Add direction to your series" context="Series plan" placeholder={ready ? "What would you like to change?" : "A new thought? Add it to the story…"}
-            hint={running ? "Notes are saved for your next review. You stay in the director’s chair." : ready ? "Review the draft, or tell Moco where to take it next." : "Your draft is saved. Pick up whenever you’re ready."}
-            busy={busy !== null} onStop={() => void work("stop", () => api.stages.cancel(status.activeJob!.id))} sendLabel={ready ? "Revise series plan" : "Add direction"} />
-        </div>
+          </GenerationSidebar>
+        )}
       </div>
     </section>
   );

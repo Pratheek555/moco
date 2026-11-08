@@ -802,8 +802,7 @@ function Review({
           Review {inSentence(stageLabel(stage.key))}
         </CardTitle>
         <CardDescription>
-          Approve to move on to the next step, or ask for changes and Moco
-          redoes this one with your note.
+          Review the draft below. Approve to continue, or send a note for changes.
         </CardDescription>
         <CardAction>
           <Badge>Waiting for you</Badge>
@@ -913,7 +912,7 @@ function Review({
                     key={url}
                     src={url}
                     alt="Sample shot still"
-                    className="aspect-[9/16] h-72 shrink-0 rounded-lg border object-cover"
+                    className="max-h-80 max-w-full shrink-0 rounded-lg border object-contain"
                   />
                 ))
               : [0, 1, 2].map((i) => (
@@ -929,7 +928,7 @@ function Review({
             <video
               src={media.preview}
               controls
-              className="aspect-[9/16] h-[32rem] rounded-lg bg-black"
+              className="w-full max-h-[52dvh] rounded-lg bg-black"
             />
           ) : (
             <Skeleton className="aspect-[9/16] h-[32rem] rounded-lg" />

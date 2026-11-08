@@ -35,6 +35,11 @@ export async function runStages(ctx: StageContext, firstKey?: string, options: {
     if (ctx.signal.aborted) throw new EngineError("cancelled", "cancelled");
     const { status } = await runOne(ctx, key);
     ran.push(key);
+    // Finish delivery for this episode, then require a fresh user action to start another.
+    if (status === "done" && parseStageKey(key).stage === "publish") {
+      await ctx.bus.emit(ctx.seriesId, "episode.completed", { episodeId: parseStageKey(key).episodeId });
+      break;
+    }
     if (status !== "done" || options.once) break; // waiting for the user (gate), failed, or asked for one stage
     key = runnableNext(ctx);
   }

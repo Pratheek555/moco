@@ -1,0 +1,907 @@
+THE OCEAN AFTER DARK — SCRIPT AND STORYBOARD FOR APPROVAL
+
+Status: DRAFT. No art, voice, music or video has been generated. No approval recorded. No paid generation calls.
+Master: one 5:00 educational film, 1920x1080, 60fps. Three derivative 1:00 shorts, proposed 1080x1920, 60fps. Selected: GPT Image 2 + Kokoro.
+Master narration: 800 words. Timestamps are provisional targets, not measured speech.
+
+REFERENCE AND VISUAL ANALYSIS
+User's written description; no frames inspected, no audio inferred.
+0:00.0–0:27.0: Navy/violet character-led mystery, glowing objects, movement trails and layered detail
+0:27.0–1:03.0: Live-action desk/product demonstration, human interaction, clean explanatory graphics
+1:03.0–1:16.0: Cyan laboratory, machinery, experiments and energetic transitions
+1:16.0–1:26.0: Product hierarchy and feature graphics
+1:26.0–1:41.0: Orange illustrated world, machinery, vegetation, architecture and multiple action layers
+1:41.0–1:47.0: Clean product hero composition and CTA
+Replace product demos with observable feeding and optical mechanisms; use cyan for discovery and amber only for schematic chemistry. Keep open water sparse; concentrate density where the ecology supports it. End with the opening speck and an unanswered scientific invitation, not a product CTA.
+Proposed grammar inferred from the written brief: subtle camera motion for ordinary explanation, stronger pullback for mechanism/scale reveals, three-layer parallax, staggered acting and object-driven transitions. Actual reference easing, cut positions and motion paths are unverified.
+Reference contact sheet: NOT PRODUCED; requires the original video. No substitute frames have been invented.
+
+COLOR SYSTEM (approximate, not sampled)
+#09134B navy: Deep-water dominant; negative space around the subject
+#180A59 violet: Distant ocean layers and mystery
+#243CDB royal: Twilight midground planes
+#22D7DA cyan: Biological light and discovery; never sunlight at abyssal depth
+#33B9D7 teal: ROV accent and atmospheric separation
+#FF851D orange: ROV body and explicitly schematic chemical-energy arrows
+#ED4BA4 pink: Small biological accents; not a blanket glow
+#FFD244 yellow: Surface sunlight and ROV inspection lamp
+#8CAAF7 light-blue: Readable labels and marine-snow flecks
+
+ORIGINAL CHARACTER SYSTEM (design specification only)
+Pip: Fictional silent observer: an original small ROV. Curious, hesitant at first, delighted by causal discoveries.
+Squat rounded-trapezoid orange shell #FF851D, navy lower chassis; two offset camera lenses in one light-blue rectangular panel, teal vertical fins, one short three-joint inspection arm on screen-right. Body width:height 1.4:1; lens centers fixed at 0.36 and 0.62 of panel width. No bird anatomy or beak.
+Thrust anticipation, eased drift, arm pointing and 4-degree whole-body inclinations. Mechanical aperture changes are expressions; do not add biological eyelids to lenses.
+Signature: Inspection arm lifts before discovery; Teal fins settle after stops; Two lenses briefly converge on a particle.
+Sheet after approval: front/side/three-quarter/back, happy/confused/surprised/worried, travel and gesture; separate stable parts with overlapping joints.
+
+Mica: Stylized lanternfish teaching silhouette and counterillumination. Alert, cautious, readable through eye and body angle.
+Original horizontally elongated lozenge fish; purple #6535A8 back, navy underside, one large lateral eye per side, small rounded fins, forked teal tail and six pale-cyan ventral photophore points. Body length:height 2.6:1; eye center at 0.23 of body length. No human arms or clothes; mouth stays fish-like.
+Tail-led propulsion with delayed fin follow-through; head/body rotation 3-6 degrees, brief startled backward dart, 2.8-3.8s stylized eyelid cycles. Eyelids and expressive squashing are cartoon conventions, not a claim about fish physiology.
+Signature: A short backward dart before switching belly light; Ventral photophores brighten as a group.
+Sheet after approval: front/side/three-quarter/back, happy/confused/surprised/worried, travel and gesture; separate stable parts with overlapping joints.
+
+FULL FIVE-MINUTE NARRATION AND SHOT PLAN
+s01 | 0:00.0–0:07.5 | dominant #09134B
+NARRATION: A thousand meters down, sunlight has disappeared. But something is still eating. So where does its dinner come from?
+PICTURE: Hook: an apparently empty beam catches a falling food particle and a feeding silhouette.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip. PROPS: aggregate, feeder
+ACTING: Pip brakes, angles lenses down and follows the particle; a feeder intercepts it.
+CAMERA: Gentle push-in; leave dark negative space beyond the lamp.
+EXIT: Particle match cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: light, snow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Gentle push-in; leave dark negative space beyond the lamp.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: Hook: an apparently empty beam catches a falling food particle and a feeding silhouette.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, feeder. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s02 | 0:07.5–0:15.0 | dominant #09134B
+NARRATION: Follow this tiny falling speck, and the ocean stops looking empty. It becomes a world connected by food.
+PICTURE: The aggregate becomes our visual guide through separated depths, never a magical light source.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip. PROPS: aggregate
+ACTING: Arm reaches then withdraws without grabbing the biological sample.
+CAMERA: Vertical tracking along the particle; near flecks drift faster than distant ones.
+EXIT: Tracking cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-transit
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Vertical tracking along the particle; near flecks drift faster than distant ones.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: The aggregate becomes our visual guide through separated depths, never a magical light source.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s03 | 0:15.0–0:22.5 | dominant #09134B
+NARRATION: Some meals arrive from above. Some creatures light up the darkness. And a few neighborhoods make food using chemistry.
+PICTURE: Three connected glimpses: falling snow, photophores, a distant vent with microbes.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: aggregate, photophores, microbes
+ACTING: Pip turns from each discovery to the next with staggered reaction delays.
+CAMERA: Pull back to a continuous depth composition; three reveals follow narration.
+EXIT: ROV body wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration; Subtle discovery accent on first glow only
+SOURCES: snow, glow, chemo
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Pull back to a continuous depth composition; three reveals follow narration.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Three connected glimpses: falling snow, photophores, a distant vent with microbes.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, photophores, microbes. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s04 | 0:22.5–0:30.0 | dominant #09134B
+NARRATION: The surprise isn't just that life survives here. It's that darkness has never meant the same thing as emptiness.
+PICTURE: Title on the ROV's blank survey panel: WHY THE DEEP OCEAN ISN'T EMPTY.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip. PROPS: survey-panel
+ACTING: Arm taps the panel; little distant movement remains visible outside its lamp.
+CAMERA: Hold with subtle lateral drift, then follow the gaze upward.
+EXIT: Upward whip pan
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration
+SOURCES: glow, snow-floor
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Hold with subtle lateral drift, then follow the gaze upward.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: Title on the ROV's blank survey panel: WHY THE DEEP OCEAN ISN'T EMPTY.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props survey-panel. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s05 | 0:30.0–0:37.5 | dominant #243CDB
+NARRATION: Near the surface, microscopic phytoplankton use sunlight to build organic matter. Their tiny bodies become the beginning of meals.
+PICTURE: Phytoplankton silhouettes build a few highlighted organic-carbon tokens inside a labeled magnification inset.
+LAYERS: surface-background / surface-midground / surface-foreground
+RIGS: pip. PROPS: plankton, carbon-token
+ACTING: A grazer approaches; Pip watches from a separate observational inset.
+CAMERA: Wide establishing view, then slow push toward one plankton form.
+EXIT: Shape match
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-ecology
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Blue sunlit upper ocean with a bright surface boundary; warmth stays near the top. Palette dominant #243CDB; overscan for Wide establishing view, then slow push toward one plankton form.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Layered original geometric phytoplankton; different scale groups and sparse swimming grazers. Story purpose: Phytoplankton silhouettes build a few highlighted organic-carbon tokens inside a labeled magnification inset.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: A few enlarged plankton shapes and translucent particles framing a clear visual pathway. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props plankton, carbon-token. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s06 | 0:37.5–0:45.0 | dominant #09134B
+NARRATION: Descend, and that light fades. The twilight zone stretches roughly from two hundred to one thousand meters below the surface.
+PICTURE: Code depth ruler passes 200m and 1000m with a continuous, approximate light gradient.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip. PROPS: depth-ruler
+ACTING: Pip descends smoothly; its inspection lamp becomes progressively more noticeable.
+CAMERA: Long vertical tracking with layers moving at three speeds.
+EXIT: Continuous descent
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: light
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Long vertical tracking with layers moving at three speeds.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: Code depth ruler passes 200m and 1000m with a continuous, approximate light gradient.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props depth-ruler. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s07 | 0:45.0–0:52.5 | dominant #09134B
+NARRATION: Below that, sunlight is gone. This does not mean every creature disappears, or that every patch is equally crowded.
+PICTURE: Sparse open-water animal silhouettes, then a small localized cluster; no tropical reef density.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip. PROPS: feeder
+ACTING: One feeder crosses independently while Pip pauses.
+CAMERA: Wide static framing with subtle camera drift.
+EXIT: Cut on gaze
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: light, snow-floor, vent-food
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Wide static framing with subtle camera drift.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: Sparse open-water animal silhouettes, then a small localized cluster; no tropical reef density.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props feeder. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s08 | 0:52.5–1:00.0 | dominant #180A59
+NARRATION: We need to follow energy, not just brightness. Our first clue is that strange snowfall drifting through the water.
+PICTURE: A navy-lit aggregate enters the inspection beam; simple label MARINE SNOW appears beside it.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, label-panel
+ACTING: Pip leans toward it, lenses narrow in curiosity.
+CAMERA: Macro push-in with foreground flecks clearing the focal object.
+EXIT: Scale-through aggregate
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Macro push-in with foreground flecks clearing the focal object.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: A navy-lit aggregate enters the inspection beam; simple label MARINE SNOW appears beside it.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, label-panel. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s09 | 1:00.0–1:07.0 | dominant #180A59
+NARRATION: This is marine snow. Not ice, but sinking scraps: dead plankton, waste, mucus, and other material clumped together.
+PICTURE: Separate plankton fragment, fecal pellet and mucus shapes assemble an irregular aggregate in magnified view.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, plankton-fragment, fecal-pellet, microbes
+ACTING: A tiny microbe attaches after the larger fragment settles.
+CAMERA: Macro orbit simulated by layer offsets, not a 3D spinning object.
+EXIT: Clump morph
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Macro orbit simulated by layer offsets, not a 3D spinning object.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: Separate plankton fragment, fecal pellet and mucus shapes assemble an irregular aggregate in magnified view.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, plankton-fragment, fecal-pellet, microbes. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s10 | 1:07.0–1:14.5 | dominant #180A59
+NARRATION: What looks like rubbish to us is a food delivery. Animals can catch these particles while they drift downward.
+PICTURE: Filter-feeding animal intercepts particles with a simplified but plausible filtering structure.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, feeder
+ACTING: Filter extends before contact, closes after contact; Pip reacts a beat later.
+CAMERA: Track one particle laterally into the filter.
+EXIT: Contact cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-floor
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Track one particle laterally into the filter.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: Filter-feeding animal intercepts particles with a simplified but plausible filtering structure.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, feeder. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s11 | 1:14.5–1:22.0 | dominant #180A59
+NARRATION: The leftovers keep falling. Some eventually reach the seabed, where animals such as sea cucumbers feed on organic material.
+PICTURE: Sediment plain revealed; a sea cucumber collects material from the substrate.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, sea-cucumber
+ACTING: Feeding tentacles touch sediment and return; no human hands or eating utensils.
+CAMERA: Pull back and tilt down from falling particle to bottom.
+EXIT: Sediment edge wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration
+SOURCES: snow-floor
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Pull back and tilt down from falling particle to bottom.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: Sediment plain revealed; a sea cucumber collects material from the substrate.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, sea-cucumber. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s12 | 1:22.0–1:29.5 | dominant #180A59
+NARRATION: Many particles are eaten or broken down before getting that far. The journey changes the snow, and its passengers.
+PICTURE: An aggregate loses fragments through grazing; remaining fragments travel deeper.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, microbes, grazer
+ACTING: Microbes and a grazer enter sequentially, then detach from different places.
+CAMERA: Track downward without changing the aggregate's design.
+EXIT: Particle match cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-ecology
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Track downward without changing the aggregate's design.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: An aggregate loses fragments through grazing; remaining fragments travel deeper.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, microbes, grazer. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s13 | 1:29.5–1:37.0 | dominant #180A59
+NARRATION: Even the fall isn't always quick. Some flakes take weeks to reach the bottom, rather than dropping like stones.
+PICTURE: A tiny calendar inset advances beside a slowly descending aggregate; TIMELAPSE label prevents literal-speed reading.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, calendar-panel
+ACTING: Pip's clock indicator advances while the body holds a calm hover.
+CAMERA: Fixed frame with slow vertical parallax and a restrained time-lapse cue.
+EXIT: Calendar panel wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration
+SOURCES: snow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Fixed frame with slow vertical parallax and a restrained time-lapse cue.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: A tiny calendar inset advances beside a slowly descending aggregate; TIMELAPSE label prevents literal-speed reading.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, calendar-panel. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s14 | 1:37.0–1:44.5 | dominant #09134B
+NARRATION: So a meal eaten far below can still begin with sunlight above. Its energy travels in bodies, not sunbeams.
+PICTURE: Track one highlighted organic token from surface plankton to the same deep aggregate.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: carbon-token, plankton, aggregate
+ACTING: Pip points between the surface inset and the food, not at a beam reaching the floor.
+CAMERA: Pull back to connect source and destination.
+EXIT: Token match
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-ecology, snow-transit
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Pull back to connect source and destination.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Track one highlighted organic token from surface plankton to the same deep aggregate.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props carbon-token, plankton, aggregate. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s15 | 1:44.5–1:52.5 | dominant #09134B
+NARRATION: That connection explains part of the mystery. The surface and the deep are separated by distance, but linked by falling food.
+PICTURE: Single clear falling pathway joins surface patch, feeder and sediment; no universal conveyor belt.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: aggregate, feeder, sea-cucumber
+ACTING: Pip follows the pathway with its arm; background movement pauses around the key beat.
+CAMERA: Slow diagonal pan across three linked depth layers.
+EXIT: Hard cut to a dark eye
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-transit
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Slow diagonal pan across three linked depth layers.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Single clear falling pathway joins surface patch, feeder and sediment; no universal conveyor belt.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, feeder, sea-cucumber. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s16 | 1:52.5–2:00.0 | dominant #09134B
+NARRATION: But dinner is only useful if you can find it. In the darkness, some animals bring their own light.
+PICTURE: Mica emerges as one coherent silhouette, then its six photophores appear in sequence.
+LAYERS: glow-background / glow-midground / glow-foreground
+RIGS: pip, mica. PROPS: photophores
+ACTING: Mica anticipates with a slight tail tuck before gliding into view.
+CAMERA: Track gently with the fish at eye level.
+EXIT: Photophore match cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Subtle discovery accent on first glow only
+SOURCES: glow-functions
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Navy twilight water with faint blue downwelling light only in silhouette-comparison shots. Palette dominant #09134B; overscan for Track gently with the fish at eye level.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separated original lanternfish silhouettes; isolated anglerfish cameo on a deeper dark plate. Story purpose: Mica emerges as one coherent silhouette, then its six photophores appear in sequence.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Mica lanternfish rig with individually controllable ventral photophores, sparse flecks and ROV inspection beam. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props photophores. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s17 | 2:00.0–2:07.5 | dominant #09134B
+NARRATION: Bioluminescence is light made by a chemical reaction. Different creatures use it for different jobs, from defense to attracting prey.
+PICTURE: Labeled magnification shows a chemical-reaction glow inside one light organ, not an electrical bulb.
+LAYERS: glow-background / glow-midground / glow-foreground
+RIGS: pip, mica. PROPS: photophores, reaction-inset
+ACTING: Mica's eye follows the inset; its body holds a stylized swimming pose.
+CAMERA: Subtle push into the photophore inset.
+EXIT: Inset shape morph
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Subtle discovery accent on first glow only
+SOURCES: glow, glow-functions
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Navy twilight water with faint blue downwelling light only in silhouette-comparison shots. Palette dominant #09134B; overscan for Subtle push into the photophore inset.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separated original lanternfish silhouettes; isolated anglerfish cameo on a deeper dark plate. Story purpose: Labeled magnification shows a chemical-reaction glow inside one light organ, not an electrical bulb.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Mica lanternfish rig with individually controllable ventral photophores, sparse flecks and ROV inspection beam. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props photophores, reaction-inset. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s18 | 2:07.5–2:14.5 | dominant #09134B
+NARRATION: An anglerfish can use a glowing lure. What looks like a promising snack can be attached to a predator.
+PICTURE: Separate dark abyssal plate: a female anglerfish's lure lights before its body is revealed.
+LAYERS: glow-background / glow-midground / glow-foreground
+RIGS: pip, mica. PROPS: anglerfish, prey
+ACTING: Lure oscillates once; prey approaches, then veers away before contact.
+CAMERA: Pull back to reveal the body behind the light.
+EXIT: Hard cut upward
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: glow-functions
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Navy twilight water with faint blue downwelling light only in silhouette-comparison shots. Palette dominant #09134B; overscan for Pull back to reveal the body behind the light.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separated original lanternfish silhouettes; isolated anglerfish cameo on a deeper dark plate. Story purpose: Separate dark abyssal plate: a female anglerfish's lure lights before its body is revealed.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Mica lanternfish rig with individually controllable ventral photophores, sparse flecks and ROV inspection beam. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props anglerfish, prey. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s19 | 2:14.5–2:22.0 | dominant #09134B
+NARRATION: In the twilight zone, glowing can do something stranger: help a fish disappear, when another animal looks up from below.
+PICTURE: Return explicitly to faint downwelling twilight; a dark fish silhouette is clear from below.
+LAYERS: glow-background / glow-midground / glow-foreground
+RIGS: pip, mica. PROPS: photophores, predator-silhouette
+ACTING: Mica holds still above a distant predator viewpoint, photophores initially off.
+CAMERA: Move beneath Mica into an upward-looking comparison.
+EXIT: Viewpoint match
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Subtle discovery accent on first glow only
+SOURCES: twilight
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Navy twilight water with faint blue downwelling light only in silhouette-comparison shots. Palette dominant #09134B; overscan for Move beneath Mica into an upward-looking comparison.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separated original lanternfish silhouettes; isolated anglerfish cameo on a deeper dark plate. Story purpose: Return explicitly to faint downwelling twilight; a dark fish silhouette is clear from below.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Mica lanternfish rig with individually controllable ventral photophores, sparse flecks and ROV inspection beam. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props photophores, predator-silhouette. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s20 | 2:22.0–2:29.5 | dominant #09134B
+NARRATION: Light from above makes a dark silhouette easy to spot. Matching that background glow can make the silhouette less obvious.
+PICTURE: Toggle belly light against a constant faint upper-water background; show REDUCED CONTRAST, not invisibility.
+LAYERS: glow-background / glow-midground / glow-foreground
+RIGS: pip, mica. PROPS: photophores, comparison-panel
+ACTING: Mica's photophores brighten gradually to match the field; body stays in place.
+CAMERA: Locked comparison camera preserves the viewing angle and exposure.
+EXIT: Comparison dissolve
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Subtle discovery accent on first glow only
+SOURCES: twilight
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Navy twilight water with faint blue downwelling light only in silhouette-comparison shots. Palette dominant #09134B; overscan for Locked comparison camera preserves the viewing angle and exposure.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separated original lanternfish silhouettes; isolated anglerfish cameo on a deeper dark plate. Story purpose: Toggle belly light against a constant faint upper-water background; show REDUCED CONTRAST, not invisibility.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Mica lanternfish rig with individually controllable ventral photophores, sparse flecks and ROV inspection beam. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props photophores, comparison-panel. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s21 | 2:29.5–2:37.5 | dominant #09134B
+NARRATION: This is counterillumination. It works against faint light overhead, not as a magic cloak in water with no sunlight at all.
+PICTURE: A narrow twilight inset and a separate midnight inset distinguish conditions; no complete disappearing trick.
+LAYERS: glow-background / glow-midground / glow-foreground
+RIGS: pip, mica. PROPS: comparison-panel
+ACTING: Mica exits the comparison; Pip nods once with the explanatory beat.
+CAMERA: Gentle pullback from the labeled demonstration.
+EXIT: Lamp iris wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration
+SOURCES: twilight
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Navy twilight water with faint blue downwelling light only in silhouette-comparison shots. Palette dominant #09134B; overscan for Gentle pullback from the labeled demonstration.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separated original lanternfish silhouettes; isolated anglerfish cameo on a deeper dark plate. Story purpose: A narrow twilight inset and a separate midnight inset distinguish conditions; no complete disappearing trick.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Mica lanternfish rig with individually controllable ventral photophores, sparse flecks and ROV inspection beam. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props comparison-panel. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s22 | 2:37.5–2:45.0 | dominant #09134B
+NARRATION: So the deep has food pathways and clever light tricks. But the next discovery changes where food itself can begin.
+PICTURE: Pip spots a particulate plume beyond a basalt ridge; the water remains dark.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip. PROPS: basalt, vent-plume
+ACTING: ROV compresses its fin motion, hesitates, then accelerates toward the ridge.
+CAMERA: Low tracking past foreground rock for a motivated reveal.
+EXIT: Basalt object wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration
+SOURCES: vent, chemo
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Low tracking past foreground rock for a motivated reveal.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: Pip spots a particulate plume beyond a basalt ridge; the water remains dark.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props basalt, vent-plume. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s23 | 2:45.0–2:52.5 | dominant #180A59
+NARRATION: At hydrothermal vents, seawater circulates through heated ocean crust and returns carrying dissolved chemicals. Here, microbes put those chemicals to work.
+PICTURE: Clearly labeled CUTAWAY shows seawater entering crust and chemical-rich fluid leaving, separate from the animal habitat.
+LAYERS: vent-background / vent-midground / vent-foreground
+RIGS: pip. PROPS: crust-cutaway, chemical-tokens
+ACTING: Pip points to inlet then outlet; arrows enter in causal order.
+CAMERA: Vertical move through an illustrated rock cutaway.
+EXIT: Fluid-path morph
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: vent
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Distant angular basalt ridges against dark water, vent fields isolated by open seabed. Palette dominant #180A59; overscan for Vertical move through an illustrated rock cutaway.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Mineral chimney and separately animated particulate plume; tube clusters in cooler mixed water away from hot outlet. Story purpose: Clearly labeled CUTAWAY shows seawater entering crust and chemical-rich fluid leaving, separate from the animal habitat.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Crab, original ROV, rock fragments and occluding tube bases; amber exists only in lamp-lit accents or labeled schematic cutaways. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props crust-cutaway, chemical-tokens. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s24 | 2:52.5–2:59.5 | dominant #180A59
+NARRATION: Using energy from chemical reactions, certain microbes build organic matter from carbon dioxide. This food-making process is called chemosynthesis.
+PICTURE: Microscopic inset: chemical reactants meet, an energy marker pulses, carbon dioxide becomes organic matter.
+LAYERS: vent-background / vent-midground / vent-foreground
+RIGS: pip. PROPS: microbes, chemical-tokens, carbon-token, reaction-inset
+ACTING: Microbes retain simple cell shapes; no mouths chewing heat or flames.
+CAMERA: Precise macro push-in; label CHEMOSYNTHESIS added in code.
+EXIT: Cell-to-colony pullback
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: chemo
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Distant angular basalt ridges against dark water, vent fields isolated by open seabed. Palette dominant #180A59; overscan for Precise macro push-in; label CHEMOSYNTHESIS added in code.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Mineral chimney and separately animated particulate plume; tube clusters in cooler mixed water away from hot outlet. Story purpose: Microscopic inset: chemical reactants meet, an energy marker pulses, carbon dioxide becomes organic matter.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Crab, original ROV, rock fragments and occluding tube bases; amber exists only in lamp-lit accents or labeled schematic cutaways. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props microbes, chemical-tokens, carbon-token, reaction-inset. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s25 | 2:59.5–3:06.0 | dominant #180A59
+NARRATION: The energy source is chemistry, not a sunbeam reaching the seabed. And not an animal simply eating heat.
+PICTURE: Contrast sunlight-driven plankton and reaction-driven microbe with two small embedded panels; no fake reaction equation.
+LAYERS: vent-background / vent-midground / vent-foreground
+RIGS: pip. PROPS: comparison-panel, microbes, plankton
+ACTING: Pip moves one pointer from sun panel to chemical panel.
+CAMERA: Hold the comparison for comprehension, slight parallax behind.
+EXIT: Panel edge wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration
+SOURCES: chemo
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Distant angular basalt ridges against dark water, vent fields isolated by open seabed. Palette dominant #180A59; overscan for Hold the comparison for comprehension, slight parallax behind.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Mineral chimney and separately animated particulate plume; tube clusters in cooler mixed water away from hot outlet. Story purpose: Contrast sunlight-driven plankton and reaction-driven microbe with two small embedded panels; no fake reaction equation.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Crab, original ROV, rock fragments and occluding tube bases; amber exists only in lamp-lit accents or labeled schematic cutaways. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props comparison-panel, microbes, plankton. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s26 | 3:06.0–3:13.5 | dominant #180A59
+NARRATION: Those microbes support local food webs. Around some vents, tubeworms, clams, crabs, and other animals gather where conditions suit them.
+PICTURE: Wide vent community with a cool mixing zone; animals kept away from the hottest outlet.
+LAYERS: vent-background / vent-midground / vent-foreground
+RIGS: pip. PROPS: tube-cluster, clam, crab, vent-plume
+ACTING: Crab crosses in front; tube plumes respond subtly after the flow passes.
+CAMERA: Pull back past tube silhouettes; preserve a clear chimney focal point.
+EXIT: Crab-follow cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: vent-food
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Distant angular basalt ridges against dark water, vent fields isolated by open seabed. Palette dominant #180A59; overscan for Pull back past tube silhouettes; preserve a clear chimney focal point.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Mineral chimney and separately animated particulate plume; tube clusters in cooler mixed water away from hot outlet. Story purpose: Wide vent community with a cool mixing zone; animals kept away from the hottest outlet.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Crab, original ROV, rock fragments and occluding tube bases; amber exists only in lamp-lit accents or labeled schematic cutaways. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props tube-cluster, clam, crab, vent-plume. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s27 | 3:13.5–3:21.0 | dominant #180A59
+NARRATION: Some giant tubeworms house bacterial partners inside their bodies. The worms supply ingredients, and the bacteria help provide their nutrition.
+PICTURE: A labeled stylized tubeworm cutaway shows internal symbiotic tissue, without inventing a mouth or digestive meal scene.
+LAYERS: vent-background / vent-midground / vent-foreground
+RIGS: pip. PROPS: tube-cluster, worm-cutaway, microbes
+ACTING: Plume bends with current; internal ingredient markers move along a clear pathway.
+CAMERA: Push from one tube into the anatomical inset.
+EXIT: Tissue inset morph
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: worm
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Distant angular basalt ridges against dark water, vent fields isolated by open seabed. Palette dominant #180A59; overscan for Push from one tube into the anatomical inset.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Mineral chimney and separately animated particulate plume; tube clusters in cooler mixed water away from hot outlet. Story purpose: A labeled stylized tubeworm cutaway shows internal symbiotic tissue, without inventing a mouth or digestive meal scene.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Crab, original ROV, rock fragments and occluding tube bases; amber exists only in lamp-lit accents or labeled schematic cutaways. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props tube-cluster, worm-cutaway, microbes. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s28 | 3:21.0–3:29.0 | dominant #180A59
+NARRATION: It is a living partnership, powered by chemical reactions. But there's an important limit to the idea of life without the Sun.
+PICTURE: The inset reveals oxygen-bearing seawater flowing in from a separate channel.
+LAYERS: vent-background / vent-midground / vent-foreground
+RIGS: pip. PROPS: worm-cutaway, oxygen-token, chemical-tokens
+ACTING: Pip pauses its celebratory gesture and points back to the missing ingredient.
+CAMERA: Small pullback to expose both input paths.
+EXIT: Input-path match
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: worm, oxygen
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Distant angular basalt ridges against dark water, vent fields isolated by open seabed. Palette dominant #180A59; overscan for Small pullback to expose both input paths.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Mineral chimney and separately animated particulate plume; tube clusters in cooler mixed water away from hot outlet. Story purpose: The inset reveals oxygen-bearing seawater flowing in from a separate channel.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Crab, original ROV, rock fragments and occluding tube bases; amber exists only in lamp-lit accents or labeled schematic cutaways. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props worm-cutaway, oxygen-token, chemical-tokens. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s29 | 3:29.0–3:37.0 | dominant #09134B
+NARRATION: Many vent reactions still use oxygen from seawater. No sunlight here does not mean these ecosystems are disconnected from the world above.
+PICTURE: Blue oxygen pathway joins seawater mixing at vent; source inset distinguishes photosynthetic connection from local food production.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: oxygen-token, microbes
+ACTING: Pip follows the pathway upward; animals stay in their own layers.
+CAMERA: Tilt up from mixing zone into the connecting water column.
+EXIT: Pathway pullback
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: oxygen
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Tilt up from mixing zone into the connecting water column.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Blue oxygen pathway joins seawater mixing at vent; source inset distinguishes photosynthetic connection from local food production.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props oxygen-token, microbes. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s30 | 3:37.0–3:45.0 | dominant #09134B
+NARRATION: And vents are special places, not a carpet covering the seafloor. Much of the deep still depends on food arriving from elsewhere.
+PICTURE: Very wide seafloor: one small vent patch surrounded by broad sparse sediment and sinking snow.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: aggregate, tube-cluster, basalt
+ACTING: Pip becomes small in frame; a distant feeder remains subtly active.
+CAMERA: Strong scale-reveal pullback, then settle.
+EXIT: Hard cut to surface boundary
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: vent-food, snow-floor
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Strong scale-reveal pullback, then settle.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Very wide seafloor: one small vent patch surrounded by broad sparse sediment and sinking snow.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, tube-cluster, basalt. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s31 | 3:45.0–3:52.5 | dominant #243CDB
+NARRATION: There is another connection that moves instead of falls. At night, many twilight-zone animals travel upward toward the surface to feed.
+PICTURE: Night surface boundary, schools rise along staggered curved paths; not abyssal-floor animals suddenly surfacing.
+LAYERS: migration-background / migration-midground / migration-foreground
+RIGS: pip, mica. PROPS: school, depth-ruler, plankton
+ACTING: Mica leads one small group; other schools follow after delays.
+CAMERA: Vertical tracking keeps a fixed depth ruler at frame edge.
+EXIT: Tracking cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: twilight
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Tall water-column cross-section with surface boundary; sun/moon state controlled in code. Palette dominant #243CDB; overscan for Vertical tracking keeps a fixed depth ruler at frame edge.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate schools and plankton bands, faint twilight boundary and current contours. Story purpose: Night surface boundary, schools rise along staggered curved paths; not abyssal-floor animals suddenly surfacing.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One marked lanternfish and ROV depth scale; staged profiles for ascent and descent. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props school, depth-ruler, plankton. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s32 | 3:52.5–3:59.5 | dominant #243CDB
+NARRATION: As daylight returns, they descend again. This daily migration carries the carbon in their meals back into deeper water.
+PICTURE: Sun replaces moon; marked organic-carbon tokens remain inside the descending animals.
+LAYERS: migration-background / migration-midground / migration-foreground
+RIGS: pip, mica. PROPS: school, carbon-token
+ACTING: School turns after anticipation, tail rhythms vary by phase.
+CAMERA: Reverse vertical tracking with soft surface-to-depth parallax.
+EXIT: Carbon-token match
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: carbon
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Tall water-column cross-section with surface boundary; sun/moon state controlled in code. Palette dominant #243CDB; overscan for Reverse vertical tracking with soft surface-to-depth parallax.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate schools and plankton bands, faint twilight boundary and current contours. Story purpose: Sun replaces moon; marked organic-carbon tokens remain inside the descending animals.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One marked lanternfish and ROV depth scale; staged profiles for ascent and descent. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props school, carbon-token. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s33 | 3:59.5–4:07.0 | dominant #09134B
+NARRATION: Together, sinking particles and moving animals help transfer carbon downward. The ocean's biological carbon pump is built from many living interactions.
+PICTURE: Falling pathway and migration pathway appear in sequence as a labeled schematic overlay inside the ocean.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: aggregate, school, carbon-token
+ACTING: Pip watches; no literal industrial pump fills the environment.
+CAMERA: Pull back until both paths can be read at once.
+EXIT: Pathway cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: carbon, snow-ecology
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Pull back until both paths can be read at once.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Falling pathway and migration pathway appear in sequence as a labeled schematic overlay inside the ocean.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, school, carbon-token. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s34 | 4:07.0–4:15.0 | dominant #09134B
+NARRATION: Some carbon returns quickly through recycling. Some travels much farther down, where it can stay away from the atmosphere for long periods.
+PICTURE: Two distinct arrows: shallow recycling returns locally; a smaller deep pathway continues below. No unsupported percentage or fixed storage duration.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: carbon-token, aggregate
+ACTING: A few tokens peel away from the falling path; others continue.
+CAMERA: Track the smaller deep branch without implying all particles arrive.
+EXIT: Deep-token match
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: carbon
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Track the smaller deep branch without implying all particles arrive.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Two distinct arrows: shallow recycling returns locally; a smaller deep pathway continues below. No unsupported percentage or fixed storage duration.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props carbon-token, aggregate. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s35 | 4:15.0–4:22.0 | dominant #09134B
+NARRATION: This makes the dark ocean part of Earth's larger story. Feeding, hiding, moving, and recycling connect places we rarely see.
+PICTURE: Recap the same rigs and places at their proper depths; no new creatures or hero effects.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip, mica. PROPS: aggregate, school
+ACTING: Mica passes a particle; Pip follows with an eye movement.
+CAMERA: Slow lateral survey across connected layers.
+EXIT: Return-to-opening match cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: carbon, snow-floor, glow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Slow lateral survey across connected layers.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Recap the same rigs and places at their proper depths; no new creatures or hero effects.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props aggregate, school. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s36 | 4:22.0–4:29.0 | dominant #180A59
+NARRATION: Remember our tiny speck? It was never just debris. It was a clue to the connections that keep this world alive.
+PICTURE: Exact opening aggregate silhouette and Pip lens angle return, now with visible context.
+LAYERS: snow-background / snow-midground / snow-foreground
+RIGS: pip. PROPS: aggregate, feeder
+ACTING: Feeder receives the particle; Pip's arm stays back to avoid interference.
+CAMERA: Recreate opening camera position, then pull beyond it.
+EXIT: Continuous pullback
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-transit
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Violet/navy midwater fading into a distant sediment plain in floor shots. Palette dominant #180A59; overscan for Recreate opening camera position, then pull beyond it.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Separate sinking organic aggregates and small filter feeders, then sparse sea cucumbers on sediment. Story purpose: Exact opening aggregate silhouette and Pip lens angle return, now with visible context.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: One hero aggregate for a microscopic cutaway; asymmetrical clumps rather than six-point ice crystals. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, feeder. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s37 | 4:29.0–4:36.0 | dominant #09134B
+NARRATION: Sunlight can feed the deep indirectly. Chemistry can support special communities. And animal-made light can turn darkness into useful information.
+PICTURE: Three clear visual callbacks at their correct scales, each active only on its narration beat.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip, mica. PROPS: aggregate, microbes, photophores
+ACTING: Pip points to food, microbes, then Mica; its gesture follows rather than leads the words.
+CAMERA: Measured pan across the three connections.
+EXIT: ROV silhouette wipe
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Soft motivated whoosh below narration; Subtle discovery accent on first glow only
+SOURCES: snow-ecology, chemo, glow-functions
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Measured pan across the three connections.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Three clear visual callbacks at their correct scales, each active only on its narration beat.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props aggregate, microbes, photophores. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s38 | 4:36.0–4:44.0 | dominant #09134B
+NARRATION: None of this makes the deep an easy place to live. It makes life there more inventive than an empty black screen suggests.
+PICTURE: Wide dark water with sparse, varied living action; density stays restrained and physically separated.
+LAYERS: descent-background / descent-midground / descent-foreground
+RIGS: pip, mica. PROPS: aggregate
+ACTING: Mica darts, coasts and settles; Pip holds a respectful distance.
+CAMERA: Quiet wide shot with subtle drift and layered particles.
+EXIT: Soft motivated cut
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-floor, glow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy water column with violet depth bands, open central composition and generous overscan; no seafloor until requested. Palette dominant #09134B; overscan for Quiet wide shot with subtle drift and layered particles.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse drifting snow, occasional distant animal silhouettes; no dense reef in open water. Story purpose: Wide dark water with sparse, varied living action; density stays restrained and physically separated.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: Soft out-of-focus marine-snow flecks at frame sides; leave central action unobstructed. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props aggregate. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s39 | 4:44.0–4:51.5 | dominant #09134B
+NARRATION: Look past the darkness, and you find relationships: the meal above, the hunter below, the microbes inside, and the water connecting them.
+PICTURE: The four relationships briefly align in a legible continuous composition; no dense web of floating icons.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip. PROPS: aggregate, microbes, oxygen-token
+ACTING: Actions stagger: particle drops, hunter turns, microbe inset opens, water pathway passes.
+CAMERA: Final slow pullback with foreground rocks providing depth.
+EXIT: Composition settle
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound
+SOURCES: snow-transit, twilight, worm
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Final slow pullback with foreground rocks providing depth.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: The four relationships briefly align in a legible continuous composition; no dense web of floating icons.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip; generate only missing isolated props aggregate, microbes, oxygen-token. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+s40 | 4:51.5–5:00.0 | dominant #09134B
+NARRATION: The deep ocean isn't empty. We were just looking for life in the light. What else have we missed in the dark?
+PICTURE: Pip dims its lamp; a few biological lights remain. Title and short source-credit line appear in safe negative space.
+LAYERS: synthesis-background / synthesis-midground / synthesis-foreground
+RIGS: pip, mica. PROPS: credits-panel, photophores
+ACTING: Mica crosses once, lights steady; Pip eases to a stop with fin follow-through.
+CAMERA: Settle into a final held composition; last two seconds reserved for the callback.
+EXIT: Gentle fade with audio tail
+SOUND (planned): Low-level designed underwater/ROV texture; not represented as recorded animal sound; Subtle discovery accent on first glow only
+SOURCES: glow
+BACKGROUND PROMPT: Separate 3840x2160 background plate, flat geometric 2D ocean universe, no text or characters. Deep navy continuous ocean cutaway connecting surface, midwater and distant vent field. Palette dominant #09134B; overscan for Settle into a final held composition; last two seconds reserved for the callback.
+MIDGROUND PROMPT: Separate movable environmental elements, no characters or text: Sparse connected food pathways; dense community only at localized vent, not everywhere. Story purpose: Pip dims its lamp; a few biological lights remain. Title and short source-credit line appear in safe negative space.
+FOREGROUND PROMPT: Isolated transparent foreground framing elements: ROV and the opening aggregate return in the same proportions; surrounding life gradually revealed by framing. No flattening with background.
+RIG/PROP PROMPT: Use existing approved rigs pip, mica; generate only missing isolated props credits-panel, photophores. Maintain palette, proportions, perspective and natural joint separation. Transparent or #00B140 border-connected background. No text, no copied mascots.
+
+THREE STANDALONE SHORTS — SHARED COMPONENT EDITS
+short-01: The deep ocean eats leftovers — 1:00; 144 words.
+A falling speck becomes a meal: the marine-snow food pathway.
+Fresh complete Kokoro take after approval; reuse only aligned master clauses that match this exact script. Hook and connective lines are pickups. No audio generation has run.
+0:00.0–0:03.0 | parent s09 (1:00.0–1:07.0)
+NARRATION: The ocean's strangest snowfall isn't frozen.
+EDIT: Macro aggregate reveal; title appears beside rather than over it.
+REUSE: snow-background, snow-midground, snow-foreground, pip, aggregate, plankton-fragment, fecal-pellet, microbes
+CAMERA: Fast purposeful reveal, then settle for hook. TRANSITION: Clump morph
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:03.0–0:10.5 | parent s09 (1:00.0–1:07.0)
+NARRATION: It's marine snow: dead plankton, waste, mucus, and other scraps, clumping together as they sink through the water.
+EDIT: Reuse component assembly, compress staging for portrait.
+REUSE: snow-background, snow-midground, snow-foreground, pip, aggregate, plankton-fragment, fecal-pellet, microbes
+CAMERA: Macro orbit simulated by layer offsets, not a 3D spinning object.. TRANSITION: Clump morph
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:10.5–0:18.0 | parent s05 (0:30.0–0:37.5)
+NARRATION: The story begins near the surface, where tiny phytoplankton use sunlight to make organic matter that other creatures eat.
+EDIT: Reuse plankton and grazer with upper-ocean establishing layer.
+REUSE: surface-background, surface-midground, surface-foreground, pip, plankton, carbon-token
+CAMERA: Wide establishing view, then slow push toward one plankton form.. TRANSITION: Shape match
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:18.0–0:27.0 | parent s10 (1:07.0–1:14.5)
+NARRATION: Below, sinking particles become meals themselves. Animals catch them in midwater; some leftovers eventually reach scavengers and other feeders on the seabed.
+EDIT: Two successive compositions, one feeder at a time; no crowded collage.
+REUSE: snow-background, snow-midground, snow-foreground, pip, aggregate, feeder
+CAMERA: Track one particle laterally into the filter.. TRANSITION: Contact cut
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:27.0–0:35.0 | parent s12 (1:22.0–1:29.5)
+NARRATION: It isn't a guaranteed delivery. Grazers and microbes consume or transform much of that material on the way down.
+EDIT: Retain breaking and grazing actions, shift focal aggregate to portrait center.
+REUSE: snow-background, snow-midground, snow-foreground, pip, aggregate, microbes, grazer
+CAMERA: Track downward without changing the aggregate's design.. TRANSITION: Particle match cut
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:35.0–0:42.5 | parent s13 (1:29.5–1:37.0)
+NARRATION: Some particles fall for weeks. What looks like a tiny speck can carry a connection across an enormous distance.
+EDIT: Reuse time-lapse panel with smaller labels and clearly marked time compression.
+REUSE: snow-background, snow-midground, snow-foreground, pip, aggregate, calendar-panel
+CAMERA: Fixed frame with slow vertical parallax and a restrained time-lapse cue.. TRANSITION: Calendar panel wipe
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:42.5–0:50.0 | parent s14 (1:37.0–1:44.5)
+NARRATION: So a deep-sea meal can begin with sunshine, even where sunshine never reaches. The energy arrives inside organic matter.
+EDIT: Stack surface and deep environments vertically; token travels in food, never as a sunbeam.
+REUSE: synthesis-background, synthesis-midground, synthesis-foreground, pip, carbon-token, plankton, aggregate
+CAMERA: Pull back to connect source and destination.. TRANSITION: Token match
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+0:50.0–1:00.0 | parent s36 (4:22.0–4:29.0)
+NARRATION: The deep isn't cut off from the surface. Sometimes, the link is a falling scrap. Follow the leftovers, and you find life.
+EDIT: Opening speck callback and standalone payoff; hold closing picture.
+REUSE: snow-background, snow-midground, snow-foreground, pip, aggregate, feeder
+CAMERA: Recreate opening camera position, then pull beyond it.. TRANSITION: Visual callback, hold, audio tail
+SOURCES: snow, snow-transit, snow-floor, snow-ecology
+
+short-02: Why glowing can help you disappear — 1:00; 155 words.
+Counterillumination reveals why more light can mean less visibility.
+Fresh complete Kokoro take after approval; reuse only aligned master clauses that match this exact script. Hook and connective lines are pickups. No audio generation has run.
+0:00.0–0:03.0 | parent s19 (2:14.5–2:22.0)
+NARRATION: Sometimes, glowing makes you harder to see.
+EDIT: Show a dark fish silhouette from directly below, then reduced contrast.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, photophores, predator-silhouette
+CAMERA: Fast purposeful reveal, then settle for hook. TRANSITION: Viewpoint match
+SOURCES: glow, glow-functions, twilight, light
+
+0:03.0–0:11.5 | parent s17 (2:00.0–2:07.5)
+NARRATION: That sounds backwards. But in the ocean's twilight zone, a predator can look upward and spot a dark shape against faint light.
+EDIT: Keep faint blue background and predator viewpoint constant.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, photophores, reaction-inset
+CAMERA: Subtle push into the photophore inset.. TRANSITION: Inset shape morph
+SOURCES: glow, glow-functions, twilight, light
+
+0:11.5–0:20.0 | parent s20 (2:22.0–2:29.5)
+NARRATION: Some animals produce light along their undersides. When that light matches the background above, their silhouette becomes less obvious to a hunter below.
+EDIT: Reuse Mica photophore intensity controls, no disappearing opacity trick.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, photophores, comparison-panel
+CAMERA: Locked comparison camera preserves the viewing angle and exposure.. TRANSITION: Comparison dissolve
+SOURCES: glow, glow-functions, twilight, light
+
+0:20.0–0:27.5 | parent s21 (2:29.5–2:37.5)
+NARRATION: This is counterillumination: camouflage by reducing contrast. It does not make an animal invisible, and the viewing direction matters.
+EDIT: Code label plus matched before/after, with fixed exposure.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, comparison-panel
+CAMERA: Gentle pullback from the labeled demonstration.. TRANSITION: Lamp iris wipe
+SOURCES: glow, glow-functions, twilight, light
+
+0:27.5–0:36.0 | parent s17 (2:00.0–2:07.5)
+NARRATION: The light comes from chemical reactions, a process called bioluminescence. Other animals use biological light for different purposes, including defense or attracting prey.
+EDIT: Reuse photophore magnification; separate anglerfish glimpse after a clear cut.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, photophores, reaction-inset
+CAMERA: Subtle push into the photophore inset.. TRANSITION: Inset shape morph
+SOURCES: glow, glow-functions, twilight, light
+
+0:36.0–0:43.5 | parent s18 (2:07.5–2:14.5)
+NARRATION: The same broad ability can help one creature hide and another hunt. There isn't one reason for every underwater glow.
+EDIT: Reuse separate shots in sequence, never mix twilight and abyssal backgrounds.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, anglerfish, prey
+CAMERA: Pull back to reveal the body behind the light.. TRANSITION: Hard cut upward
+SOURCES: glow, glow-functions, twilight, light
+
+0:43.5–0:51.5 | parent s21 (2:29.5–2:37.5)
+NARRATION: And this particular hiding trick needs light overhead. It isn't a magic cloak for the completely sunless depths farther below.
+EDIT: Vertical reframe compares twilight and midnight, labeled independently.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, comparison-panel
+CAMERA: Gentle pullback from the labeled demonstration.. TRANSITION: Lamp iris wipe
+SOURCES: glow, glow-functions, twilight, light
+
+0:51.5–1:00.0 | parent s20 (2:22.0–2:29.5)
+NARRATION: In the right conditions, the clever disguise isn't switching your lights off. It's making the light behind you harder to distinguish.
+EDIT: Return to same upward view; final comparison proves payoff.
+REUSE: glow-background, glow-midground, glow-foreground, pip, mica, photophores, comparison-panel
+CAMERA: Locked comparison camera preserves the viewing angle and exposure.. TRANSITION: Visual callback, hold, audio tail
+SOURCES: glow, glow-functions, twilight, light
+
+short-03: A food web without local sunlight — 1:00; 155 words.
+Vent microbes build food using chemical energy, with an essential caveat.
+Fresh complete Kokoro take after approval; reuse only aligned master clauses that match this exact script. Hook and connective lines are pickups. No audio generation has run.
+0:00.0–0:03.0 | parent s24 (2:52.5–2:59.5)
+NARRATION: Some food webs begin without local sunlight.
+EDIT: Reaction-powered cell reveal; do not imply Sun-free planetary independence.
+REUSE: vent-background, vent-midground, vent-foreground, pip, microbes, chemical-tokens, carbon-token, reaction-inset
+CAMERA: Fast purposeful reveal, then settle for hook. TRANSITION: Cell-to-colony pullback
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:03.0–0:10.5 | parent s23 (2:45.0–2:52.5)
+NARRATION: At hydrothermal vents, seawater travels through heated crust and comes back carrying dissolved chemicals. The important ingredient isn't just warmth.
+EDIT: Reuse cutaway stacked vertically; distinguish fluid pathway from habitat.
+REUSE: vent-background, vent-midground, vent-foreground, pip, crust-cutaway, chemical-tokens
+CAMERA: Vertical move through an illustrated rock cutaway.. TRANSITION: Fluid-path morph
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:10.5–0:18.0 | parent s24 (2:52.5–2:59.5)
+NARRATION: Certain microbes use energy released by chemical reactions to build organic matter from carbon dioxide. Scientists call this chemosynthesis.
+EDIT: One reaction at a time; bright amber indicates schematic energy only.
+REUSE: vent-background, vent-midground, vent-foreground, pip, microbes, chemical-tokens, carbon-token, reaction-inset
+CAMERA: Precise macro push-in; label CHEMOSYNTHESIS added in code.. TRANSITION: Cell-to-colony pullback
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:18.0–0:26.0 | parent s26 (3:06.0–3:13.5)
+NARRATION: Those microbes support food webs around the vents. Some animals eat them; others depend on bacterial partners living inside their bodies.
+EDIT: Local vent community opens into internal symbiont cutaway.
+REUSE: vent-background, vent-midground, vent-foreground, pip, tube-cluster, clam, crab, vent-plume
+CAMERA: Pull back past tube silhouettes; preserve a clear chimney focal point.. TRANSITION: Crab-follow cut
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:26.0–0:34.0 | parent s27 (3:13.5–3:21.0)
+NARRATION: Giant tubeworms are one example of that partnership. Their tissues house bacteria, while their plumes take in ingredients the bacteria need.
+EDIT: Keep tube plume and internal tissue anatomically distinct; no human mouth.
+REUSE: vent-background, vent-midground, vent-foreground, pip, tube-cluster, worm-cutaway, microbes
+CAMERA: Push from one tube into the anatomical inset.. TRANSITION: Tissue inset morph
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:34.0–0:42.5 | parent s29 (3:29.0–3:37.0)
+NARRATION: But there's a catch. Many of these reactions also use oxygen from seawater. No sunlight here doesn't mean no connection to the surface.
+EDIT: Show seawater oxygen input as an equally visible necessary pathway.
+REUSE: synthesis-background, synthesis-midground, synthesis-foreground, pip, oxygen-token, microbes
+CAMERA: Tilt up from mixing zone into the connecting water column.. TRANSITION: Pathway pullback
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:42.5–0:49.5 | parent s30 (3:37.0–3:45.0)
+NARRATION: Vents are special neighborhoods, not the whole deep ocean. Elsewhere, sinking organic material remains an important source of food.
+EDIT: Pull back until vent field is a small patch in broad sediment.
+REUSE: synthesis-background, synthesis-midground, synthesis-foreground, pip, aggregate, tube-cluster, basalt
+CAMERA: Strong scale-reveal pullback, then settle.. TRANSITION: Hard cut to surface boundary
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+0:49.5–1:00.0 | parent s25 (2:59.5–3:06.0)
+NARRATION: The discovery is remarkable enough without exaggeration: chemical energy can start a food web in the dark. Life has more than one route to dinner.
+EDIT: Chemical/sunlight comparison becomes closing callback, not a new claim.
+REUSE: vent-background, vent-midground, vent-foreground, pip, comparison-panel, microbes, plankton
+CAMERA: Hold the comparison for comprehension, slight parallax behind.. TRANSITION: Visual callback, hold, audio tail
+SOURCES: vent, chemo, vent-food, worm, oxygen
+
+FACT-CHECK LEDGER
+light: NOAA: How far does light travel in the ocean?
+https://oceanservice.noaa.gov/facts/light_travel.html
+Conventional sunlight zone reaches about 200m; twilight about 200-1000m; no surface sunlight below about 1000m.
+
+snow: NOAA: What is marine snow?
+https://oceanservice.noaa.gov/facts/marinesnow.html
+Sinking biological debris and waste feed deep-sea animals; not ice; some particles take weeks to reach the bottom.
+
+snow-transit: NOAA Ocean Exploration: Marine snow
+https://oceanexplorer.noaa.gov/ocean-fact/marinesnow/
+Marine snow starts in upper waters and collects debris while sinking; food delivery is variable.
+
+snow-ecology: MBARI: Ecology of Marine Snow
+https://www.mbari.org/project/ecology-of-marine-snow/
+Surface phytoplankton fix carbon; grazing and microbial processing alter sinking particles; a small fraction reaches great depth.
+
+snow-floor: MBARI: Marine snow offers clues to carbon cycle
+https://annualreport.mbari.org/2021/story/marine-snow-offers-clues-to-carbon-cycle-and-ultimately-climate
+Midwater organisms eat sinking organic matter; some feeds seafloor animals such as sea cucumbers.
+
+glow: MBARI: Bioluminescence
+https://www.mbari.org/know-your-ocean/bioluminescence/
+Living organisms produce light through chemical reactions; biological light is common in the water column.
+
+glow-functions: NOAA: What is bioluminescence?
+https://oceanexplorer.noaa.gov/ocean-fact/bioluminescence/
+Biological light can serve feeding, defense and reproduction; functions vary among species.
+
+twilight: WHOI: Twilight zone
+https://www.whoi.edu/ocean-learning-hub/ocean-topics/how-the-ocean-works/ocean-zones/twilight-zone/
+Counterillumination can match downwelling light and reduce a silhouette from below; many twilight animals migrate at night, not all.
+
+vent: NOAA: Hydrothermal vents factsheet
+https://oceanexplorer.noaa.gov/wp-content/uploads/2022/10/hydrothermal-vents-fact-sheet.pdf
+Seawater circulates through heated crust; chemical-rich fluids support chemosynthetic microbes and food webs.
+
+chemo: NOAA: Photosynthesis and chemosynthesis
+https://oceanexplorer.noaa.gov/ocean-fact/photochemo/
+Chemical reactions provide energy for organic-matter production; chemosynthesis is not direct consumption of heat.
+
+vent-food: WHOI: Life at vents and seeps
+https://www.whoi.edu/ocean-learning-hub/ocean-topics/ocean-life/ecosystems/life-at-vents-seeps/
+Microbes anchor localized vent and seep food webs; sulfur-based examples use oxygen from seawater.
+
+worm: WHOI: Life in the Shade
+https://www.whoi.edu/ocean-learning-hub/multimedia/life-in-the-shade/
+Tubeworm plumes take up oxygen and sulfide to support internal bacterial partners.
+
+oxygen: WHOI: How do deep-sea organisms get energy?
+https://www.whoi.edu/ocean-learning-hub/ocean-facts/how-do-deep-sea-organisms-get-energy/
+Vent chemical-energy examples still use oxygen in seawater; no sunlight locally does not mean no connection to surface processes.
+
+carbon: WHOI: Twilight-zone climate
+https://otz-prod.whoi.edu/explore-the-otz/climate/
+Sinking organic matter and migration transfer carbon downward; some can stay isolated from the atmosphere for long periods.
+
+PRECISION RULES
+No unsupported percentage of the ocean explored or animals glowing. No implied literal city, universal food abundance, vent carpet, perfect invisibility, or heat-eating animals. No claim of total independence from surface oxygen. ROV is fictional; cartoon expressions are design conventions. State source limitations rather than turning uncertainty into a hook.
+
+CAPABILITIES AND REMAINING WORK
+AVAILABLE: Layered deterministic 2D art, shared character rigs and timed camera motion. Moco has an authored Canvas pipeline and reusable actor helpers. Artwork has not been generated.
+PARTIAL: GPT Image 2 with reference images and 4K assets. External treg catalog lists reapi.image-gen.gpt-image-2 with reference image URLs, 16:9/9:16 and 4k options. Catalog quote was $0.081/call; dimensions and cost must be checked again before approved use. Moco's artist tools do not directly expose this provider. No request was submitted.
+PARTIAL: Selected original Kokoro narration with measured alignment. Local Kokoro ONNX package, soundfile, model and voice files exist, as does the Moco Kokoro adapter. Desktop settings currently use Chatterbox and do not expose Kokoro. Use a Kokoro-configured production runner after approval; never silently use the desktop voice.
+AVAILABLE: Word timing with local faster-whisper. Python package exists. Model cache and actual alignment must be checked on the approved voice take.
+AVAILABLE: 1920x1080 at 60fps, H.264 export. Node, pnpm, Python, FFmpeg/libx264/AAC, Playwright, installed Chromium and Remotion packages are present. This is an environment inventory, not a render or quality verification.
+PARTIAL: Three portrait edits reusing master components. Scripts, source-shot mapping, shared asset IDs and retiming/reframing are supplied. Current Moco series use one production format/duration; a separate derivative edit/render step is still needed after the master is approved and built.
+PARTIAL: Frame-by-frame reference analysis and reference contact sheet. No accessible reference video was attached in this turn. User-provided timing and visual descriptions are preserved as unverified observations. Analysis/contact sheet remain pending the file.
+PARTIAL: Licensed music, sound design and measured loudness mix. Cue plan only; no licensed soundtrack/SFX files supplied or acquired. Moco does not expose automatic stock acquisition/mixing. FFmpeg is available for a later explicit mix and loudness pass.
+Installed packages: none in this task. SciPy and librosa are absent from .venv-learn; neither is needed for writing this plan. Asset generation, Kokoro inference, ASR model loading, Chromium rendering and actual export remain untested for this film.
+
+PRODUCTION ORDER AFTER APPROVAL
+1. Approve script AND storyboard
+2. Provide reference video for actual analysis/contact sheet
+3. Confirm external GPT Image 2 route/cost and use Kokoro-specific runner
+4. Generate and approve original rig sheet and one sample motion shot
+5. Build shared layered assets; verify cutouts and joints
+6. Record full Kokoro take and correct word alignment
+7. Retarget shots to measured words, then build master deterministic timeline
+8. Inspect two contact sheets of >=16 frames plus motion previews
+9. Re-stage the three derivative timelines with shared assets
+10. Acquire licensed music/SFX and mix with measured narration ducking
+11. Encode H.264/libx264 CRF16-18 yuv420p, verify all four outputs and audio
+12. No automatic publishing
+
+APPROVAL REQUEST: Review the full master script, forty-shot storyboard, three short scripts and production limitations. Asset/voice generation and spending remain blocked until script and storyboard are approved.

@@ -29,7 +29,7 @@ pnpm dev
 
 The CLI setup creates an isolated Python 3.11 environment in `.venv-voice` and installs `chatterbox-tts==0.1.7`. The separate, explicit download command writes model weights into `artifacts/voice-models/english` (or `multilingual` when requested). This development environment is separate from the desktop's user-data installation. Nothing sends your script or voice recording to a synthesis service.
 
-Both preview and production use the same backend and downloaded model directories. On GPUs below 6 GB the automatic device choice is CPU, preserving memory for the renderer. CPU synthesis can be substantially slower than playback. The development CLI additionally accepts `MOCO_VOICE_PYTHON`, `MOCO_VOICE_REFERENCE`, and `MOCO_VOICE_MODEL_DIR` overrides.
+Both preview and production use the same backend, processing device and downloaded model directories. In Settings → Voice & narration, Chatterbox's **Narration processing** selector offers **Automatic**, **CPU**, and **GPU**. Automatic preserves the existing conservative policy: CUDA GPUs below 6 GB use CPU. Explicit GPU bypasses that cutoff and uses available CUDA or Apple MPS; unavailable GPU support and insufficient GPU memory produce an error instead of silently switching to CPU. CUDA requires a GPU-enabled PyTorch build in the voice runtime. The saved choice applies to both Hear it and episode narration; system speech continues to use the OS voice. Existing settings default to Automatic. CPU synthesis can be substantially slower than playback. The development CLI additionally accepts `MOCO_VOICE_PYTHON`, `MOCO_VOICE_REFERENCE`, and `MOCO_VOICE_MODEL_DIR` overrides.
 
 `pnpm voice:demo` writes `artifacts/voice-demo/vo.wav` and its script/timing manifest. This is an original dramatic narration sample, not a historical quotation. Audition the hook, the transition into loss, the warmth of reassurance, and the final resolve. A successful synthesis or a loudness measurement is not a listening quality verdict.
 
@@ -53,7 +53,11 @@ Chatterbox's native control is exaggeration/CFG, not a categorical emotion instr
 
 The worker loads a model once for the episode, uses reproducible seeds, trims excess edge silence while retaining 60 ms, and levels each line toward −16 LUFS with gain capped at 12 dB and a sample-peak ceiling around −1 dBFS. This is gain leveling, not a brickwall compressor or true-peak mastering. Speed changes use pitch-preserving time stretch; keep them close to 1 for natural delivery. Do not compress the entire performance into a duration target: revise the wording and pauses instead.
 
-Rendered lines are cached in `.voice-cache` beside the episode audio, keyed by text, performance, speed, seed, language and reference content. Editing a pause reuses the original take; editing a line or reference regenerates affected speech. The worker is not started when every take is cached.
+Rendered lines are cached in `.voice-cache` beside the episode audio, keyed by text, performance, speed, seed, language and reference content. Each completed take is committed atomically before the next line starts, so a timeout, cancellation or later failure preserves completed work. Retry speaks only missing or damaged takes, keeping the original line seeds and order. Editing a pause reuses the original take; editing a line or reference regenerates affected speech. The worker is not started when every take is cached.
+
+There is no fixed 30-minute limit for a whole episode. A 30-minute watchdog starts when the model worker launches and resets after each saved line; model loading or a single line making no progress for that long still stops the worker and its process tree. Production activity reports saved lines, including takes reused from the cache. This permits slow CPU narration to finish without hiding a stalled model, but does not make CPU synthesis faster.
+
+Canvas narration checks the recording with local faster-whisper before cutting shots. It transcribes without a script prompt, then compares the recognized words with the script and maps their measured timestamps to line IDs. Passing the script opening as preceding speech caused the recognizer to skip recorded opening lines in a real take. Missing-line and transcript-similarity checks remain enabled; estimated word timings are not substituted when recognition fails.
 
 ## Practical limits
 

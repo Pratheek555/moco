@@ -99,6 +99,9 @@
   resize: none;
   width: 100%;
   height: 48px;
+  min-height: 48px;
+  max-height: 200px;
+  overflow-y: auto;
   padding: 0 5px 3px 0;
   border: 0;
   outline: none;
@@ -114,6 +117,10 @@
 .landing-prompt-tools svg { width: 17px; height: 17px; stroke-width: 1.35; }
 .landing-modes { display: flex; justify-content: flex-end; align-items: center; gap: 18px; margin-left: auto; margin-right: 12px; }
 .landing-modes button { display: flex; align-items: center; gap: 5px; padding: 8px 0; font: 10px/1.5 "Consolas", "Courier New", monospace; letter-spacing: .04em; color: #727b68; white-space: nowrap; }
+.landing-modes { min-width: 0; }
+.landing-modes button:first-child { min-width: 0; }
+.landing-modes button:first-child span { max-width: 200px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.landing-modes button:last-child, .landing-modes svg { flex-shrink: 0; }
 .landing-modes svg { width: 10px; height: 10px; }
 .landing-prompt-tools .landing-submit { background: #dce1d2; width: 36px; height: 36px; border: 1px solid #bcc5af42; color: #515f42; transition: background 160ms, color 160ms, opacity 160ms; }
 .landing-prompt-tools .landing-submit:not(:disabled) { background: #657457; color: #f9fbf3; border-color: #657457; }
@@ -137,7 +144,7 @@
   .landing-center { width: calc(100% - 40px); top: 46%; gap: 24px; }
   .landing-center h1 { font-size: clamp(27px, 6.4vw, 44px); }
   .landing-prompt { padding: 18px 12px 11px 17px; border-radius: 16px; }
-  .landing-prompt textarea { font-size: 13px; height: 62px; }
+  .landing-prompt textarea { font-size: 13px; min-height: 62px; }
   .landing-modes { gap: 10px; margin-right: 4px; }
   .landing-modes button { font-size: 8px; }
   .landing-prompt-tools { gap: 3px; }
@@ -156,7 +163,7 @@
 }
 
 /* Charcoal and sage, with slate and antique-gold glyphs suspended in the dark. */
-.dark .studio-landing { background: #151815; }
+.dark .studio-landing { background: #000; }
 .dark .studio-landing { --landing-ink: #dce2d3; --landing-muted: #929c87; color-scheme: dark; }
 .dark .studio-landing::before { opacity: .13; }
 .dark .landing-halo { background: radial-gradient(ellipse 40% 30% at 49% 40%, rgba(34, 42, 31, .83), rgba(24, 30, 22, .5) 60%, transparent 100%); }
@@ -190,3 +197,6 @@
 @media (max-width: 700px) {
   .dark .landing-halo { background: radial-gradient(ellipse 65% 28% at 50% 41%, #20291ad9, transparent); }
 }
+
+.dark .landing-halo { background: none; }
+.dark .studio-landing::before { opacity: 0; }

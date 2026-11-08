@@ -3,8 +3,8 @@
 // Calls run in an empty temp folder, with Claude's tools disabled and Codex restricted to read-only.
 // Images use Claude's prompt message or Codex's explicit image attachments.
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { codexCommand } from "./codex-command.ts";
 export { createCodexAccountManager, type CodexAccountState } from "./codex-account.ts";
@@ -23,6 +23,7 @@ export interface AiRequest {
   signal?: AbortSignal;
   artistTools?: ArtistTool[]; // explicit, bounded app tools; ordinary JSON calls retain tools off
   onActivity?: (message: string) => void; // public progress messages, never reasoning or JSON
+  imageGeneration?: boolean; // app-owned image request only; disabled on ordinary planning/artist calls
 }
 
 export interface AiResult {
@@ -32,12 +33,14 @@ export interface AiResult {
   backend: string;
   model?: string;
   sessionId?: string;
+  generatedImages?: { data: Buffer; mimeType: "image/png" }[];
 }
 
 export interface AiBackend {
   id: string;
   seesImages?: boolean; // takes AiRequest.images; without it the engine never asks the AI to look at a render
   supportsArtist?: boolean;
+  supportsImageGeneration?: boolean;
   available(): Promise<{ ok: boolean; reason?: string; authMethod?: string; version?: string }>;
   generate(req: AiRequest): Promise<AiResult>;
 }
@@ -70,6 +73,7 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
     id: "codex-cli",
     seesImages: true,
     supportsArtist: true,
+    supportsImageGeneration: true,
     async available() {
       const versionRun = await run(["--version"], "", 15_000).catch(() => undefined);
       const version = /(\d+\.\d+\.\d+)/.exec(versionRun?.stdout ?? "")?.[1];
@@ -91,7 +95,7 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
           "-c", `model_instructions_file=${JSON.stringify(systemFile)}`,
           "-c", "features.shell_tool=false", "-c", "features.apply_patch_freeform=false",
           "-c", "features.view_image=false", "-c", "project_doc_max_bytes=0",
-          "-c", 'web_search="disabled"'];
+          "-c", 'web_search="disabled"', "-c", `features.image_generation=${req.imageGeneration === true}`];
         if (bridge) {
           // Same application-owned MCP transport and tool contract as every artist backend.
           const server = "mcp_servers.moco_artist";
@@ -99,7 +103,7 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
             "-c", `${server}.args=${JSON.stringify([fileURLToPath(new URL("./mcp-bridge.mjs", import.meta.url))])}`,
             "-c", `${server}.env={MOCO_ARTIST_URL=${JSON.stringify(bridge.url)},MOCO_ARTIST_TOKEN=${JSON.stringify(bridge.token)},ELECTRON_RUN_AS_NODE="1"}`,
             "-c", `${server}.enabled_tools=${JSON.stringify(req.artistTools!.map(tool => tool.name))}`,
-            "-c", `${server}.required=true`, "-c", `${server}.tool_timeout_sec=180`,
+            "-c", `${server}.required=true`, "-c", `${server}.tool_timeout_sec=900`,
             "-c", `${server}.default_tools_approval_mode="approve"`);
         }
         if (req.model) args.push("--model", req.model);
@@ -128,7 +132,8 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
           try { json = JSON.parse(text.trim().replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/, "$1")); }
           catch { throw new SchemaRefusal(text || "Codex returned no JSON for the requested schema"); }
         }
-        return { text, json, usage, backend: "codex-cli", model: req.model, sessionId };
+        const generatedImages = req.imageGeneration ? await readGeneratedImages(sessionId, cwd) : undefined;
+        return { text, json, usage, backend: "codex-cli", model: req.model, sessionId, ...(generatedImages && { generatedImages }) };
       } finally {
         await bridge?.close();
         await rm(cwd, { recursive: true, force: true });
@@ -189,6 +194,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
     },
 
     async generate(req) {
+      if (req.imageGeneration) throw new BackendError("GPT Image 2 generation requires the Codex backend. Choose Codex in Settings.");
       // Each call gets its own empty folder, so no project hooks, settings or MCP config can load.
       const cwd = await mkdtemp(join(tmpdir(), "moco-ai-"));
       const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
@@ -233,6 +239,32 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
       }
     },
   };
+}
+
+// Read only artifacts in this invocation's native image tool directory. Never trust
+// a model-written filename or import arbitrary files from its final response.
+async function readGeneratedImages(sessionId: string | undefined, cwd: string) {
+  if (!sessionId || !/^[a-zA-Z0-9_-]+$/.test(sessionId)) throw new BackendError("Image generation returned no valid session ID.");
+  const images: { data: Buffer; mimeType: "image/png" }[] = [];
+  for (const base of [process.env.CODEX_HOME ?? join(homedir(), ".codex"), cwd]) {
+    const root = join(base, "generated_images", sessionId);
+    const entries = await readdir(root, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".png")) continue;
+      const file = join(root, entry.name);
+      if (await realpath(file) !== file || await realpath(root) !== root) throw new BackendError("Generated image paths must not contain links.");
+      if ((await stat(file)).size > 32_000_000) throw new BackendError("Generated image exceeds 32 MB.");
+      const data = await readFile(file);
+      if (data.length < 24 || !data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) throw new BackendError("Image generation did not produce a PNG.");
+      images.push({ data, mimeType: "image/png" });
+    }
+    if (images.length) break;
+  }
+  if (images.length !== 1) throw new BackendError(`Expected one generated image, found ${images.length}. Check Codex image-generation access and retry; no substitute artwork was used.`);
+  return images;
 }
 
 const MEDIA_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" };

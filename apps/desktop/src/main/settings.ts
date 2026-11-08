@@ -10,7 +10,7 @@ export function defaultSettings(): Settings {
     onboarded: false,
     theme: "dark",
     projectsDir: path.join(app.getPath("documents"), "Moco"),
-    voice: { voice: "", rate: 1, backend: "system", reference: "", expressiveness: 0.65 },
+    voice: { voice: "", rate: 1, backend: "system", device: "auto", reference: "", expressiveness: 0.65 },
     defaults: { episodes: 1, language: "en" },
     render: { concurrency: 0 },
   };
@@ -58,6 +58,9 @@ export async function saveSettings(
   patch: DeepPartial<Settings>,
 ): Promise<Settings> {
   const next = merge(await loadSettings(), patch);
+  if (next.voice.device !== undefined && !["auto", "cpu", "gpu"].includes(next.voice.device)) {
+    throw new Error("Choose Automatic, CPU or GPU for narration processing.");
+  }
   const voices = next.voice.characterVoices ?? [];
   const ids = voices.map((voice) => voice.id);
   if (voices.some(({ id, reference }) => !/^[a-z0-9][a-z0-9-]*$/.test(id) || id === "default" || !reference.trim()) || new Set(ids).size !== ids.length) {

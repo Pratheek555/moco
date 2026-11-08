@@ -7,7 +7,7 @@ import { createEngineClient, EngineClientError } from "@moco/engine/client";
 import { TEMPLATES } from "@moco/engine/templates";
 import { learnedTemplates } from "@moco/engine/templates/registry";
 import { catalog } from "@moco/kit";
-import type { PublishDefaults, PublishKit, SeriesBible, SeriesPlan } from "@moco/spec";
+import type { PublishDefaults, PublishKit, SeriesBible, SeriesPlan, ThumbnailChoice } from "@moco/spec";
 import {
   BrowserWindow,
   MessageChannelMain,
@@ -321,6 +321,7 @@ async function episodeMedia(
     thumbnail: existsSync(thumbnail) ? await versionedUrl(thumbnail) : undefined,
     thumbnailPath: existsSync(thumbnail) ? thumbnail : undefined,
     stills,
+    savedShots: shotIds.filter(shotId => existsSync(path.join(shotsDir, shotId, "spec.json"))),
   };
 }
 
@@ -542,7 +543,7 @@ app
     );
     handle(
       "publish.setThumbnail",
-      (seriesId: string, episodeId: string, choice: { shotId: string; text: string }) =>
+      (seriesId: string, episodeId: string, choice: ThumbnailChoice) =>
         engine().setThumbnail({ seriesId, episodeId }, choice),
     );
     handle("publish.setDefaults", (seriesId: string, defaults: Partial<PublishDefaults>) =>

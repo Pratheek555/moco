@@ -1,6 +1,6 @@
 // What the engine needs from the renderer and audio packages.
 // The engine never imports Remotion or TTS code; real implementations are injected.
-import type { Delivery, EpisodeSpec, SceneSpec, TimedWord, VisemeTrack } from "@moco/spec";
+import type { Delivery, EpisodeSpec, SceneSpec, ThumbnailDesign, TimedWord, VisemeTrack } from "@moco/spec";
 
 export interface RenderError {
   shotId: string;
@@ -15,7 +15,7 @@ export interface RenderPort {
   // Render a few stills to catch runtime errors (L3) and give the UI shot previews.
   check(spec: SceneSpec, opts: { frames: number[]; outDir: string }): Promise<RenderCheck>;
   // One full-size frame of a shot, without its caption and with `text` as a headline, saved as a JPEG at `out`.
-  thumbnail(spec: SceneSpec, opts: { frame: number; text: string; out: string }): Promise<void>;
+  thumbnail(spec: SceneSpec, opts: { frame: number; text: string; design?: ThumbnailDesign; out: string }): Promise<void>;
   renderEpisode(
     episode: EpisodeSpec,
     out: string,
@@ -38,6 +38,7 @@ export interface AudioPort {
     language: string,
     outDir: string,
     signal?: AbortSignal,
+    onProgress?: (completed: number, total: number) => void,
   ): Promise<{ file: string; durationSeconds: number; words?: TimedWord[]; backend?: string }>;
   // Optional local ASR route for authored canvas productions. Legacy narration
   // keeps its existing backend; the desktop host supplies this measured route.

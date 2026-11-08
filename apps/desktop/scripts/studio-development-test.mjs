@@ -1,7 +1,7 @@
 // Real Electron/preload/React path, deterministic IPC fixtures; no model calls or renders.
 import { _electron as electron, expect } from "@playwright/test";
 import assert from "node:assert/strict";
-import { mkdtemp, mkdir, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
@@ -24,6 +24,16 @@ await writeFile(
     projectsDir: path.join(profile, "projects"),
   }),
 );
+const seasonPlan = JSON.parse(await readFile(path.resolve(desktop, "../../examples/series/mom-has-admin.plan.json"), "utf8"));
+const seasonBrief = await readFile(path.resolve(desktop, "../../examples/series/mom-has-admin.txt"), "utf8");
+const styleDir = path.join(profile, "styles", "roblox-ui-fixture");
+await mkdir(styleDir, { recursive: true });
+await writeFile(path.join(styleDir, "moco-template.md"), "# Creative prompt\nBlocky cartoon art");
+await writeFile(path.join(styleDir, "moco-template.json"), JSON.stringify({
+  id: "roblox-ui-fixture", name: "2D Roblox What If", palette: { sky: ["#536c9b", "#d7d8e7"], accents: [] },
+  production: { mode: "artist", localOnly: true, format: { width: 1080, height: 1920, fps: 60 }, targetSeconds: 42 },
+  defaults: { episodes: 1 },
+}));
 const env = { ...process.env, MOCO_USER_DATA: profile };
 delete env.ELECTRON_RUN_AS_NODE;
 const app = await electron.launch({
@@ -86,6 +96,7 @@ try {
   await page.getByLabel("What story will you tell?").fill("");
   await page.screenshot({ path: path.join(artifacts, "00-studio-landing.png") });
   await page.screenshot({ path: path.join(artifacts, "00-studio-landing-dark.png") });
+  await expect(page.getByText(/Loading chats/)).toHaveCount(0, { timeout: 30000 });
   await page.getByLabel("What story will you tell?").fill("A draft kept through appearance changes.");
   await page.getByRole("button", { name: "Switch to light appearance", exact: true }).click();
   await expect(page.locator("html")).not.toHaveClass(/dark/);
@@ -99,14 +110,38 @@ try {
   await expect(page.locator("html")).toHaveClass(/dark/);
   assert.equal(await page.evaluate(() => window.moco.settings.get().then(s => s.theme)), "dark");
   await page.getByLabel("What story will you tell?").fill("");
+  const emptyHeight = await page.getByLabel("What story will you tell?").evaluate(e => e.clientHeight);
+  await page.getByLabel("What story will you tell?").fill(seasonBrief);
+  const longHeight = await page.getByLabel("What story will you tell?").evaluate(e => e.clientHeight);
+  assert.ok(longHeight > emptyHeight && longHeight <= 200, "long briefs expand within a bounded editing area");
+  await page.getByRole("button", { name: "Story options", exact: true }).click();
+  await page.getByLabel("Number of episodes").click();
+  await page.getByRole("option", { name: "10 episodes", exact: true }).click();
+  await page.getByRole("combobox", { name: "Template", exact: true }).click();
+  await page.getByRole("option", { name: "2D Roblox What If", exact: true }).click();
+  await expect(page.getByLabel("Number of episodes")).toContainText("10 episodes");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Animation style", exact: true })).toHaveText("2D Roblox What If");
+  await expect(page.getByRole("button", { name: "Choose episode count" })).toHaveText("10 EPISODES");
+  await page.setViewportSize({ width: 1120, height: 720 });
+  await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeInViewport();
+  assert.equal(await page.locator(".studio-landing").evaluate(e => e.scrollWidth > e.clientWidth || e.scrollHeight > e.clientHeight), false);
+  await page.screenshot({ path: path.join(artifacts, "00-roblox-series-brief.png") });
+  await page.setViewportSize(viewport);
+  await page.getByRole("button", { name: "Story options", exact: true }).click();
+  await page.getByRole("button", { name: "Remove template", exact: true }).click();
+  await expect(page.getByLabel("Number of episodes")).toContainText("10 episodes");
+  await page.getByRole("button", { name: "Done", exact: true }).click();
+  await page.getByLabel("What story will you tell?").fill("");
+  await expect.poll(() => page.getByLabel("What story will you tell?").evaluate(e => e.clientHeight)).toBe(emptyHeight);
   assert.equal(await page.locator(".studio-landing").evaluate((e) => e.scrollHeight > e.clientHeight), false);
-  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+  await app.evaluate(({ ipcMain, BrowserWindow }, { seasonPlan, seasonBrief }) => {
     const at = new Date().toISOString();
     const state = {
       series: {
         id: "development-ui",
-        idea: "A lighthouse keeper and a sea serpent protect a village that fears them both.",
-        episodes: 1,
+        idea: "A lighthouse keeper and a sea serpent protect a village that fears them both.\n\n" + seasonBrief,
+        episodes: 10,
         language: "en",
         createdAt: at,
       },
@@ -126,18 +161,7 @@ try {
       usage: { aiCalls: {}, costUsdEstimate: 0 },
       next: { kind: "waiting", key: "series_plan", status: "running" },
     };
-    const plan = {
-      title: "The light between us",
-      premise: "Two outsiders find a friendship worth protecting.",
-      language: "en",
-      episodes: [
-        {
-          id: "ep-01",
-          title: "A light in the fog",
-          synopsis: "An unexpected visitor answers the keeper’s signal.",
-        },
-      ],
-    };
+    const plan = seasonPlan;
     const fixture = { state, plan, calls: [], ready: false };
     globalThis.__developmentFixture = fixture;
     const send = () =>
@@ -207,7 +231,7 @@ try {
       send();
       return "job-next";
     });
-  });
+  }, { seasonPlan, seasonBrief });
   await page
     .getByLabel("What story will you tell?")
     .fill(
@@ -233,6 +257,14 @@ try {
   await expect(page.getByRole("heading", { name: "The story so far" })).toBeVisible();
   await expect(page.getByRole("dialog")).toContainText("A lighthouse keeper and a sea serpent");
   await page.getByRole("button", { name: "Close", exact: true }).click();
+
+  await page.locator(".development-scroll").evaluate(e => { e.scrollTop = 0; });
+  await expect(page.getByRole("button", { name: "Read full brief", exact: true })).toHaveAttribute("aria-expanded", "false");
+  await page.getByRole("button", { name: "Read full brief", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Show less", exact: true })).toHaveAttribute("aria-expanded", "true");
+  await page.getByRole("button", { name: "Show less", exact: true }).click();
+  await expect(page.locator(".generation-brief-collapsed")).toContainText("QUALITY BAR");
+  await page.locator(".development-scroll").evaluate(e => { e.scrollTop = e.scrollHeight; });
 
   const update = async (count) =>
     app.evaluate(({ BrowserWindow }, count) => {
@@ -364,6 +396,11 @@ try {
   await expect(
     page.getByRole("region", { name: "Review", exact: true }),
   ).toBeVisible();
+  await expect(page.getByRole("region", { name: "Review", exact: true })).toBeFocused();
+  await expect(page.getByRole("list", { name: "The episode board", exact: true }).getByRole("listitem")).toHaveCount(10);
+  await page.getByRole("navigation", { name: "Jump to episode", exact: true }).getByRole("button", { name: /^Episode 10:/ }).click();
+  await expect(page.getByRole("heading", { name: "The Best Server Isn't Perfect", exact: true })).toBeInViewport();
+  await expect(page.getByRole("list", { name: "The episode board", exact: true }).getByRole("listitem").last()).toBeFocused();
   await page.screenshot({ path: path.join(artifacts, "02-plan-review.png") });
   await page.getByRole("button", { name: "Approve series plan" }).click();
   await expect(
@@ -385,6 +422,8 @@ try {
   await expect(page.getByRole("log")).toContainText("s01: checked attempt 2. Shot checks passed.");
   await expect(page.getByRole("log")).not.toContainText("OTHER SERIES SENTINEL");
   await expect(page.locator("[data-sonner-toast]")).toHaveCount(0);
+  await expect(page.locator(".generation-live-message")).toContainText("Drawing the keeper");
+  await expect(page.locator(".studio-feed-working > svg")).toBeVisible();
   const productionUpdates = async (count) => app.evaluate(({ BrowserWindow }, count) => {
     const f = globalThis.__developmentFixture;
     for (let i = 0; i < count; i++) BrowserWindow.getAllWindows()[0].webContents.send("moco:engine", {
@@ -485,6 +524,8 @@ try {
     page.getByText("A light in the fog brings two unlikely friends together."),
   ).toBeVisible();
   await expect(page.getByLabel("Review direction")).toHaveValue("An unfinished thought that survives the next review.");
+  await expect(page.getByRole("complementary", { name: "Review & approve", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeInViewport();
   await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeDisabled();
   await expect(page.getByRole("button", { name: "Apply notes & revise", exact: true })).toBeVisible();
   await page.getByRole("button", { name: "Apply notes & revise", exact: true }).click();
@@ -629,6 +670,64 @@ try {
   await expect(
     page.getByText("The episode board", { exact: true }),
   ).toBeVisible();
+  // Live shots arrive independently; finished work moves out of the live status line.
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    f.state.activeJob = { id: "shots-job", status: "running", startedAt: new Date().toISOString(), kind: "stage", target: "ep-01/scenes", stagesRun: [] };
+    f.state.stages.push({ key: "ep-01/shot_list", status: "done", artifactHash: "shots-hash" }, { key: "ep-01/scenes", status: "running" });
+    f.state.next = { kind: "waiting", key: "ep-01/scenes", status: "running" };
+    ipcMain.removeHandler("moco:series.artifact");
+    ipcMain.handle("moco:series.artifact", (_e, _id, file) => file === "artifacts/series_plan.json" ? { data: f.plan }
+      : file.endsWith("shot_list.json") ? { data: { shots: [{ id: "s01", intent: "The lighthouse at dusk." }, { id: "s02", intent: "The serpent arrives." }] } } : null);
+    ipcMain.removeHandler("moco:episode.media");
+    ipcMain.handle("moco:episode.media", () => ({ stills: { s01: ["data:image/svg+xml," + encodeURIComponent('<svg xmlns="http://www.w3.org/2000/svg" width="160" height="90"><rect width="160" height="90" fill="#273e50"/></svg>')] } }));
+    const send = (type, data) => BrowserWindow.getAllWindows()[0].webContents.send("moco:engine", { type, seriesId: f.state.series.id, at: new Date().toISOString(), data: { key: "ep-01/scenes", episodeId: "ep-01", ...data } });
+    send("shot.started", { shotId: "s01" });
+    send("shot.started", { shotId: "s02" });
+    send("ai.activity", { shotId: "s02", message: "Animating the serpent's arrival." });
+    send("shot.done", { shotId: "s01", fallback: false });
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  await expect(page.getByRole("region", { name: "Shot progress" })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Shot progress" })).toContainText("1 / 2 saved");
+  await expect(page.getByLabel("Shot saved", { exact: true })).toHaveCount(1);
+  await expect(page.getByLabel("Creating shot", { exact: true })).toHaveCount(1);
+  await expect(page.getByRole("img", { name: "Shot 1: The lighthouse at dusk.", exact: true })).toBeVisible();
+  await expect(page.locator(".generation-live-message")).toContainText("Animating the serpent's arrival.");
+  await page.locator(".studio-feed .generation-process").evaluate(e => { e.open = false; });
+  await page.locator(".studio-feed").scrollIntoViewIfNeeded();
+  await page.screenshot({ path: path.join(artifacts, "04-live-shots.png"), animations: "disabled" });
+  await app.evaluate(({ BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    delete f.state.activeJob;
+    f.state.stages = f.state.stages.map(s => ({ ...s, status: s.key === "ep-01/scenes" ? "done" : s.status }));
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  // A delivered episode opens publishing help; merely viewing it never starts episode two.
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    f.state.stages.push({ key: "ep-01/final", status: "done", artifactHash: "final-hash", gated: false });
+    f.state.next = { kind: "run", key: "ep-02/script" };
+    ipcMain.removeHandler("moco:series.artifact");
+    ipcMain.handle("moco:series.artifact", (_e, _id, file) => file === "artifacts/series_plan.json" ? { data: f.plan }
+      : file.endsWith("publish.json") ? { meta: { contentHash: "publish-hash" }, data: { youtube: { title: "A light in the fog", description: "A new story. #shorts", tags: ["animation"], language: "en", madeForKids: false, category: "Entertainment" } } }
+      : file.endsWith("shot_list.json") ? { data: { shots: [{ id: "s01", intent: "The lighthouse at dusk." }] } } : null);
+    ipcMain.removeHandler("moco:episode.media");
+    ipcMain.handle("moco:episode.media", () => ({ final: "data:video/mp4;base64,", finalPath: "C:/fixture/final.mp4", stills: {} }));
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  const runsBeforeDelivery = await app.evaluate(() => globalThis.__developmentFixture.calls.filter(c => c[0] === "run").length);
+  await expect(page.getByRole("complementary", { name: "Publish your video", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Start episode 2", exact: true })).toBeInViewport();
+  await expect(page.getByLabel("Finished episode", { exact: true })).toBeVisible();
+  await expect(page.getByRole("heading", { name: /Upload the video/ })).toBeVisible();
+  assert.equal(await app.evaluate(() => globalThis.__developmentFixture.calls.filter(c => c[0] === "run").length), runsBeforeDelivery);
+  await page.setViewportSize({ width: 1120, height: 720 });
+  await expect(page.getByRole("button", { name: "Start episode 2", exact: true })).toBeInViewport();
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth > innerWidth || document.documentElement.scrollHeight > innerHeight), false);
+  await page.screenshot({ path: path.join(artifacts, "05-publishing-sidebar.png"), animations: "disabled" });
+  await page.getByRole("button", { name: "Start episode 2", exact: true }).click();
+  await expect.poll(() => app.evaluate(() => globalThis.__developmentFixture.calls.filter(c => c[0] === "run").length)).toBe(runsBeforeDelivery + 1);
   const calls = await app.evaluate(() => globalThis.__developmentFixture.calls);
   assert.ok(
     calls.some((c) => c[0] === "approve" && c[2] === "plan-hash"),
@@ -636,7 +735,7 @@ try {
   );
   assert.deepEqual(errors, []);
   console.log(
-    "PASS Studio light/dark themes, compact layout, pause/reduced motion, all review gates, unavailable-media guard, finished state, bottom dock, and dark creation → live activity → scroll/fade → queued note → stop/resume → revise → review/approve → production",
+    "PASS studio themes, compact layout, all review sidebars, queued direction, live task and shot progress, publishing sidebar, and explicit episode continuation",
   );
 } catch (error) {
   const page = await app.firstWindow();

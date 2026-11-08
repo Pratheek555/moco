@@ -12,6 +12,8 @@ import { Semaphore } from "../jobs/semaphore.ts";
 import { lookupTemplate } from "../templates/registry.ts";
 import { canvasFonts } from "./fonts.ts";
 import { files } from "../pipeline/stages.ts";
+import { artistPermissions } from "./permissions.ts";
+import { EngineError } from "../errors.ts";
 
 const Manifest = z.object({
   sourceFiles: z.array(z.string()).min(1).max(12),
@@ -22,6 +24,8 @@ const Manifest = z.object({
 const Read = z.object({ path: z.string() });
 const Write = Read.extend({ content: z.string().max(10_000_000), encoding: z.enum(["utf8", "base64"]).default("utf8") });
 const Preview = z.object({ frames: z.array(z.number().int().nonnegative()).max(12).optional() });
+const GenerateImage = z.object({ path: z.string(), prompt: z.string().trim().min(1).max(12000), transparent: z.boolean().default(false), references: z.array(z.string()).max(5).default([]) });
+const Blocker = z.object({ reason: z.string().trim().min(1).max(1600) });
 const hash = (value: string | Buffer) => createHash("sha256").update(value).digest("hex");
 const text = (value: unknown): { content: ToolContent[] } => ({ content: [{ type: "text", text: typeof value === "string" ? value : JSON.stringify(value, null, 2) }] });
 
@@ -75,6 +79,8 @@ export async function snapshotShotWorkspace(ctx: Pick<StageContext,"dir">, episo
 }
 
 export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, production: ArtistProduction) {
+  const permissions = await artistPermissions(ctx, inputs.episodeId);
+  if (permissions.images.requested && !permissions.images.available) throw new EngineError("stage_blocked", permissions.images.reason);
   if ((inputs.voiceover.fps ?? 30) !== production.format.fps) throw Error("Voice-track fps differs from the project format; regenerate narration/timing before authoring shots");
   const root = join(ctx.dir, "episodes", inputs.episodeId, "artist");
   const templateBrief = lookupTemplate(ctx.series.template)?.creativePrompt;
@@ -106,7 +112,8 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     return { ...word, wordIndex, occurrence, startFrame: Math.round(word.start * production.format.fps) - Math.round(inputs.shot.start * production.format.fps) };
   }).filter((word) => word.start >= inputs.shot.start && word.start < inputs.shot.end);
   const timeline = ctx.store.has(files.shotList(inputs.episodeId)) ? (await ctx.store.read(files.shotList(inputs.episodeId), "ShotList")).data.shots : [inputs.shot];
-  await writeContext(`${shotRoot}/brief.json`, { originalBrief: ctx.series.idea, templateBrief, availableFonts: Object.keys(fonts), production, show: inputs.show, timeline, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback });
+  await writeContext(`${shotRoot}/brief.json`, { permissions, originalBrief: ctx.series.idea, templateBrief, availableFonts: Object.keys(fonts), production, show: inputs.show, timeline, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback });
+  await writeContext(`${shotRoot}/production-state.json`, permissions);
   const manifestPath = `${shotRoot}/scene.json`;
   const lockPath = join(root, "shared.lock.json");
   const sharedLock = await readFile(lockPath, "utf8").then(value => JSON.parse(value) as { inherited?: string }, () => undefined);
@@ -123,8 +130,22 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     return out;
   };
   const ownFile = (path: string) => path.startsWith(`${shotRoot}/`) || path.startsWith("shared/") || path.startsWith("assets/");
+  const checkFileBudget = async (path: string) => {
+    if (await lstat(await workspacePath(root, path)).then(() => true, () => false)) return;
+    // A long film legitimately has hundreds of files. Bound each shot and the
+    // shared library separately; allow existing files to be repaired at the cap.
+    const shotFile = path.startsWith(`${shotRoot}/`);
+    const used = (await list(root)).filter(file => shotFile
+      ? file.startsWith(`${shotRoot}/`)
+      : file.startsWith("shared/") || file.startsWith("assets/"));
+    if (used.length >= 180) throw Error(`Artist file limit reached for ${shotFile ? `scene ${inputs.shot.id}` : "shared assets"} (180). Reuse existing files.`);
+  };
   const assemble = async () => {
-    const manifest = Manifest.parse(JSON.parse(await readFile(await workspacePath(root, manifestPath), "utf8")));
+    const contents = await readFile(await workspacePath(root, manifestPath), "utf8").catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") throw Error(`The artist did not save the scene for ${inputs.shot.id}. No renderable artwork was created. Use report_blocker to explain any missing capability instead of ending without a scene.`);
+      throw error;
+    });
+    const manifest = Manifest.parse(JSON.parse(contents));
     if (inputs.shot.characters.length && !manifest.sourceFiles.some((path) => path.startsWith("shared/"))) throw Error("Characters must use a reusable shared design file from shared/");
     const sources = await Promise.all(manifest.sourceFiles.map(async (path) => {
       if (!ownFile(path) || extname(path) !== ".js") throw Error("Source files must be .js files under shared/ or this shot");
@@ -143,6 +164,7 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     return spec;
   };
   let previews = 0;
+  let blocker: EngineError | undefined;
   let reviewedHash: string | undefined;
   const serial = new Semaphore(1);
   const tool = (name: string, description: string, schema: z.ZodType, call: (args: unknown) => Promise<{ content: ToolContent[] }>): ArtistTool => ({ name, description, inputSchema: z.toJSONSchema(schema, { io: "input", target: "draft-07" }), call: async (args) => serial.run(async () => {
@@ -159,9 +181,9 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     tool("write_file", "Create/edit JS canvas artwork, JSON manifests/design notes, or base64 PNG/JPEG/WebP assets. No shell or outside files. Shared designs freeze after the first accepted shot.", Write, async (args) => {
       const { path, content, encoding } = Write.parse(args);
       const version=path.startsWith("shared/versions/") && !await lstat(await workspacePath(root,path)).then(()=>true,()=>false);
-      if (!ownFile(path) || path.endsWith("/brief.json") || (!path.startsWith(`${shotRoot}/`) && locked && !version)) throw Error("Write only this shot's files; approved shared files are read-only. Publish new shared designs under shared/versions/ with a new name.");
+      if (!ownFile(path) || path.endsWith("/brief.json") || path.endsWith("/production-state.json") || (!path.startsWith(`${shotRoot}/`) && locked && !version)) throw Error("Write only this shot's files; approved shared files and production state are read-only. Publish new shared designs under shared/versions/ with a new name.");
       if (!/\.(js|json|md|png|jpg|jpeg|webp)$/.test(path)) throw Error("Unsupported artist file extension");
-      if ((await list(root)).filter((file) => !/^(previews|checks|history)\//.test(file)).length > 180) throw Error("Artist workspace file limit reached");
+      await checkFileBudget(path);
       const file = await workspacePath(root, path), bytes = Buffer.from(content, encoding);
       if (bytes.length > 6_000_000) throw Error("File exceeds 6 MB");
       const previous = await readFile(file).catch(() => undefined);
@@ -185,8 +207,43 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
       for (const path of result.stills) content.push({ type: "image", mimeType: "image/png", data: (await readFile(path)).toString("base64") });
       return { content };
     }),
+    tool("report_blocker", "Report a real missing capability or production blocker with a clear explanation. Moco stops this job without repeating artwork-repair attempts. Check the recorded permissions first; historical approval text is not a blocker.", Blocker, async (args) => {
+      const { reason } = Blocker.parse(args);
+      blocker = new EngineError("stage_blocked", `Could not create scene ${inputs.shot.id}: ${reason}`);
+      await audit({ tool: "report_blocker", reason });
+      return text({ blocked: true, reason });
+    }),
   ];
-  return { root, manifestPath, tools, assemble, reviewed: (spec: SceneSpec) => reviewedHash === hash(JSON.stringify(spec)), beginAttempt: () => { previews = 0; reviewedHash = undefined; }, audit, freezeShared: async () => {
+  if (permissions.images.enabled) tools.push(tool("generate_image", "Generate ONE GPT Image 2 PNG using the user's Codex login and allowance. Save it to a NEW .png path under this shot or unlocked assets/. Reuse saved assets; never regenerate the same file. References are existing workspace PNG paths. Add its path to scene.json assets and animate separate layers/rig components in Canvas.", GenerateImage, async (args) => {
+    const { path, prompt, transparent, references } = GenerateImage.parse(args);
+    if (!(path.startsWith(`${shotRoot}/`) || (!locked && path.startsWith("assets/"))) || extname(path) !== ".png") throw Error("Save generated PNGs under this shot or unlocked assets/.");
+    const file = await workspacePath(root, path);
+    if (await lstat(file).then(() => true, () => false)) throw Error("This asset already exists. Reuse it or choose a new versioned filename.");
+    await checkFileBudget(path);
+    const images = await Promise.all(references.map(async path => {
+      if (!ownFile(path) || extname(path) !== ".png") throw Error("Image references must be workspace PNG assets.");
+      return workspacePath(root, path);
+    }));
+    await audit({ tool: "generate_image", phase: "started", path, prompt, transparent, references, model: permissions.images.model });
+    try {
+      const result = await ctx.ai.generate({ imageGeneration: true, signal: ctx.signal, images, timeoutMs: ctx.config.limits.aiTimeoutMs,
+        system: "You generate exactly one production image using the built-in image_gen tool (GPT Image 2). Use that tool; do not draw with code, use shell tools, or substitute a different model. The image tool saves the PNG automatically. Finish after one successful image. If unavailable, explain the blocker. Reference attachments are visual references; include them in the generation request when supplied.",
+        prompt: `${prompt}\n\nBackground: ${transparent ? "transparent, preserve alpha" : "opaque"}. Generate exactly ONE PNG with GPT Image 2. This is a production asset; do not add text, watermarks or a surrounding presentation unless the prompt explicitly requests them.`,
+      }, inputs.episodeId);
+      const image = result.generatedImages?.[0];
+      if (!image || result.generatedImages?.length !== 1) throw Error("The image provider did not return one usable PNG. No substitute artwork was generated.");
+      if (image.data.length > 5_999_900) throw Error("The generated image exceeds the scene's 6 MB asset limit. Request a smaller PNG before retrying.");
+      ctx.signal.throwIfAborted();
+      await mkdir(dirname(file), { recursive: true });
+      await writeFile(file, image.data, { flag: "wx" });
+      await audit({ tool: "generate_image", phase: "saved", path, bytes: image.data.length, hash: hash(image.data), model: permissions.images.model });
+      return { content: [{ type: "text", text: JSON.stringify({ path, model: permissions.images.model, bytes: image.data.length }) }, { type: "image", mimeType: "image/png", data: image.data.toString("base64") }] };
+    } catch (error) {
+      blocker = error instanceof EngineError ? error : new EngineError("stage_blocked", `GPT Image 2 could not create the asset: ${error instanceof Error ? error.message : String(error)}`);
+      throw blocker;
+    }
+  }));
+  return { root, manifestPath, permissions, blocker: () => blocker, tools, assemble, reviewed: (spec: SceneSpec) => reviewedHash === hash(JSON.stringify(spec)), beginAttempt: () => { previews = 0; reviewedHash = undefined; blocker = undefined; }, audit, freezeShared: async () => {
     if (!locked) await writeFile(lockPath, JSON.stringify({ files: (await list(root)).filter((path) => path.startsWith("shared/") || path.startsWith("assets/")) }));
   } };
 }

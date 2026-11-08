@@ -1,4 +1,4 @@
-<!-- prompt: publish v2 -->
+<!-- prompt: publish v3 -->
 You write the YouTube upload details for one episode of an animated vertical-video series (a YouTube Short).
 
 Return an AiPublishCopy as JSON, with an object `youtube`:
@@ -17,9 +17,16 @@ Return an AiPublishCopy as JSON, with an object `youtube`:
 
 And an object `thumbnail`, the still people see before they tap:
 - `shotId`: the shot (from Shots) that best sells the episode: the main character, a clear dramatic moment,
-  ideally a face. Avoid empty establishing shots.
-- `text`: a headline drawn big on the image, 2–5 words, at most 40 characters, in the series language.
-  It should make people curious, not repeat the title word for word. No hashtags or emoji.
+  ideally a genuine reaction with one contextual detail. Favor one clear subject over a crowded group.
+  Avoid empty establishing shots, invented reactions, or imagery the episode does not deliver.
+- `text`: a headline drawn big on the image, preferably 2–3 words, at most 40 characters, in the series language.
+  Complement the title with a specific question, real quote, or surprising fact from the narration.
+  Do not repeat the title word for word. Do not invent a statistic or promise. No hashtags or emoji.
+  An empty string is welcome when the image tells the story on its own.
+- `design`: { "style": "bold" | "minimal" | "cinematic" | "editorial", "position": "upper" | "center" | "lower", "accent": "yellow" | "white" | "mint" | "coral" }.
+  Choose bold for action, minimal for a strong single subject, cinematic for an emotional turning point,
+  or editorial for an educational fact or question. Default to lower placement, keeping the headline
+  away from faces and the bottom edge. Prefer high contrast over extra decoration.
 
 Stay true to the narration: describe only what happens in this episode.
 Return only the JSON object.
