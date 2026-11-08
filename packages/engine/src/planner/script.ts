@@ -9,6 +9,7 @@ import { checkIds, planWithAi, previousSection } from "./common.ts";
 import { episodeSeconds, readShow, scriptPack } from "./show.ts";
 import { lessonsSection, readPlaybook } from "../learn/playbook.ts";
 import { growCanon } from "../canon/grow.ts";
+import { repeatScriptHash } from "../repeat/episode.ts";
 
 // Allowed drift from the word budget before the AI is asked to fix it. The real check is the VO duration.
 const BUDGET_TOLERANCE = 0.2;
@@ -31,6 +32,7 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
     schema: EpisodeScript,
     prompt: joinSections([
       jsonSection("Episode", { ...episode, language: plan.data.language, targetSeconds, wordBudget: budget }),
+      ctx.ledger.data.repeatEpisodes?.[episodeId] ? jsonSection("Repeat episode — reuse these approved decisions", { reuse: ctx.ledger.data.repeatEpisodes[episodeId]!.reuse, instruction: "Reuse existing cast identities and voices. Do not invent recurring characters or change visual rules. New diagrams and episode-specific objects are fine." }) : "",
       ctx.series.template && ctx.series.production ? "Include shotPlan: one entry per spoken line, {lineId,seconds,picture}. Seconds are estimates summing to targetSeconds, picture describes acting and setting. This plan and script are shown together BEFORE voice generation. Keep actual word-aligned cuts for the later shots stage." : "",
       jsonSection("Series", { title: plan.data.title, premise: plan.data.premise }),
       show ? jsonSection("Show bible — this series' tone, narration and rules", scriptPack(show)) : jsonSection("Cast", bible.data.cast),
@@ -44,7 +46,7 @@ export async function runScript(ctx: StageContext, episodeId: string, feedback?:
 
   const inputs = [ctx.store.inputRef(files.seriesPlan), ctx.store.inputRef(files.bible), ...(show ? [ctx.store.inputRef(files.show)] : []), ...(grown ? [ctx.store.inputRef(files.canon(episodeId))] : []), promptRef("script", ctx.series.template)];
   const saved = await ctx.store.save(files.script(episodeId), "EpisodeScript", script, { producedBy: "ai", backend: ctx.ai.backendId, inputs });
-  return saved.meta.contentHash;
+  return repeatScriptHash(ctx, episodeId, saved.meta.contentHash);
 }
 
 export function checkShotPlan(script: EpisodeScript): Issue[] {

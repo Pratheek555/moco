@@ -514,6 +514,8 @@ app
     handle("series.extend", (id: string, input: { episodes: number; note?: string }) =>
       engine().extendSeries(id, input),
     );
+    handle("series.repeat", (id: string, input: { topic?: string }) => engine().nextEpisode(id, input));
+    handle("series.repeatOffer", (id: string) => engine().repeatOffer(id));
     handle("series.status", (id: string) => engine().status(id));
     handle("series.artifact", (seriesId: string, file: string) =>
       artifact(seriesId, file),
@@ -542,6 +544,8 @@ app
     handle("episode.media", (seriesId: string, episodeId: string) =>
       episodeMedia(seriesId, episodeId),
     );
+    handle("episode.review", (seriesId: string, episodeId: string) => engine().reviewEpisode({ seriesId, episodeId }));
+    handle("episode.inspect", (seriesId: string, episodeId: string) => engine().inspectPreview({ seriesId, episodeId }));
     handle("characters.list", (seriesId: string) => engine().listCharacters(seriesId));
     handle("characters.save", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }) =>
       engine().saveCharacter({ seriesId, episodeId, shotId }, choice));

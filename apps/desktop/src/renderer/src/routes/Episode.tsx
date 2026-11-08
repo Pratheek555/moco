@@ -32,6 +32,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Textarea } from "@/components/ui/textarea";
 import { PageError, PageLoading } from "../components/Page.tsx";
 import { PublishPanel } from "../components/PublishPanel.tsx";
+import { RepeatEpisodePanel } from "../components/RepeatEpisode";
 import { CharacterReuse } from "../components/CharacterReuse.tsx";
 
 // "ep-01/voiceover" → "voiceover": the episode is already on screen.
@@ -135,6 +136,7 @@ export function EpisodePage({ seriesId, episodeId }: { seriesId: string; episode
         </div>
       )}
 
+      {status.repeatEpisodes?.[episodeId] && <div className="max-h-96 shrink-0 overflow-y-auto border-b p-4"><RepeatEpisodePanel status={status} episodeId={episodeId} onReview={toSeries} /></div>}
       <div className="studio-edit-layout grid min-h-0 flex-1 grid-cols-[11rem_minmax(0,1fr)_18rem] xl:grid-cols-[14rem_minmax(0,1fr)_22rem]">
         <aside className="flex min-h-0 flex-col border-r">
           <div className="flex items-center justify-between gap-2 px-4 pt-4 pb-3">

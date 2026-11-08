@@ -53,6 +53,7 @@ async function extendPlan(ctx: StageContext, extension: { keep: number; note?: s
     prompt: joinSections([
       jsonSection("Series", { idea: ctx.series.idea, title: current.title, language: current.language, premise: current.premise }),
       jsonSection("Episodes so far", kept),
+      ctx.ledger.data.repeatEpisodes && Object.values(ctx.ledger.data.repeatEpisodes).some(ep => ep.outlinePending) ? jsonSection("Repeat production", { instruction: "Plan one topic using the existing recurring cast and approved visual rules; no new recurring characters or voices.", show: (await ctx.store.read(files.show, "ShowBible")).data }) : "",
       memory ? jsonSection("Story so far", { storySoFar: memory.storySoFar, facts: memory.facts }) : "",
       jsonSection("Request", { episodes: count, firstId, ...(extension.note && { direction: extension.note }) }),
       feedback && previous ? jsonSection("Your previous version — keep what the change below doesn't touch", previous) : "",

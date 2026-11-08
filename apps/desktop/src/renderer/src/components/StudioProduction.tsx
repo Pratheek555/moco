@@ -12,6 +12,7 @@ import {
   GenerationIdentity, GenerationSidebar, useDirectionNotes,
 } from "./GenerationWorkspace";
 import { StudioDelivery } from "./StudioDelivery";
+import { NextEpisode, RepeatEpisodePanel } from "./RepeatEpisode";
 
 export { StudioProgress } from "./GenerationWorkspace";
 
@@ -46,6 +47,9 @@ export function StudioProduction({ status, plan, review, children }: {
   const publishing = status.activeJob?.target.endsWith("/publish");
   const completedEpisode = (!running || publishing) && !waiting && !error ? plan?.episodes.findLast(ep => (ep.id !== nextEpisodeId || status.activeJob?.target === `${ep.id}/publish`) && status.stages.some(s => s.key === `${ep.id}/final` && s.status === "done")) : undefined;
   const nextEpisode = next.kind === "run" && next.key.endsWith("/script") ? plan?.episodes.find(ep => ep.id === nextEpisodeId) : undefined;
+  const repeatEpisode = nextEpisodeId && status.repeatEpisodes?.[nextEpisodeId]
+    ? nextEpisodeId
+    : Object.values(status.repeatEpisodes ?? {}).findLast(episode => !status.stages.some(stage => stage.key === `${episode.episodeId}/final` && stage.status === "done"))?.episodeId;
   const sidebarKey = waiting?.key ?? completedEpisode?.id;
   const [closedSidebar, setClosedSidebar] = useState<string>();
   // A new gate or finished episode opens its own review, even if the previous one was closed.
@@ -128,6 +132,8 @@ export function StudioProduction({ status, plan, review, children }: {
             {running && progress !== undefined && <div className="studio-render-progress"><Progress value={Math.max(0, Math.min(100, progress * 100))} aria-label="Render progress" /><span>{Math.round(progress * 100)}%</span></div>}
             {!running && <Button disabled={busy} onClick={() => finished ? openBoard() : void work(() => api.stages.run(id, failed?.key))}>{busy ? <Spinner /> : <RotateCcwIcon />}{finished ? "Explore episodes" : error ? "Try again" : "Continue production"}</Button>}
           </div>}
+          {repeatEpisode && <RepeatEpisodePanel status={status} episodeId={repeatEpisode} onReview={() => setClosedSidebar(undefined)} />}
+          {status.series.production && !completedEpisode && !repeatEpisode && !running && status.stages.some(stage => stage.key.endsWith("/final") && stage.status === "done") && (finished || nextEpisode) && <NextEpisode status={status} />}
           <StudioActivity status={status} />
           <div className="generation-note-history">{notes.map((n, i) => <article className="development-direction" key={`${n.at}-${i}`}><ArrowUpIcon /><div><span className="development-label">Your direction &middot; queued for the next review</span><p>{n.text}</p></div></article>)}</div>
           <details ref={board} className="generation-project-work" open={boardOpen} onToggle={e => setBoardOpen(e.currentTarget.open)}>
