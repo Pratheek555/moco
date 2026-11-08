@@ -22,7 +22,8 @@ export * from "./thumbnail.ts";
 //   0.12.0: optional authored canvas scenes and per-scene format; export permits variable sizes/rates.
 //   0.13.0: artist project settings, explicit voice-track fps, requirement availability and review evidence.
 //   0.14.0: optional thumbnail design; existing kits parse without changes.
-export const SPEC_VERSION = "0.14.0";
+//   0.15.0: approved series-local character rigs and optional Canvas version pins.
+export const SPEC_VERSION = "0.15.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -461,6 +462,8 @@ export const CanvasScene = z.object({
   assets: z.record(z.string(), z.string().max(8_000_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/)).default({}),
   cues: z.array(z.object({ id: z.string(), atFrame: z.number().int().nonnegative() })).max(200).default([]),
   designSources: z.record(z.string(), z.string()).optional(),
+  // Exact approved character versions used by this shot; {} means original artwork.
+  characterRigs: z.record(z.string(), z.string().regex(/^[a-f0-9]{64}$/)).optional(),
 });
 export type CanvasScene = z.infer<typeof CanvasScene>;
 
@@ -543,6 +546,30 @@ export const Critique = z.object({
   }).optional(),
 });
 export type Critique = z.infer<typeof Critique>;
+
+// Series-local, editable Canvas character libraries. Versions are immutable;
+// approval concerns the recorded source-shot evidence, not every future action.
+const CharacterId = z.string().regex(/^[a-z0-9][a-z0-9-]{0,63}$/);
+const CharacterVersion = z.string().regex(/^[a-f0-9]{64}$/);
+export const CharacterRig = z.object({
+  castId: CharacterId,
+  sources: z.array(z.object({ path: z.string().min(1), code: z.string().min(1).max(100_000) })).min(1).max(12),
+  assets: CanvasScene.shape.assets,
+  notes: z.string().max(20_000),
+  provenance: z.object({
+    episodeId: CharacterId, shotId: CharacterId, sceneHash: CharacterVersion,
+    backend: z.string().optional(), approvedAt: z.string(),
+    review: z.object({ report: z.string(), reportHash: CharacterVersion, critiqueHash: CharacterVersion,
+      requirements: z.array(z.object({ id: z.string(), status: z.string(), evidence: z.string() })),
+      limitation: z.string(),
+    }),
+  }),
+});
+export type CharacterRig = z.infer<typeof CharacterRig>;
+export const CharacterLibrary = z.object({ characters: z.array(z.object({
+  castId: CharacterId, activeVersion: CharacterVersion, versions: z.array(CharacterVersion).min(1).max(100),
+})).max(100) });
+export type CharacterLibrary = z.infer<typeof CharacterLibrary>;
 
 // The series' lessons, written by the episode retro from the critique and the user's notes. A lesson is checked
 // against every later episode: `held` when no shot broke it, `broken` when one did. Lessons that keep breaking retire.
@@ -705,6 +732,8 @@ export function checkYoutube(meta: Pick<YoutubeMetadata, "title" | "description"
 
 // Every artifact kind the engine can store, by name. Meta.kind is one of these keys.
 export const ArtifactSchemas = {
+  CharacterRig,
+  CharacterLibrary,
   SeriesPlan,
   Vocabulary,
   Critique,

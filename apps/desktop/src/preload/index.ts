@@ -68,6 +68,11 @@ const api: MocoApi = {
     media: call("episode.media"),
     regenerateShot: call("episode.regenerateShot"),
   } as MocoApi["episode"],
+  characters: {
+    list: call("characters.list"),
+    save: call("characters.save"),
+    apply: call("characters.apply"),
+  } as MocoApi["characters"],
   publish: {
     save: call("publish.save"),
     rewrite: call("publish.rewrite"),

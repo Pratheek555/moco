@@ -87,6 +87,8 @@ it("pins context, keeps human gates, saves the approved executable sample and st
   expect(JSON.parse(await readFile(join(retained, "manifest.json"), "utf8")).sampleHash).toBe(review.contentHash);
   await expect(engine.runStage({ seriesId: id, key: "ep-01/final" })).rejects.toMatchObject({ code: "stage_blocked" });
   await expect(engine.runStage({ seriesId: id, key: "ep-01/scenes" })).rejects.toThrow(/Generate a new revision/);
+  await expect(engine.saveCharacter({ seriesId: id, episodeId: "ep-01", shotId: "s01" }, { castId: "krishna", sceneHash: "viewed" })).rejects.toThrow(/Generate a new revision/);
+  await expect(engine.applyCharacter({ seriesId: id, episodeId: "ep-01", shotId: "s01" }, { castId: "krishna", version: "a".repeat(64), sceneHash: "viewed" })).rejects.toThrow(/Generate a new revision/);
   await expect(engine.setPublishDefaults(id, { descriptionFooter: "Changed" } as never)).rejects.toThrow(/do not enter publishing/);
   await expect(engine.rewritePublish({ seriesId: id, episodeId: "ep-01" }, "Changed")).rejects.toThrow(/do not enter publishing/);
   expect(ai.requests.some(request => request.system.includes("prompt: publish"))).toBe(false);
