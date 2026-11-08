@@ -3,13 +3,14 @@
 // Calls run in an empty temp folder, with Claude's tools disabled and Codex restricted to read-only.
 // Images use Claude's prompt message or Codex's explicit image attachments.
 import { spawn } from "node:child_process";
-import { mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
-import { tmpdir } from "node:os";
+import { mkdtemp, readFile, readdir, realpath, rm, stat, writeFile } from "node:fs/promises";
+import { homedir, tmpdir } from "node:os";
 import { extname, join } from "node:path";
 import { codexCommand } from "./codex-command.ts";
 export { createCodexAccountManager, type CodexAccountState } from "./codex-account.ts";
 import { fileURLToPath } from "node:url";
 import { startToolBridge, type ArtistTool } from "./tool-bridge.ts";
+import { activityReader, ACTIVITY_GUIDANCE } from "./activity.ts";
 export type { ArtistTool, ToolContent } from "./tool-bridge.ts";
 
 export interface AiRequest {
@@ -21,6 +22,8 @@ export interface AiRequest {
   timeoutMs: number;
   signal?: AbortSignal;
   artistTools?: ArtistTool[]; // explicit, bounded app tools; ordinary JSON calls retain tools off
+  onActivity?: (message: string) => void; // public progress messages, never reasoning or JSON
+  imageGeneration?: boolean; // app-owned image request only; disabled on ordinary planning/artist calls
 }
 
 export interface AiResult {
@@ -30,12 +33,14 @@ export interface AiResult {
   backend: string;
   model?: string;
   sessionId?: string;
+  generatedImages?: { data: Buffer; mimeType: "image/png" }[];
 }
 
 export interface AiBackend {
   id: string;
   seesImages?: boolean; // takes AiRequest.images; without it the engine never asks the AI to look at a render
   supportsArtist?: boolean;
+  supportsImageGeneration?: boolean;
   available(): Promise<{ ok: boolean; reason?: string; authMethod?: string; version?: string }>;
   generate(req: AiRequest): Promise<AiResult>;
 }
@@ -62,12 +67,13 @@ export function aiBackend(provider: AiProvider = "codex-cli"): AiBackend {
 export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): AiBackend {
   const command = options.bin ? { bin: options.bin, args: options.binArgs ?? [] } : codexCommand();
   const bin = command.bin;
-  const run = (args: string[], stdin: string, timeout: number, signal?: AbortSignal, cwd?: string) =>
-    runProcess(bin, [...command.args, ...args], stdin, timeout, signal, cwd);
+  const run = (args: string[], stdin: string, timeout: number, signal?: AbortSignal, cwd?: string, onActivity?: (message: string) => void) =>
+    runProcess(bin, [...command.args, ...args], stdin, timeout, signal, cwd, onActivity);
   return {
     id: "codex-cli",
     seesImages: true,
     supportsArtist: true,
+    supportsImageGeneration: true,
     async available() {
       const versionRun = await run(["--version"], "", 15_000).catch(() => undefined);
       const version = /(\d+\.\d+\.\d+)/.exec(versionRun?.stdout ?? "")?.[1];
@@ -83,13 +89,13 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
       const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
       try {
         const systemFile = join(cwd, "system.md");
-        await writeFile(systemFile, req.system);
+        await writeFile(systemFile, req.system + (req.onActivity ? ACTIVITY_GUIDANCE : ""));
         const args = ["exec", "--json", "--ephemeral", "--ignore-user-config", "--skip-git-repo-check",
           "--sandbox", "read-only", "-c", 'approval_policy="never"',
           "-c", `model_instructions_file=${JSON.stringify(systemFile)}`,
           "-c", "features.shell_tool=false", "-c", "features.apply_patch_freeform=false",
           "-c", "features.view_image=false", "-c", "project_doc_max_bytes=0",
-          "-c", 'web_search="disabled"'];
+          "-c", 'web_search="disabled"', "-c", `features.image_generation=${req.imageGeneration === true}`];
         if (bridge) {
           // Same application-owned MCP transport and tool contract as every artist backend.
           const server = "mcp_servers.moco_artist";
@@ -97,16 +103,16 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
             "-c", `${server}.args=${JSON.stringify([fileURLToPath(new URL("./mcp-bridge.mjs", import.meta.url))])}`,
             "-c", `${server}.env={MOCO_ARTIST_URL=${JSON.stringify(bridge.url)},MOCO_ARTIST_TOKEN=${JSON.stringify(bridge.token)},ELECTRON_RUN_AS_NODE="1"}`,
             "-c", `${server}.enabled_tools=${JSON.stringify(req.artistTools!.map(tool => tool.name))}`,
-            "-c", `${server}.required=true`, "-c", `${server}.tool_timeout_sec=180`,
+            "-c", `${server}.required=true`, "-c", `${server}.tool_timeout_sec=900`,
             "-c", `${server}.default_tools_approval_mode="approve"`);
         }
         if (req.model) args.push("--model", req.model);
         for (const image of req.images ?? []) args.push("--image", image);
         args.push("--", "-");
         const prompt = req.jsonSchema
-          ? `${req.prompt}\n\nReturn only a JSON value matching this JSON Schema, without Markdown fences:\n${JSON.stringify(req.jsonSchema)}`
+          ? `${req.prompt}\n\n${req.onActivity ? "Your final message must be" : "Return only"} a JSON value matching this JSON Schema, without Markdown fences:\n${JSON.stringify(req.jsonSchema)}`
           : req.prompt;
-        const result = await run(args, prompt, req.timeoutMs, req.signal, cwd);
+        const result = await run(args, prompt, req.timeoutMs, req.signal, cwd, req.onActivity);
         if (result.timedOut) throw new TimeoutError(`Codex did not finish within ${Math.round(req.timeoutMs / 60_000 * 10) / 10} minutes. This request was stopped. Try again to retry the unfinished stage.`);
         let text = "", sessionId: string | undefined, usage: AiResult["usage"], failure = "", completed = false;
         for (const line of result.stdout.split(/\r?\n/)) {
@@ -126,7 +132,8 @@ export function codexCli(options: { bin?: string; binArgs?: string[] } = {}): Ai
           try { json = JSON.parse(text.trim().replace(/^```(?:json)?\s*\n?([\s\S]*?)\n?```$/, "$1")); }
           catch { throw new SchemaRefusal(text || "Codex returned no JSON for the requested schema"); }
         }
-        return { text, json, usage, backend: "codex-cli", model: req.model, sessionId };
+        const generatedImages = req.imageGeneration ? await readGeneratedImages(sessionId, cwd) : undefined;
+        return { text, json, usage, backend: "codex-cli", model: req.model, sessionId, ...(generatedImages && { generatedImages }) };
       } finally {
         await bridge?.close();
         await rm(cwd, { recursive: true, force: true });
@@ -152,6 +159,7 @@ export function compareVersions(a: string, b: string): number {
 
 export interface ClaudeCliOptions {
   bin?: string; // path to the `claude` binary; tests pass a fake one
+  binArgs?: string[]; // a JS CLI entrypoint run with Node, also usable on Windows
 }
 
 export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
@@ -164,7 +172,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
 
     async available() {
       // Flags like --safe-mode and --json-schema need a recent Claude Code (reference R2).
-      const versionRun = await runProcess(bin, ["--version"], "", 15_000).catch(() => undefined);
+      const versionRun = await runProcess(bin, [...options.binArgs ?? [], "--version"], "", 15_000).catch(() => undefined);
       const version = /(\d+\.\d+\.\d+)/.exec(versionRun?.stdout ?? "")?.[1];
       if (!version) return { ok: false, reason: "Claude Code is not installed. Install it from claude.com/code." };
       if (compareVersions(version, MIN_CLAUDE_VERSION) < 0) {
@@ -172,7 +180,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
       }
 
       // `claude auth status` prints JSON and exits 0 when logged in.
-      const run = await runProcess(bin, ["auth", "status"], "", 15_000);
+      const run = await runProcess(bin, [...options.binArgs ?? [], "auth", "status"], "", 15_000);
       if (run.code !== 0) {
         return { ok: false, version, reason: "Claude Code is not logged in. Run `claude` once and sign in." };
       }
@@ -186,18 +194,20 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
     },
 
     async generate(req) {
+      if (req.imageGeneration) throw new BackendError("GPT Image 2 generation requires the Codex backend. Choose Codex in Settings.");
       // Each call gets its own empty folder, so no project hooks, settings or MCP config can load.
       const cwd = await mkdtemp(join(tmpdir(), "moco-ai-"));
       const bridge = req.artistTools ? await startToolBridge(req.artistTools) : undefined;
       try {
         const systemFile = join(cwd, "system.md");
-        await writeFile(systemFile, req.system);
+        await writeFile(systemFile, req.system + (req.onActivity ? ACTIVITY_GUIDANCE : ""));
 
         const images = req.images ?? [];
         const args = [
           "-p",
           // With images the prompt goes in as one stream-json user message; the reply then streams too.
-          ...(images.length > 0 ? ["--input-format", "stream-json", "--output-format", "stream-json", "--verbose"] : ["--output-format", "json"]),
+          ...(images.length > 0 ? ["--input-format", "stream-json"] : []),
+          ...(images.length > 0 || req.onActivity ? ["--output-format", "stream-json", "--verbose"] : ["--output-format", "json"]),
           "--system-prompt-file", systemFile,
           "--tools", "", // no built-in tools
           ...(bridge ? ["--allowedTools", "mcp__moco_artist__*"] : ["--disallowedTools", "mcp__*"]),
@@ -221,7 +231,7 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
 
         // Prompt goes in via stdin, never through a shell string.
         const stdin = images.length > 0 ? await imageMessage(req.prompt, images) : req.prompt;
-        const run = await runProcess(bin, args, stdin, req.timeoutMs, req.signal, cwd);
+        const run = await runProcess(bin, [...options.binArgs ?? [], ...args], stdin, req.timeoutMs, req.signal, cwd, req.onActivity);
         return parseClaudeResult(run, req);
       } finally {
         await bridge?.close();
@@ -229,6 +239,32 @@ export function claudeCli(options: ClaudeCliOptions = {}): AiBackend {
       }
     },
   };
+}
+
+// Read only artifacts in this invocation's native image tool directory. Never trust
+// a model-written filename or import arbitrary files from its final response.
+async function readGeneratedImages(sessionId: string | undefined, cwd: string) {
+  if (!sessionId || !/^[a-zA-Z0-9_-]+$/.test(sessionId)) throw new BackendError("Image generation returned no valid session ID.");
+  const images: { data: Buffer; mimeType: "image/png" }[] = [];
+  for (const base of [process.env.CODEX_HOME ?? join(homedir(), ".codex"), cwd]) {
+    const root = join(base, "generated_images", sessionId);
+    const entries = await readdir(root, { withFileTypes: true }).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") return [];
+      throw error;
+    });
+    for (const entry of entries) {
+      if (!entry.isFile() || !entry.name.endsWith(".png")) continue;
+      const file = join(root, entry.name);
+      if (await realpath(file) !== file || await realpath(root) !== root) throw new BackendError("Generated image paths must not contain links.");
+      if ((await stat(file)).size > 32_000_000) throw new BackendError("Generated image exceeds 32 MB.");
+      const data = await readFile(file);
+      if (data.length < 24 || !data.subarray(0, 8).equals(Buffer.from([137,80,78,71,13,10,26,10]))) throw new BackendError("Image generation did not produce a PNG.");
+      images.push({ data, mimeType: "image/png" });
+    }
+    if (images.length) break;
+  }
+  if (images.length !== 1) throw new BackendError(`Expected one generated image, found ${images.length}. Check Codex image-generation access and retry; no substitute artwork was used.`);
+  return images;
 }
 
 const MEDIA_TYPES: Record<string, string> = { ".png": "image/png", ".jpg": "image/jpeg", ".jpeg": "image/jpeg", ".webp": "image/webp", ".gif": "image/gif" };
@@ -330,6 +366,7 @@ function runProcess(
   timeoutMs: number,
   signal?: AbortSignal,
   cwd?: string,
+  onActivity?: (message: string) => void,
 ): Promise<ProcessResult> {
   return new Promise((resolve, reject) => {
     if (signal?.aborted) { reject(new AiError("cancelled")); return; }
@@ -349,7 +386,9 @@ function runProcess(
     }, timeoutMs);
     signal?.addEventListener("abort", stop, { once: true });
 
-    child.stdout.on("data", (chunk) => (stdout += chunk));
+    const activity = onActivity ? activityReader(onActivity) : undefined;
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", (chunk: string) => { stdout += chunk; activity?.write(chunk); });
     child.stderr.on("data", (chunk) => (stderr += chunk));
     child.on("error", (err) => {
       clearTimeout(timer);
@@ -357,6 +396,7 @@ function runProcess(
       reject(new BackendError(`could not start ${bin}: ${err.message}`));
     });
     child.on("close", (code) => {
+      activity?.end();
       clearTimeout(timer);
       signal?.removeEventListener("abort", stop);
       if (signal?.aborted) reject(new AiError("cancelled"));

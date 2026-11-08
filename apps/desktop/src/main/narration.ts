@@ -17,6 +17,7 @@ export function narrationAudio(voice: Settings["voice"], runtime: VoiceRuntime) 
     const modelId = modelForLanguage(args[2]);
     if (!await modelReady(runtime.modelsDir, modelId)) throw new Error("Download this language's voice model in Settings → Voice & narration first.");
     return chatterboxAudio({ rate: voice.rate, reference: voice.reference || undefined, voices,
+      device: voice.device ?? "auto",
       python: runtime.python, worker: join(runtime.workerDir, "narrate.py"), modelDir: join(runtime.modelsDir, modelId),
       expressiveness: voice.expressiveness ?? 0.65 }).tts(...args);
   } };

@@ -11,6 +11,7 @@ import { files } from "../pipeline/stages.ts";
 import { checkIds, planWithAi, previousSection } from "./common.ts";
 import { readAdditions, showWithAdditions } from "../canon/merge.ts";
 import { provenLessons, type NotebookEntry } from "../learn/playbook.ts";
+import { imageGenerationCapability } from "../artist/permissions.ts";
 
 export async function runShow(ctx: StageContext, plan: SeriesPlan, feedback?: string): Promise<ShowBible> {
   const limits = ctx.series.production && ctx.series.production.targetSeconds === undefined
@@ -22,7 +23,8 @@ export async function runShow(ctx: StageContext, plan: SeriesPlan, feedback?: st
     promptName: "show",
     schema: ShowBible,
     prompt: joinSections([
-      ctx.series.production ? `Extract the brief's concrete nonnegotiable requirements into requirements=[{id,text,support,reason}]. Available: custom Canvas vector art, file editing, reusable character code, embedded provided raster assets, text on physical surfaces, IK helpers and measured-word cues. Lilita One and Montserrat are bundled offline and loaded before rendering when requested; do not substitute a system font for either. Moco captures temporal PNG previews, creates aspect-correct episode contact sheets, independently reviews and repairs visible actions, and exports H.264 through its existing renderer at the configured dimensions/fps. The configured narration backend is ${ctx.config.voice.backend}; never invent a different backend. Exact pitch/timbre matching, in-page GPU WebCodecs, a specific motion-blur subframe count, stock music/SFX acquisition and automatic soundtrack mixing are not exposed capabilities. Mark those partial honestly rather than claiming they ran. No paid image provider, external font downloader or music search is exposed here. Do not drop requirements to get a valid plan.` : "",
+      ctx.series.production ? `Extract the brief's concrete nonnegotiable requirements into requirements=[{id,text,support,reason}]. Available: custom Canvas vector art, file editing, reusable character code, embedded provided raster assets, text on physical surfaces, IK helpers and measured-word cues. Lilita One and Montserrat are bundled offline and loaded before rendering when requested; do not substitute a system font for either. Moco captures temporal PNG previews, creates aspect-correct episode contact sheets, independently reviews and repairs visible actions, and exports H.264 through its existing renderer at the configured dimensions/fps. The configured narration backend is ${ctx.config.voice.backend}; never invent a different backend. Exact pitch/timbre matching, in-page GPU WebCodecs, a specific motion-blur subframe count, stock music/SFX acquisition and automatic soundtrack mixing are not exposed capabilities. Mark those partial honestly rather than claiming they ran. Requested GPT Image 2 generation is available only when the supplied image capability says enabled; use the Codex login and animate its saved PNG assets in Canvas. Other image providers, external font downloaders and music search are not exposed here. Do not drop requirements to get a valid plan.` : "",
+      jsonSection("Image generation available to this project", imageGenerationCapability(ctx.series, ctx.ai)),
       jsonSection("Idea", ctx.series.idea),
       jsonSection("Series plan", plan),
       jsonSection("Engine limits", limits),

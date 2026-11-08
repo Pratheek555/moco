@@ -10,8 +10,9 @@ import { bundle } from "@remotion/bundler";
 import { makeCancelSignal, openBrowser, renderMedia, renderStill, selectComposition } from "@remotion/renderer";
 import { catalog } from "@moco/kit";
 import { KIT_ASSETS_DIR } from "@moco/kit/assets";
-import type { EpisodeSpec, SceneSpec } from "@moco/spec";
+import type { EpisodeSpec, SceneSpec, ThumbnailDesign } from "@moco/spec";
 import { blankReason, decodePng } from "./pixels.ts";
+import { serveEpisodeInput } from "./episode-input.ts";
 
 // Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
 // (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
@@ -52,7 +53,7 @@ export interface RemotionRenderPort {
   check(spec: SceneSpec, opts: { frames: number[]; outDir: string }): Promise<
     { ok: true; stills: string[] } | { ok: false; errors: { shotId: string; frame?: number; message: string; path?: string }[] }
   >;
-  thumbnail(spec: SceneSpec, opts: { frame: number; text: string; out: string }): Promise<void>;
+  thumbnail(spec: SceneSpec, opts: { frame: number; text: string; design?: ThumbnailDesign; out: string }): Promise<void>;
   renderEpisode(
     episode: EpisodeSpec,
     out: string,
@@ -144,8 +145,8 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
       }
     },
 
-    async thumbnail(spec, { frame, text, out }) {
-      const inputProps = { scene: spec, text };
+    async thumbnail(spec, { frame, text, design, out }) {
+      const inputProps = { scene: spec, text, design };
       await mkdir(dirname(out), { recursive: true });
       try {
         const [url, puppeteerInstance] = await Promise.all([getServeUrl(), getBrowser()]);
@@ -154,7 +155,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
           stillTimeoutMs,
         );
         const still = { composition, serveUrl: url, output: out, frame, inputProps, puppeteerInstance, ...shared };
-        // Full size; JPEG keeps it well under YouTube's 2 MB thumbnail limit.
+        // Full composition size, with a compact JPEG for upload.
         await withTimeout(renderStill({ ...still, imageFormat: "jpeg", jpegQuality: 90 }), stillTimeoutMs);
       } catch (err) {
         if (isInfrastructureError(err)) resetBrowser();
@@ -164,7 +165,8 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
 
     async renderEpisode(episode, out, quality, onProgress, signal) {
       await mkdir(join(out, ".."), { recursive: true });
-      const audio = await serveFile(episode.audio.voiceover);
+      const input = await serveEpisodeInput(episode);
+      let audio: Awaited<ReturnType<typeof serveFile>>;
       const { cancelSignal, cancel } = makeCancelSignal();
       signal?.addEventListener("abort", cancel, { once: true });
       // Watchdog: when Chrome dies mid-render, Remotion can retry a closed page forever. Cancel instead.
@@ -177,8 +179,9 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
         cancel();
       }, 5_000);
       try {
+        audio = await serveFile(episode.audio.voiceover);
         const url = await getServeUrl();
-        const inputProps = { episode, audioUrl: audio?.url ?? null };
+        const inputProps = { episode: input.episode, audioUrl: audio?.url ?? null };
         // No shared browser here: Remotion launches its own, so when Chrome crashes mid-render
         // (it does, at random frames, on long full-size renders) Remotion can replace it and retry the frame.
         const browser = { browserExecutable: options.browserExecutable ?? null, chromeMode: "headless-shell" as const };
@@ -211,6 +214,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
         clearInterval(watchdog);
         signal?.removeEventListener("abort", cancel);
         audio?.server.close();
+        await input.close();
       }
     },
 

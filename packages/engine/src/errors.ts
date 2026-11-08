@@ -8,7 +8,7 @@ export type EngineErrorCode =
   | "gate_mismatch" // approve() hash differs from the current artifact
   | "modified_externally" // a project file changed outside the engine
   | "validation_failed" // AI could not produce valid output within the attempt cap
-  | "cap_reached" // max AI calls for an episode in one job reached
+  | "cap_reached" // per-job episode or artist-task AI safety cap reached
   | "rate_limited" // the user's AI plan limit was hit
   | "ai_unavailable"
   | "cancelled";

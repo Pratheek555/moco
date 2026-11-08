@@ -2,7 +2,7 @@
 // combined with the series' publish defaults into the kit the user pastes into YouTube Studio,
 // plus a thumbnail: a frame of the shot the AI picked, with its headline on top.
 import { join } from "node:path";
-import { AiPublishCopy, checkYoutube, PublishDefaults, THUMBNAIL_TEXT_MAX, type PublishKit, type PublishThumbnail, type Shot } from "@moco/spec";
+import { AiPublishCopy, checkYoutube, PublishDefaults, THUMBNAIL_TEXT_MAX, type PublishKit, type PublishThumbnail, type Shot, type ThumbnailChoice } from "@moco/spec";
 import { EngineError } from "../errors.ts";
 import { feedbackSection, joinSections, jsonSection, promptRef } from "../generator/prompts.ts";
 import type { Issue } from "../loop/feedback.ts";
@@ -100,18 +100,19 @@ export function checkCopy(copy: AiPublishCopy, defaults: PublishDefaults, shots:
   return issues;
 }
 
-// Render a shot's middle frame with a headline to the episode's thumbnail.jpg. Also used when the user picks another shot.
+// Render the chosen frame (the middle by default) with its design to the episode's thumbnail.jpg.
 export async function renderThumbnail(
   ctx: Pick<StageContext, "dir" | "store" | "render" | "renderSlots">,
   episodeId: string,
-  choice: { shotId: string; text: string; frame?: number },
+  choice: ThumbnailChoice,
 ): Promise<PublishThumbnail> {
   const spec = (await ctx.store.read(files.shotSpec(episodeId, choice.shotId), "SceneSpec")).data;
   const frame = Math.min(Math.max(0, choice.frame ?? Math.floor((spec.durationFrames - 1) / 2)), spec.durationFrames - 1);
-  const text = choice.text.trim().slice(0, THUMBNAIL_TEXT_MAX);
+  const text = [...choice.text.trim()].slice(0, THUMBNAIL_TEXT_MAX).join("");
+  const design = choice.design;
   const file = files.thumbnail(episodeId);
-  await ctx.renderSlots.run(() => ctx.render.thumbnail(spec, { frame, text, out: join(ctx.dir, file) }));
-  return { shotId: choice.shotId, frame, text, file };
+  await ctx.renderSlots.run(() => ctx.render.thumbnail(spec, { frame, text, ...(design && { design }), out: join(ctx.dir, file) }));
+  return { shotId: choice.shotId, frame, text, file, ...(design && { design }) };
 }
 
 // When the AI didn't pick one: the first shot with the most cast in it, titled with the episode.

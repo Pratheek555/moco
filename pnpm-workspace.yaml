@@ -11,3 +11,4 @@ allowBuilds:
 
 minimumReleaseAgeExclude:
   - lucide-react@1.64.0
+  - asciify-engine@4.32.9

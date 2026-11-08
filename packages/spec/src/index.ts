@@ -3,6 +3,8 @@
 // Kit-specific rules (valid action names, etc.) are NOT here: they live in the
 // engine's semantic validator, fed by the kit catalog, so new packs need no spec release.
 import * as z from "zod";
+import { ThumbnailDesign, ThumbnailHeadline } from "./thumbnail.ts";
+export * from "./thumbnail.ts";
 
 // Bump on any schema change; breaking changes also need a migration (see migrations below).
 //   0.2.0: SceneActor.idle, VoiceoverTrack.visemes, SceneSpec.visemes / timeOfDay / atmosphere / grade / finish,
@@ -19,7 +21,8 @@ import * as z from "zod";
 //   0.11.0: Critique (per episode), Playbook (per series) and CanonAddition (per episode): new artifact kinds only.
 //   0.12.0: optional authored canvas scenes and per-scene format; export permits variable sizes/rates.
 //   0.13.0: artist project settings, explicit voice-track fps, requirement availability and review evidence.
-export const SPEC_VERSION = "0.13.0";
+//   0.14.0: optional thumbnail design; existing kits parse without changes.
+export const SPEC_VERSION = "0.14.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -471,6 +474,7 @@ export const ArtistProduction = z.object({
   format: VideoFormat,
   targetSeconds: z.number().positive().optional(),
   localOnly: z.boolean().optional(),
+  imageGeneration: z.literal("gpt-image-2").optional(),
 });
 export type ArtistProduction = z.infer<typeof ArtistProduction>;
 
@@ -635,15 +639,13 @@ export const YoutubeMetadata = z.object({
 });
 export type YoutubeMetadata = z.infer<typeof YoutubeMetadata>;
 
-// Headline on the thumbnail: it has to read at feed size, so a few words at most.
-export const THUMBNAIL_TEXT_MAX = 40;
-
 // A still from one shot with a headline on it, rendered by the engine next to the kit.
 export const PublishThumbnail = z.object({
   shotId: z.string().min(1),
   frame: z.number().int().nonnegative(), // within the shot
-  text: z.string().max(THUMBNAIL_TEXT_MAX), // empty = no headline
+  text: ThumbnailHeadline, // empty = no headline
   file: z.string().min(1), // the JPEG, relative to the series folder
+  design: ThumbnailDesign.optional(),
 });
 export type PublishThumbnail = z.infer<typeof PublishThumbnail>;
 
@@ -659,7 +661,7 @@ export const AiPublishCopy = z.object({
     tags: z.array(z.string()),
   }),
   // The shot that makes the best thumbnail, and a headline for it.
-  thumbnail: z.object({ shotId: z.string(), text: z.string() }).optional(),
+  thumbnail: z.object({ shotId: z.string(), text: z.string(), design: ThumbnailDesign.optional() }).optional(),
 });
 export type AiPublishCopy = z.infer<typeof AiPublishCopy>;
 

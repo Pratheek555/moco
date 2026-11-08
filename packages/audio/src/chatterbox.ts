@@ -3,8 +3,9 @@ import { spawn } from "node:child_process";
 import { createHash } from "node:crypto";
 import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
-import { join } from "node:path";
+import { basename, join } from "node:path";
 import { fileURLToPath } from "node:url";
+import { createInterface } from "node:readline";
 import type { TimedWord } from "@moco/spec";
 import type { Line } from "./index.ts";
 import { amplitudeVisemes, parseWav } from "./lipsync.ts";
@@ -14,7 +15,7 @@ export interface ChatterboxOptions {
   python?: string;
   worker?: string;
   modelDir?: string;
-  device?: "auto" | "cpu" | "cuda" | "mps";
+  device?: "auto" | "cpu" | "gpu" | "cuda" | "mps";
   reference?: string;
   voices?: Record<string, string>; // trusted, configured speaker id -> reference WAV
   // A performance reference for an emotion gives more control than exaggeration alone.
@@ -22,6 +23,8 @@ export interface ChatterboxOptions {
   expressiveness?: number;
   rate?: number;
   seed?: number;
+  // Limit a stalled model load/line, not the duration of a healthy episode.
+  stallTimeoutMs?: number;
 }
 
 export function voicePython(): string {
@@ -41,10 +44,14 @@ export function performance(line: Line, expressiveness = 0.65) {
 export function chatterboxAudio(options: ChatterboxOptions = {}) {
   return {
     async voices() { return [{ id: "default", name: "Configured narrator" }, ...Object.keys(options.voices ?? {}).map((id) => ({ id, name: id }))]; },
-    async tts(lines: Line[], _voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal) {
+    async tts(lines: Line[], _voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal, onProgress?: (completed: number, total: number) => void) {
       signal?.throwIfAborted();
       if (!lines.length || lines.some((line) => !line.text.trim())) throw new Error("Narration must contain non-empty lines");
+      if (options.stallTimeoutMs !== undefined && (!Number.isFinite(options.stallTimeoutMs) || options.stallTimeoutMs <= 0 || options.stallTimeoutMs > 2_147_483_647)) {
+        throw new Error("Narration stall timeout must be a positive number of milliseconds no greater than 2147483647");
+      }
       const work = await mkdtemp(join(tmpdir(), "moco-chatterbox-"));
+      const temporaryFiles: string[] = [];
       try {
         const cacheDir = join(outDir, ".voice-cache");
         await mkdir(cacheDir, { recursive: true });
@@ -72,19 +79,27 @@ export function chatterboxAudio(options: ChatterboxOptions = {}) {
           return { file, pcm: undefined };
         }));
         const input = join(work, "request.json");
-        const missing = request.lines.filter((_, index) => !cached[index]!.pcm);
+        const missing = request.lines.flatMap((line, index) => {
+          if (cached[index]!.pcm) return [];
+          const file = cached[index]!.file;
+          // Staging beside the cache keeps rename atomic even on another drive.
+          const temporaryFile = `${file}.${basename(work)}.tmp`;
+          temporaryFiles.push(temporaryFile);
+          return [{ ...line, file, temporaryFile }];
+        });
+        const completed = lines.length - missing.length;
+        onProgress?.(completed, lines.length);
         if (missing.length) {
           await writeFile(input, JSON.stringify({ ...request, lines: missing }));
-          await runWorker(options.python ?? voicePython(), options.worker ?? fileURLToPath(new URL("../python/narrate.py", import.meta.url)), input, signal);
+          await runWorker(options.python ?? voicePython(), options.worker ?? fileURLToPath(new URL("../python/narrate.py", import.meta.url)), input, {
+            signal, lineCount: missing.length, stallTimeoutMs: options.stallTimeoutMs ?? 30 * 60_000,
+            onProgress: (count) => onProgress?.(completed + count, lines.length),
+          });
         }
         signal?.throwIfAborted();
-        const spoken = await Promise.all(request.lines.map(async (line, index) => {
-          const entry = cached[index]!;
+        const spoken = await Promise.all(cached.map(async (entry) => {
           if (entry.pcm) return entry.pcm;
-          const bytes = await readFile(line.file);
-          const pcm = parseWav(bytes);
-          await writeFile(entry.file, bytes);
-          return pcm;
+          return parseWav(await readFile(entry.file));
         }));
         const joined = joinLines(lines, spoken);
         await mkdir(outDir, { recursive: true });
@@ -93,6 +108,7 @@ export function chatterboxAudio(options: ChatterboxOptions = {}) {
         // Word positions are estimates within each measured clip, not forced alignment.
         return { file, durationSeconds: joined.pcm.samples.length / joined.pcm.sampleRate, words: joined.words };
       } finally {
+        await Promise.all(temporaryFiles.map((file) => rm(file, { force: true })));
         await rm(work, { recursive: true, force: true });
       }
     },
@@ -101,7 +117,40 @@ export function chatterboxAudio(options: ChatterboxOptions = {}) {
   };
 }
 
-function runWorker(python: string, worker: string, input: string, signal?: AbortSignal): Promise<void> {
+let workerQueue: Promise<void> = Promise.resolve();
+
+interface WorkerOptions {
+  signal?: AbortSignal;
+  lineCount: number;
+  stallTimeoutMs: number;
+  onProgress?: (completed: number) => void;
+}
+
+async function runWorker(python: string, worker: string, input: string, options: WorkerOptions): Promise<void> {
+  // All backend instances share the queue, including previews and episode jobs.
+  const previous = workerQueue;
+  let release!: () => void;
+  workerQueue = new Promise<void>((resolve) => { release = resolve; });
+  try {
+    await previous;
+    options.signal?.throwIfAborted();
+    await startWorker(python, worker, input, options);
+  } finally { release(); }
+}
+
+export function narrationFailure(code: number | null, diagnostics: string): string {
+  if (/CUDA out of memory|CUDA error: out of memory|MPS backend out of memory/i.test(diagnostics)) {
+    return "Not enough GPU memory for narration. Close apps using the GPU or select CPU in Settings → Voice & narration, then retry. Completed lines will be reused when their voice settings match.";
+  }
+  if (/paging file is too small|os error 1455|out of memory|cannot allocate memory|DefaultCPUAllocator/i.test(diagnostics)) {
+    return "Not enough memory to load the narration model. Close memory-heavy apps or increase Windows virtual memory (paging file), then retry.";
+  }
+  const traceback = diagnostics.lastIndexOf("Traceback (most recent call last):");
+  const detail = traceback >= 0 ? diagnostics.slice(traceback).trim().split(/\r?\n/).at(-1) : diagnostics.trim();
+  return `Neural narration failed (${code}). ${detail}`;
+}
+
+function startWorker(python: string, worker: string, input: string, { signal, lineCount, stallTimeoutMs, onProgress }: WorkerOptions): Promise<void> {
   return new Promise((resolve, reject) => {
     const child = spawn(python, [worker, input], {
       windowsHide: true, env: { ...process.env, PYTHONUTF8: "1", PYTHONUNBUFFERED: "1", HF_HUB_OFFLINE: "1", TRANSFORMERS_OFFLINE: "1" }, stdio: ["ignore", "pipe", "pipe"],
@@ -109,10 +158,6 @@ function runWorker(python: string, worker: string, input: string, signal?: Abort
     let diagnostics = "";
     const collect = (chunk: Buffer) => { diagnostics = (diagnostics + String(chunk)).slice(-6000); };
     child.stdout.on("data", collect);
-    child.stdout.on("data", (chunk: Buffer) => {
-      const status = String(chunk).trim();
-      if (status) console.info(`[narration] ${status}`);
-    });
     child.stderr.on("data", collect);
     let stopping = false;
     const stop = (error: Error) => {
@@ -132,7 +177,21 @@ function runWorker(python: string, worker: string, input: string, signal?: Abort
       }
     };
     const abort = () => stop(new Error("Neural narration cancelled"));
-    const timer = setTimeout(() => stop(new Error("Neural narration timed out after 30 minutes.")), 30 * 60_000);
+    let completed = 0;
+    const timer = setTimeout(() => stop(new Error(`Neural narration made no line progress for ${stallTimeoutMs / 60_000} minutes (${completed}/${lineCount} new lines saved). Retry to resume completed lines.`)), stallTimeoutMs);
+    createInterface({ input: child.stdout }).on("line", (status: string) => {
+      if (stopping) return;
+      if (!status.startsWith("MOCO_NARRATION_PROGRESS ")) {
+        if (status) console.info(`[narration] ${status}`);
+        return;
+      }
+      let progress: { completed?: unknown };
+      try { progress = JSON.parse(status.slice("MOCO_NARRATION_PROGRESS ".length)); } catch { return; }
+      if (progress?.completed !== completed + 1 || completed >= lineCount) return;
+      completed += 1;
+      timer.refresh();
+      onProgress?.(completed);
+    });
     signal?.addEventListener("abort", abort, { once: true });
     if (signal?.aborted) abort();
     child.on("error", (error) => {
@@ -145,7 +204,10 @@ function runWorker(python: string, worker: string, input: string, signal?: Abort
       signal?.removeEventListener("abort", abort);
       if (stopping) return;
       if (code === 0) resolve();
-      else reject(new Error(`Neural narration failed (${code}). ${diagnostics.trim()}`));
+      else {
+        console.error(`[narration] Worker failed (${code}): ${diagnostics.trim()}`);
+        reject(new Error(narrationFailure(code, diagnostics)));
+      }
     });
   });
 }

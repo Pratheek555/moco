@@ -240,6 +240,18 @@ export function SettingsPage() {
               {models.some((model) => model.state === "error" && model.message?.includes("Install uv")) && <Button variant="link" className="self-start" onClick={() => void api.app.openExternal("https://docs.astral.sh/uv/getting-started/installation/")}>Get the optional voice installer</Button>}
             </FieldSet>
             {draft.voice.backend === "chatterbox" && <>
+              <Field>
+                <FieldLabel htmlFor="voice-device">Narration processing</FieldLabel>
+                <Select value={draft.voice.device ?? "auto"} onValueChange={(device) => patch("voice", { ...draft.voice, device: device as NonNullable<Settings["voice"]["device"]> })}>
+                  <SelectTrigger id="voice-device" className="w-full"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="auto">Automatic</SelectItem>
+                    <SelectItem value="cpu">CPU</SelectItem>
+                    <SelectItem value="gpu">GPU</SelectItem>
+                  </SelectContent>
+                </Select>
+                <FieldDescription>Choose the processor for voice previews and episode narration. GPU uses an NVIDIA or Apple graphics processor and can be faster, but needs enough video memory. If GPU cannot run, Moco reports an error so you can choose CPU.</FieldDescription>
+              </Field>
                 <FieldSet>
                   <FieldLegend>Character voices</FieldLegend>
                   <FieldDescription>Add named recordings for Claude to assign in new show bibles. Existing series keep their assigned voice ids; keep those recordings available.</FieldDescription>

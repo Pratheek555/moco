@@ -6,6 +6,21 @@ import sys
 from pathlib import Path
 
 
+def narration_device(requested, torch):
+    if requested == "auto":
+        # Automatic retains the conservative default. Explicit GPU bypasses it.
+        return "cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory >= 6 * 1024**3 else "cpu"
+    if requested == "gpu":
+        if torch.cuda.is_available():
+            return "cuda"
+        if torch.backends.mps.is_available():
+            return "mps"
+        raise RuntimeError("GPU narration is unavailable in the installed voice runtime. Install a GPU-enabled PyTorch runtime for your graphics card, or choose CPU in Settings > Voice & narration.")
+    if requested not in ("cpu", "cuda", "mps"):
+        raise ValueError(f"Unknown narration device: {requested}")
+    return requested
+
+
 def main():
     import numpy as np
     import soundfile as sf
@@ -17,10 +32,7 @@ def main():
 
     request = json.loads(Path(sys.argv[1]).read_text(encoding="utf-8"))
     language = request["language"]
-    device = request["device"]
-    if device == "auto":
-        # Leave headroom for rendering on small GPUs. CPU is slow but predictable.
-        device = "cuda" if torch.cuda.is_available() and torch.cuda.get_device_properties(0).total_memory >= 6 * 1024**3 else "cpu"
+    device = narration_device(request["device"], torch)
     torch.set_num_threads(min(8, os.cpu_count() or 4))
     if language == "en":
         from chatterbox.tts import ChatterboxTTS
@@ -75,7 +87,12 @@ def main():
                 gain = min(10 ** ((-16 - loudness) / 20), 10 ** (12 / 20))
                 peak = max(float(np.max(np.abs(samples))), 1e-6)
                 samples = samples * min(gain, 0.89 / peak)
-        sf.write(line["file"], samples, model.sr, subtype="PCM_16")
+        # Commit every completed take before starting the next line. The staging
+        # file is disposable; the cache survives cancellation and worker failure.
+        temporary = line["temporaryFile"]
+        sf.write(temporary, samples, model.sr, format="WAV", subtype="PCM_16")
+        os.replace(temporary, line["file"])
+        print("MOCO_NARRATION_PROGRESS " + json.dumps({"completed": index + 1}), flush=True)
 
 
 if __name__ == "__main__":

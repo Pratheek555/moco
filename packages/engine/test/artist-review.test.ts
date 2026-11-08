@@ -12,8 +12,18 @@ import { runRender } from "../src/pipeline/render.ts";
 import { FakeRenderPort } from "../src/testing/fakes.ts";
 import { Semaphore } from "../src/jobs/semaphore.ts";
 import type { StageContext } from "../src/pipeline/context.ts";
+import { EngineError } from "../src/errors.ts";
 
 vi.mock("../src/generator/generate.ts", () => ({generateScene:vi.fn()}));
+
+it.each(["cap_reached", "rate_limited"] as const)("persists review evidence before surfacing %s", async code => {
+  const {ctx,shots,shared,generate}=await fixture();
+  generate.mockRejectedValue(new EngineError(code, "run stopped"));
+  await expect(reviewArtistEpisode(ctx,"ep-01",shots,shared)).rejects.toMatchObject({code});
+  const quality=(await ctx.store.read(files.critique("ep-01"),"Critique")).data.quality!;
+  expect(quality.status).toBe("needs_attention");
+  expect(quality.unresolved).toContain("Review/repair interrupted: run stopped");
+});
 const verdict = (id:string, pass=false):ArtistVerdict => ({id,score:pass?4:3,overall:"Evidence",checks:[{id:"contact",description:"Hand contacts elbow",status:pass?"pass":"fail",severity:"major",evidence:"Sample sequence",fix:"Cup elbow"}]});
 
 it("preserves portrait evidence proportions and keeps review sheets within canvas limits",()=>{
@@ -40,9 +50,12 @@ async function fixture() {
 it("batches prompt-template reviews without dropping targets or action checks",async()=>{
   const {ctx,shots,shared,generate}=await fixture();
   ctx.series.template="batch-style";
+  const tasks=vi.fn(()=>ctx.ai);
+  ctx.ai.forTask=tasks;
   generate.mockImplementation(async request=>({json:{verdicts:JSON.parse(request.prompt).targets.map((target:{shot:Shot})=>verdict(target.shot.id,true))},backend:"fake"}));
   await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:0});
   expect(generate).toHaveBeenCalledTimes(2);
+  expect(tasks.mock.calls).toEqual([["visual review s01, s02, s03"],["visual review s04"]]);
   const quality=(await ctx.store.read(files.critique("ep-01"),"Critique")).data.quality!;
   expect(quality.status).toBe("passed");
   expect(Object.keys(quality.sceneHashes)).toHaveLength(4);
@@ -95,6 +108,19 @@ it("allows a passing cut but blocks final export after a scene or narration chan
   await expect(runRender(ctx,"ep-01","final")).rejects.toThrow(/stale/);
 });
 
+it("changes the preview approval hash when same-duration artwork or narration changes",async()=>{
+  const {ctx,shared}=await fixture();
+  const original=await runRender(ctx,"ep-01","preview");
+  const reportHash=ctx.store.hashOf(files.previewReport("ep-01"));
+  const file=files.shotSpec("ep-01","s01"),spec=(await ctx.store.read(file,"SceneSpec")).data;
+  await ctx.store.save(file,"SceneSpec",{...spec,canvas:{...spec.canvas,source:"// different artwork, same duration"}},{producedBy:"engine"});
+  const changed=await runRender(ctx,"ep-01","preview");
+  expect(changed).not.toBe(original);
+  expect(ctx.store.hashOf(files.previewReport("ep-01"))).toBe(reportHash);
+  await ctx.store.save(files.voiceover("ep-01"),"VoiceoverTrack",{...shared.voiceover,file:"other-narration.wav"},{producedBy:"engine"});
+  expect(await runRender(ctx,"ep-01","preview")).not.toBe(changed);
+});
+
 it("bounds unsuccessful repairs, asks for a different approach, and blocks export on reviewer failure",async()=>{
   const {ctx,shots,shared,generate}=await fixture();
   vi.mocked(generateScene).mockClear().mockImplementation(async(_ctx,inputs)=>({shotId:inputs.shot.id,fallback:false,attempts:1,contentHash:"unchanged"}));
@@ -104,7 +130,7 @@ it("bounds unsuccessful repairs, asks for a different approach, and blocks expor
   const critique=(await ctx.store.read(files.critique("ep-01"),"Critique")).data;
   expect(critique.quality?.unresolved).toHaveLength(4);
   generate.mockImplementation(async()=>{throw Error("review offline")});
-  await reviewArtistEpisode(ctx,"ep-01",shots,shared);
+  await expect(reviewArtistEpisode(ctx,"ep-01",shots,shared)).rejects.toThrow(/review offline/);
   const failed=(await ctx.store.read(files.critique("ep-01"),"Critique")).data;
   expect(failed.quality?.status).toBe("needs_attention");
   expect(failed.quality?.unresolved.join(" ")).toContain("review offline");
@@ -162,8 +188,53 @@ it.each(["author","review"])("restores unaccepted scene and workspace after %s i
     if(p.previous)throw Error("review interrupted");
     return {json:verdict(p.target.id),backend:"fake"};
   });
-  await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:1});
+  await expect(reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:1})).rejects.toThrow(/interrupted/);
   expect((await ctx.store.read(files.shotSpec("ep-01","s01"),"SceneSpec")).data.canvas?.source).toBe("// original");
   expect(await readFile(join(workspace,"draw.js"),"utf8")).toBe("original file");
   await expect(runRender(ctx,"ep-01","final")).rejects.toThrow(/accepted artist quality/);
+});
+
+it("resumes completed verdicts after a disconnect and invalidates them when the cut changes",async()=>{
+  const {ctx,shots,shared,generate}=await fixture();
+  generate.mockImplementation(async request=>{
+    const id=JSON.parse(request.prompt).target.id;
+    if(id==="s03")throw Error("connection lost");
+    return {json:verdict(id,true),backend:"fake"};
+  });
+  await expect(reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:0})).rejects.toThrow(/connection lost/);
+  expect((await ctx.store.read(files.critique("ep-01"),"Critique")).data.shots.filter(s=>s.score>=4)).toHaveLength(2);
+  generate.mockClear().mockImplementation(async request=>({json:verdict(JSON.parse(request.prompt).target.id,true),backend:"fake"}));
+  await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:0});
+  expect(generate.mock.calls.map(([r])=>JSON.parse(r.prompt).target.id)).toEqual(["s03","s04"]);
+  generate.mockClear();
+  await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:0});
+  expect(generate).not.toHaveBeenCalled();
+  const file=files.shotSpec("ep-01","s01"),spec=(await ctx.store.read(file,"SceneSpec")).data;
+  await ctx.store.save(file,"SceneSpec",{...spec,canvas:{...spec.canvas,source:"// changed cut"}},{producedBy:"engine"});
+  await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:0});
+  expect(generate).toHaveBeenCalledTimes(4);
+});
+
+it("reuses unchanged motion evidence and reviews repairs with both neighbouring cuts",async()=>{
+  const {ctx,shots,shared,generate,render}=await fixture();
+  const events=vi.fn(async()=>{});ctx.bus.emit=events;
+  vi.mocked(generateScene).mockClear().mockImplementation(async(ctx,inputs)=>{
+    const file=files.shotSpec("ep-01",inputs.shot.id),spec=(await ctx.store.read(file,"SceneSpec")).data;
+    await ctx.store.save(file,"SceneSpec",{...spec,canvas:{...spec.canvas,source:"// repair"}},{producedBy:"ai"});
+    return {shotId:inputs.shot.id,fallback:false,attempts:1,contentHash:ctx.store.hashOf(file)!};
+  });
+  generate.mockImplementation(async request=>{
+    const p=JSON.parse(request.prompt);
+    return {json:verdict(p.target.id,p.target.id!=="s02"||Boolean(p.previous)),backend:"fake"};
+  });
+  await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:1});
+  expect(generate.mock.calls.map(([r])=>JSON.parse(r.prompt).target.id)).toEqual(["s01","s02","s03","s04","s01","s02","s03"]);
+  // Four initial scenes + overview, then only one changed scene + fresh overview.
+  expect(render.checks).toBe(7);
+  expect(events.mock.calls.some(call=>JSON.stringify(call).includes("Visual review 4/4"))).toBe(true);
+  expect((await ctx.store.read(files.critique("ep-01"),"Critique")).data.quality?.status).toBe("passed");
+  generate.mockClear();
+  await reviewArtistEpisode(ctx,"ep-01",shots,shared,{maxRounds:0});
+  expect(generate).not.toHaveBeenCalled();
+  expect((await ctx.store.read(files.critique("ep-01"),"Critique")).data.shots[1]).toMatchObject({score:3,repaired:{score:4,kept:true}});
 });

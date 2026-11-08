@@ -1,6 +1,7 @@
 // Templates: house styles the user can start a series from. A template is a ready-made skill for the AI: guidance
 // for each planning stage (series.md → "# series", "# script", …) plus a few rules the engine enforces in code.
 // This file is plain data so the desktop UI can list templates without loading the engine.
+import { KURZGESAT_STYLE_PROMPT } from "./kurzgesat-style.ts";
 
 // The planning stages a template can guide; each is a "# <stage>" section of the template's .md file.
 export const TEMPLATE_STAGES = ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "artist", "publish"] as const;
@@ -28,10 +29,29 @@ export interface TemplateInfo {
   // Prompt templates select the canvas path; legacy templates retain kit/world behavior.
   creativePrompt?: string;
   referenceImages?: string[]; // relative, imported style frames; shown to image-capable backends
-  production?: { mode: "artist"; format: { width: number; height: number; fps: number }; targetSeconds?: number; localOnly?: boolean };
+  production?: import("@moco/spec").ArtistProduction;
 }
 
 export const TEMPLATES: TemplateInfo[] = [
+  {
+    id: "kurzgesat-style",
+    name: "kurzgesat style",
+    tagline: "Original illustrated science stories, expressive characters and cinematic 2D motion.",
+    description: "Fact-checked explainers with layered geometric worlds, purposeful character animation and a coherent color story. Review the full script and storyboard before generating assets. Supports planning a long-form master with three component-sharing shorts.",
+    tags: ["Science", "2D", "Explainer", "Long form"],
+    story: ["Surprising hook, visible mechanism, defensible twist and visual callback", "Source-linked facts and a complete timestamped storyboard before production", "Optional master film plus three standalone shorts with shared assets"],
+    look: ["Original geometric characters with consistent articulated rigs", "Layered flat-vector environments; navy, cyan and warm reveal colors", "Motivated camera movement, parallax and varied transitions", "No copied mascots, artwork or narrator identity"],
+    palette: { sky: ["#09134B", "#180A59"], ground: "#243CDB", accents: ["#22D7DA", "#FF851D", "#ED4BA4", "#FFD244"] },
+    world: "auto",
+    defaults: { episodes: 1 },
+    production: { mode: "artist", format: { width: 1920, height: 1080, fps: 60 } },
+    creativePrompt: KURZGESAT_STYLE_PROMPT,
+    ideas: [
+      { label: "Why the deep ocean isn't empty", idea: "Why the deep ocean isn't empty: follow marine snow, bioluminescence and chemosynthetic food webs, clearly distinguishing surface-powered food from chemical energy at vents." },
+      { label: "A forest makes rain", idea: "How forest evapotranspiration contributes to atmospheric moisture and rainfall, without claiming trees create water or control every storm." },
+      { label: "GPS needs Einstein", idea: "Why satellite navigation accounts for relativistic clock effects: turn a timing mismatch into a visible positioning error." },
+    ],
+  },
   {
     id: "cartoon-3d-short",
     name: "Cartoon 3D story short",

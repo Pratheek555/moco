@@ -12,7 +12,7 @@ import { runVoiceover } from "../planner/voiceover.ts";
 import type { StageContext } from "./context.ts";
 import { canRun, markDependantsStale, nextStage } from "./machine.ts";
 import { runRender } from "./render.ts";
-import { GATED, parseStageKey } from "./stages.ts";
+import { files, GATED, parseStageKey, stageKey } from "./stages.ts";
 
 // A stage either produced output (with its hash) or sent its input back to be redone.
 type StageOutput = { kind: "done"; hash: string } | { kind: "sent_back" };
@@ -21,11 +21,25 @@ type StageOutput = { kind: "done"; hash: string } | { kind: "sent_back" };
 export async function runStages(ctx: StageContext, firstKey?: string, options: { once?: boolean } = {}): Promise<string[]> {
   const ran: string[] = [];
   let key: string | undefined = firstKey ?? runnableNext(ctx);
+  // Older jobs completed scenes even when review was interrupted. Retrying
+  // export must resume that work, rather than reject the same report again.
+  if (key && parseStageKey(key).stage === "final") {
+    const ep = parseStageKey(key).episodeId!;
+    if (ctx.store.has(files.critique(ep))) {
+      const quality = (await ctx.store.read(files.critique(ep), "Critique")).data.quality;
+      if (quality?.status === "needs_attention") key = stageKey("scenes", ep);
+    }
+  }
 
   while (key) {
     if (ctx.signal.aborted) throw new EngineError("cancelled", "cancelled");
     const { status } = await runOne(ctx, key);
     ran.push(key);
+    // Finish delivery for this episode, then require a fresh user action to start another.
+    if (status === "done" && parseStageKey(key).stage === "publish") {
+      await ctx.bus.emit(ctx.seriesId, "episode.completed", { episodeId: parseStageKey(key).episodeId });
+      break;
+    }
     if (status !== "done" || options.once) break; // waiting for the user (gate), failed, or asked for one stage
     key = runnableNext(ctx);
   }

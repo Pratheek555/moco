@@ -6,7 +6,7 @@ import { readdir } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend } from "@moco/ai";
 import { catalog as defaultCatalog, type Catalog } from "@moco/kit";
-import { ArtistProduction, checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, THUMBNAIL_TEXT_MAX, type World } from "@moco/spec";
+import { ArtistProduction, checkYoutube, PublishDefaults, PublishKit, SPEC_VERSION, ThumbnailChoice, type World } from "@moco/spec";
 import { defaultConfig, type EngineConfig } from "./config.ts";
 import { EngineError } from "./errors.ts";
 import { EventBus, type EngineEvent, type EngineEventType, type Unsubscribe } from "./events/bus.ts";
@@ -100,7 +100,7 @@ export interface Engine {
   setPublishDefaults(seriesId: SeriesId, defaults: Partial<PublishDefaults>): Promise<void>;
   rewritePublish(ref: EpisodeRef, feedback?: string): Promise<JobId>;
   // Re-render the episode's thumbnail from another shot or with another headline (empty text = none).
-  setThumbnail(ref: EpisodeRef, choice: { shotId: string; text: string }): Promise<void>;
+  setThumbnail(ref: EpisodeRef, choice: ThumbnailChoice): Promise<void>;
 }
 
 export interface CreateEngineOptions {
@@ -431,6 +431,8 @@ export function createEngine(options: CreateEngineOptions): Engine {
           }
         }
         await reviewArtistEpisode(ctx,ref.episodeId,list.shots,await sceneSharedInputs(ctx,ref.episodeId));
+        const quality=(await ctx.store.read(files.critique(ref.episodeId),"Critique")).data.quality;
+        if(quality?.status!=="passed")throw new EngineError("validation_failed",`Visual review needs attention: ${quality?.unresolved.join("; ")??"No complete review"}`);
         ctx.ledger.setStage(stageKey("scenes",ref.episodeId),{feedback:undefined});
         await outputChanged(await load(ref.seriesId),stageKey("scenes",ref.episodeId),await scenesHash(ctx,ref.episodeId));
       });
@@ -520,6 +522,9 @@ export function createEngine(options: CreateEngineOptions): Engine {
     },
 
     async setThumbnail(ref, choice) {
+      const parsed = ThumbnailChoice.safeParse(choice);
+      if (!parsed.success) throw new EngineError("validation_failed", parsed.error.issues.map(issue => issue.message).join("; "));
+      choice = parsed.data;
       assertSafeId(ref.episodeId, "episode id");
       assertSafeId(choice.shotId, "shot id");
       const series = await load(ref.seriesId);
@@ -527,7 +532,6 @@ export function createEngine(options: CreateEngineOptions): Engine {
       const key = stageKey("publish", ref.episodeId);
       if (!series.store.has(files.publish(ref.episodeId))) throw new EngineError("stage_blocked", `${key} hasn't run yet`);
       if (!series.store.has(files.shotSpec(ref.episodeId, choice.shotId))) throw new EngineError("not_found", `shot ${choice.shotId} has no scene yet`);
-      if ([...choice.text.trim()].length > THUMBNAIL_TEXT_MAX) throw new EngineError("validation_failed", `the headline must be at most ${THUMBNAIL_TEXT_MAX} characters`);
       const kit = (await series.store.read(files.publish(ref.episodeId), "PublishKit")).data;
       const thumbnail = await renderThumbnail(contextFor(series, new AbortController().signal), ref.episodeId, choice);
       const saved = await series.store.save(files.publish(ref.episodeId), "PublishKit", { ...kit, thumbnail }, { producedBy: "human" });

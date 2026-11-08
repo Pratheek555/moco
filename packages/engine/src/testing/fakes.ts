@@ -3,7 +3,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend, AiRequest, AiResult } from "@moco/ai";
-import { FPS, type SceneSpec, type TimedWord, type VisemeTrack } from "@moco/spec";
+import { FPS, type SceneSpec, type ThumbnailDesign, type TimedWord, type VisemeTrack } from "@moco/spec";
 import type { AudioPort, RenderError, RenderPort } from "../ports.ts";
 
 // The task a request is for, read from the prompt template's header ("<!-- prompt: scene v1 -->").
@@ -39,7 +39,7 @@ export class FakeRenderPort implements RenderPort {
   checks = 0;
   renders = 0;
   releases = 0;
-  thumbnails: { shotId: string; frame: number; text: string }[] = [];
+  thumbnails: { shotId: string; frame: number; text: string; design?: ThumbnailDesign }[] = [];
 
   async release() {
     this.releases += 1;
@@ -61,8 +61,8 @@ export class FakeRenderPort implements RenderPort {
     return { ok: true as const, stills };
   }
 
-  async thumbnail(spec: SceneSpec, opts: { frame: number; text: string; out: string }) {
-    this.thumbnails.push({ shotId: spec.shotId, frame: opts.frame, text: opts.text });
+  async thumbnail(spec: SceneSpec, opts: { frame: number; text: string; design?: ThumbnailDesign; out: string }) {
+    this.thumbnails.push({ shotId: spec.shotId, frame: opts.frame, text: opts.text, ...(opts.design && { design: opts.design }) });
     const errors = this.failFor(spec);
     if (errors.length > 0) throw new Error(errors[0]!.message);
     await mkdir(join(opts.out, ".."), { recursive: true });

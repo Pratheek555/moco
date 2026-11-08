@@ -29,9 +29,9 @@ const Toaster = ({ ...props }: ToasterProps) => {
           // Icon sits on the title's first line; the action stays centred.
           toast: "items-start! gap-3! p-4! shadow-lg! select-text",
           icon: "mt-0.5!",
-          content: "gap-1!",
-          title: "text-sm! font-medium! leading-snug!",
-          description: "text-sm! leading-normal! text-muted-foreground!",
+          content: "gap-1! min-w-0!",
+          title: "line-clamp-2 break-words text-sm! font-medium! leading-snug!",
+          description: "line-clamp-3 break-words text-sm! leading-normal! text-muted-foreground!",
           actionButton: "self-center! h-7! px-3! rounded-md! text-xs! font-medium!",
         },
       }}

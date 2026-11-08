@@ -14,7 +14,7 @@ export async function runRender(ctx: RenderContext, episodeId: string, quality: 
     const critique=ctx.store.has(files.critique(episodeId)) ? (await ctx.store.read(files.critique(episodeId),"Critique")).data : undefined;
     if(ctx.series?.production || critique?.quality){
       const gate=critique?.quality,shots=(await ctx.store.read(files.shotList(episodeId),"ShotList")).data.shots;
-      if(!gate || gate.status!=="passed")throw Error(`Final export needs an accepted artist quality review: ${gate?.unresolved.join("; ") ?? "no current review"}. Review the preview and quality report.`);
+      if(!gate || gate.status!=="passed")throw Error("Final export needs an accepted artist quality review. Try again to resume review and repairs. See the quality report for shot details.");
       if(gate.voiceoverHash!==ctx.store.hashOf(files.voiceover(episodeId)) || gate.shotListHash!==ctx.store.hashOf(files.shotList(episodeId)) || shots.length!==Object.keys(gate.sceneHashes).length || shots.some(s=>gate.sceneHashes[s.id]!==ctx.store.hashOf(files.shotSpec(episodeId,s.id))))throw Error("Artist quality review is stale; re-review the changed scenes, shot list or narration before final export");
     }
   }
@@ -30,8 +30,11 @@ export async function runRender(ctx: RenderContext, episodeId: string, quality: 
   };
   const file = quality === "preview" ? files.previewReport(episodeId) : files.renderReport(episodeId);
   const inputs = episode.scenes.map((scene) => ctx.store.inputRef(files.shotSpec(episodeId, scene.shotId)));
+  inputs.push(ctx.store.inputRef(files.voiceover(episodeId)));
   const saved = await ctx.store.save(file, "RenderReport", report, { producedBy: "engine", inputs });
-  return saved.meta.contentHash;
+  // The report's path, duration and versions can stay identical after a repair.
+  // Bind preview approval to the actual scenes and narration the user receives.
+  return hashData({report:saved.meta.contentHash,inputs:inputs.map(({kind,contentHash})=>({kind,contentHash}))});
 }
 
 // Same scenes + same voiceover + same kit/renderer + same quality → same video, so reuse it.

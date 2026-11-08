@@ -8,6 +8,7 @@ import type { StageContext } from "../pipeline/context.ts";
 import { files, stageKey } from "../pipeline/stages.ts";
 import { readShow } from "./show.ts";
 import { readBible } from "../canon/merge.ts";
+import { EngineError } from "../errors.ts";
 
 const DURATION_TOLERANCE = 0.1; // ±10% of the target
 
@@ -16,6 +17,9 @@ export type VoiceoverOutcome = { kind: "done"; hash: string } | { kind: "sent_ba
 export async function runVoiceover(ctx: StageContext, episodeId: string): Promise<VoiceoverOutcome> {
   const script = await ctx.store.read(files.script(episodeId), "EpisodeScript");
   const bible = { data: await readBible(ctx) }; // with cast later episodes added
+  if (bible.data.narrator.backend !== ctx.config.voice.backend) {
+    throw new EngineError("stage_blocked", `The approved narrator requires ${bible.data.narrator.backend}, but this runner is configured for ${ctx.config.voice.backend}. Configure the selected narration backend before generating speech; no substitute voice was used.`);
+  }
   const show = await readShow(ctx);
   const available = await ctx.audio.voices?.(bible.data.narrator.language);
   const lines = script.data.lines.map((line) => {
@@ -25,12 +29,21 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
     return { id: line.id, text: line.text, delivery: line.delivery, voiceId, speaker: line.speaker };
   });
   const { narrator } = bible.data;
+  const activity = (message: string) => ctx.bus.emit(ctx.seriesId, "ai.activity", { key: stageKey("voiceover", episodeId), episodeId, phase: "working", message });
 
+  await activity("Preparing the narration engine and script for speech.");
   await ctx.render.release?.(); // see RenderPort.release
   const speak = ctx.series.template && ctx.series.production && ctx.audio.ttsMeasured ? ctx.audio.ttsMeasured : ctx.audio.tts;
-  const spoken = await ctx.ttsSlots.run(() =>
-    speak.call(ctx.audio, lines, narrator, narrator.language, join(ctx.dir, files.audioDir(episodeId)), ctx.signal),
-  );
+  const spoken = await ctx.ttsSlots.run(async () => {
+    await activity(`Converting ${lines.length} script ${lines.length === 1 ? "line" : "lines"} to voice${narrator.backend === "chatterbox" ? " with the neural voice model" : ""}.`);
+    let updates = Promise.resolve();
+    try {
+      return await speak.call(ctx.audio, lines, narrator, narrator.language, join(ctx.dir, files.audioDir(episodeId)), ctx.signal, (completed, total) => {
+        updates = updates.then(() => activity(`Narration: ${completed} of ${total} lines saved. Completed lines will be reused on retry.`)).catch(() => {});
+      });
+    } finally { await updates; }
+  });
+  await activity(spoken.words ? "Speech generated. Checking word timings and narration length." : "Speech generated. Aligning words to the recorded voice.");
   const words: TimedWord[] = spoken.words ?? (await ctx.audio.align(spoken.file, lines, narrator.language));
 
   const target = script.data.targetSeconds;
@@ -41,6 +54,7 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
     if (sentBack) return { kind: "sent_back" };
   }
 
+  await activity("Building mouth movements and matching speakers to the voice track.");
   const sourceVisemes = await ctx.audio.visemes(spoken.file, words);
   const fps = ctx.series.production?.format.fps ?? 30;
   const visemes = fps === 30 ? sourceVisemes : sourceVisemes.map((key) => ({ ...key, frame: Math.round(key.frame * fps / 30) }));

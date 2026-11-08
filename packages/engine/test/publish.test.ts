@@ -121,6 +121,36 @@ describe("thumbnail", () => {
     expect(status.decisions.some((decision) => decision.category === "fallback" && decision.detail === "Couldn't render the thumbnail: browser crashed")).toBe(true);
     expect((await kit()).thumbnail).toBeUndefined();
   });
+
+  it("persists design and exact frame choices through rendering and metadata edits", async () => {
+    const { engine, seriesId, kit, render } = await finishedSeries();
+    const ref = { seriesId, episodeId: "ep-01" };
+    const design = { style: "editorial", position: "upper", accent: "mint" } as const;
+    await engine.setThumbnail(ref, { shotId: "s02", text: "  A real question?  ", frame: 0, design });
+    expect((await kit()).thumbnail).toMatchObject({ frame: 0, text: "A real question?", design });
+    expect(render.thumbnails.at(-1)).toMatchObject({ frame: 0, design });
+    await engine.savePublish(ref, { youtube: { ...(await kit()).youtube, title: "New title" } });
+    expect((await kit()).thumbnail?.design).toEqual(design);
+    // Oversized frame requests are clamped to the actual shot, not allowed to fail inside Remotion.
+    await engine.setThumbnail(ref, { shotId: "s02", text: "", frame: 999999, design });
+    expect((await kit()).thumbnail!.frame).toBeLessThan(999999);
+    expect(render.thumbnails.at(-1)?.text).toBe("");
+    const count = render.thumbnails.length;
+    for (const invalid of [{ frame: -1 }, { frame: 1.5 }, { frame: NaN }, { design: { ...design, style: "unknown" } }]) {
+      await expect(engine.setThumbnail(ref, { shotId: "s02", text: "Valid", ...invalid } as never)).rejects.toMatchObject({ code: "validation_failed" });
+    }
+    expect(render.thumbnails).toHaveLength(count);
+  });
+
+  it("passes the AI's chosen design to the renderer", async () => {
+    const design = { style: "cinematic", position: "center", accent: "white" } as const;
+    const { kit, render } = await finishedSeries({ publish: () => ({
+      youtube: { title: "T", description: "D", hashtags: ["#shorts"], tags: [] },
+      thumbnail: { shotId: "s01", text: "One choice", design },
+    }) });
+    expect((await kit()).thumbnail?.design).toEqual(design);
+    expect(render.thumbnails.at(-1)?.design).toEqual(design);
+  });
 });
 
 describe("YouTube limits", () => {

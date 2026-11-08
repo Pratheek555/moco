@@ -51,17 +51,24 @@ export interface SceneOutcome {
 
 export async function generateScene(ctx: StageContext, inputs: SceneInputs): Promise<SceneOutcome> {
   const { episodeId, shot } = inputs;
+  const activity = { episodeId, shotId: shot.id, key: `${episodeId}/${ctx.ledger.stage(`${episodeId}/sample`).status === "running" ? "sample" : "scenes"}` };
+  await ctx.bus.emit(ctx.seriesId, "shot.started", { ...activity, intent: shot.intent });
+  const complete = async (outcome: SceneOutcome) => {
+    await ctx.bus.emit(ctx.seriesId, "shot.done", { ...activity, ...outcome, reused: outcome.attempts === 0 });
+    return outcome;
+  };
   const brief = { ...shotBrief(shot, inputs.voiceover), avoid: inputs.avoid };
   const shotDir = files.shotDir(episodeId, shot.id);
   const specFile = files.shotSpec(episodeId, shot.id);
   const sceneInput = sceneInputRef(ctx, inputs, brief);
 
   const reusable = !inputs.force && !inputs.feedback && (await upToDate(ctx, specFile, sceneInput));
-  if (reusable) return { shotId: shot.id, fallback: false, attempts: 0, contentHash: await refreshEngineFields(ctx, specFile, inputs) };
+  if (reusable) return complete({ shotId: shot.id, fallback: false, attempts: 0, contentHash: await refreshEngineFields(ctx, specFile, inputs) });
 
   // A redo changes the current shot, so the AI has to see it. Engine fields are stripped, as in the golden example.
   const previous = inputs.feedback && ctx.store.has(specFile) ? AiSceneSpec.parse((await ctx.store.read(specFile, "SceneSpec")).data) : undefined;
 
+  let updates = Promise.resolve();
   const result = ctx.series.production ? await generateArtistScene(ctx, inputs) : await generateValidated({
     ai: ctx.ai,
     scope: episodeId,
@@ -71,17 +78,20 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     prompt: scenePrompt(ctx, inputs, brief, previous),
     maxAttempts: ctx.config.limits.maxAttemptsPerShot,
     signal: ctx.signal,
+    onActivity: (message) => {
+      updates = updates.then(() => ctx.bus.emit(ctx.seriesId, "ai.activity", { ...activity, phase: "working", message })).catch(() => {});
+    },
     check: (spec) => checkScene(ctx, spec, brief, inputs, shotDir),
     onAttempt: async (attempt) => {
       await ctx.store.writeRaw(`${shotDir}/attempts/${String(attempt.attempt).padStart(2, "0")}.json`, attempt);
       await ctx.bus.emit(ctx.seriesId, "shot.attempt", { episodeId, shotId: shot.id, attempt: attempt.attempt, errors: attempt.issues.length });
     },
-  });
+  }).finally(() => updates);
 
   // A looks-only regeneration that fails keeps what it had: a repeated framing beats a shot with no cast.
   if (!result.ok && inputs.keepOnFailure && ctx.store.has(specFile)) {
     ctx.ledger.decide("regenerate", `${episodeId}/${shot.id}`, `kept the previous spec: ${result.attempts} attempts couldn't avoid ${JSON.stringify(inputs.avoid)}`);
-    return { shotId: shot.id, fallback: false, attempts: result.attempts, contentHash: ctx.store.hashOf(specFile)! };
+    return complete({ shotId: shot.id, fallback: false, attempts: result.attempts, contentHash: ctx.store.hashOf(specFile)! });
   }
 
   const spec = withEngineFields(result.ok ? result.data : fallbackScene(brief, ctx.catalog, inputs.bible), inputs);
@@ -96,7 +106,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     backend: result.ok ? ctx.ai.backendId : undefined,
     inputs: [ctx.store.inputRef(files.shotList(episodeId)), ctx.store.inputRef(files.voiceover(episodeId)), sceneInput],
   });
-  return { shotId: shot.id, fallback: !result.ok, attempts: result.attempts, contentHash: saved.meta.contentHash };
+  return complete({ shotId: shot.id, fallback: !result.ok, attempts: result.attempts, contentHash: saved.meta.contentHash });
 }
 
 // Everything that shapes this shot's spec. Times are relative to the shot, so a shot that only moved
@@ -243,8 +253,13 @@ export async function runScenes(ctx: StageContext, episodeId: string, feedback?:
   const failure = settled.find((outcome) => outcome.status === "rejected");
   if (failure) throw failure.reason;
   if (!ctx.series.production) await breakRepeatedLooks(ctx, episodeId, shotList.shots, shared);
+  await ctx.bus.emit(ctx.seriesId, "ai.activity", { key: `${episodeId}/scenes`, episodeId, phase: "working", message: "Shots saved. Reviewing visual consistency and checking the animation for repairs." });
   // Every shot was written blind: the director looks at the cut and the weakest shots get one more go.
   await lookAtShots(ctx, episodeId, shotList.shots, shared);
+  if(ctx.series.production){
+    const quality=(await ctx.store.read(files.critique(episodeId),"Critique")).data.quality;
+    if(quality?.status!=="passed")throw new EngineError("validation_failed",`Visual review needs attention before export. Retry to resume saved checks and repairs: ${quality?.unresolved.join("; ")??"No complete review"}`);
+  }
   const finalSpecs = await specsOf(ctx, episodeId, shotList.shots);
   const entries = finalSpecs.flatMap((spec) => sequencesFrom(spec, episodeId));
   if (entries.length) {

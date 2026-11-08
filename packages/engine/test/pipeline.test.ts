@@ -14,6 +14,30 @@ function untilStopped(request: AiRequest) {
 }
 
 describe("pipeline", () => {
+
+  it("finishes delivery and waits for a new action before starting the next episode", async () => {
+    const { engine, ai } = await setup();
+    const completed: string[] = [];
+    engine.on("episode.completed", event => completed.push(String(event.data.episodeId)));
+    const id = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 2 });
+    for (let gate = 0; gate < 5; gate++) {
+      await advance(engine, id);
+      await approveNext(engine, id);
+    }
+    const job = await advance(engine, id);
+    expect(job.stagesRun).toEqual(["ep-01/final", "ep-01/memory_update", "ep-01/publish"]);
+    const status = await engine.status(id);
+    expect(status.next).toEqual({ kind: "run", key: "ep-02/script" });
+    expect(status.activeJob).toBeUndefined();
+    expect(completed).toEqual(["ep-01"]);
+    const scriptsBefore = ai.requests.filter(r => r.system.includes("prompt: script")).length;
+    expect(scriptsBefore).toBe(1);
+    // A fresh user-triggered run starts episode two, and stops at its script gate.
+    await advance(engine, id);
+    expect((await engine.status(id)).next).toMatchObject({ kind: "waiting", key: "ep-02/script" });
+    expect(ai.requests.filter(r => r.system.includes("prompt: script"))).toHaveLength(2);
+  });
+
   it("runs a whole episode, stopping at every gate", async () => {
     const { engine, dir, ai } = await setup();
     const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna at Kurukshetra", language: "en", episodes: 2 });
@@ -23,7 +47,8 @@ describe("pipeline", () => {
     for (let round = 0; round < 10; round += 1) {
       await advance(engine, seriesId);
       const next = (await engine.status(seriesId)).next;
-      if (next.kind !== "waiting") break;
+      if (next.kind === "finished") break;
+      if (next.kind === "run") continue; // explicit continuation across episode boundaries
       gates.push(await approveNext(engine, seriesId));
     }
     expect(gates).toEqual(["series_plan", "bible", "ep-01/script", "ep-01/sample", "ep-01/preview", "ep-02/script", "ep-02/preview"]);

@@ -1,0 +1,35 @@
+Mom Has Admin
+
+Create exactly 10 connected episodes in English using the existing 2D Roblox What If art template. This is one continuous comedy-adventure season, not ten unrelated what-if sketches. Use the companion mom-has-admin.plan.json outline in order.
+
+PREMISE
+You give Mom admin powers in your Roblox server to remove one unfair paywall. Your little brother enables PerfectMode, an overhelpful smiling server bot that interprets 'make it fair' as 'remove every difference and mistake'. Its fixes slowly delete the fun, then threaten the whole server. The family must work together to restore the original game.
+
+FORMAT
+10 portrait shorts, each targeting 42 seconds (40-45 seconds), 1080 x 1920 at 60 fps. Aim for 85-100 spoken words, with the final length determined by the configured local narration. Second-person narrator ('you', 'your'), simple words, short character lines, a readable visual joke in every episode. Open on the current problem in the first two seconds; show the previous episode's consequence in the action rather than adding a long recap. Each episode has a small payoff plus a clear next problem. Episode 10 resolves the season.
+
+SERIAL OVERRIDES TO THE ART TEMPLATE
+Keep the template's rig, palette, thick outlines, facial acting, caption style, fake game UI, camera movement, and fast shot changes. Replace the repeated DAY 1 / DAY 2 / DAY 3 structure with cause and effect inside the current scene. Replace the mid-story subscribe break with story action. A rewind is only a visual replay: it must never undo a canonical event. End episodes 1-9 on their actual handoff to the next episode; end episode 10 on the family payoff. No repeated arrival of Mom as a new admin in later episodes.
+
+FIXED CAST
+- You: backwards blue cap #2e88ee, orange hair #f27b2c, yellow pixel-heart shirt #ffc934, blue pants #3f66cf. Clever at shortcuts, learns to accept mistakes. Original owner of this one server, not owner of Roblox.
+- Mom: red-brown ponytail, round glasses, gold hoops, teal cardigan #2bb3a3, purple pants #6b3fa0. Warm, confident, literal. Her giant chore slipper is funny, never violent; it becomes an ordinary squeaky slipper when admin is lost.
+- Little brother: shorter version of the same blocky rig, purple hoodie, green shorts, one orange shoe and one cyan shoe. Curious and impulsive, then resourceful. His mismatched shoes identify the original among copies.
+- PerfectMode: a small white block bot with a cyan square smile; its smile stays cheerful even when it makes things worse. Delete beam is cyan; shutdown warning is coral. This is a fictional bot in the family's server.
+Keep silhouettes, clothes, props, and chosen available voices consistent across every episode. Do not invent voice ids if only one local narrator is configured.
+
+WORLD RULES — ESTABLISH BEFORE USING
+1. PerfectMode can change the live server and revoke Mom's newly granted admin powers. Mom cannot simply switch it off once its protection is active; show the locked control by episode 2.
+2. PerfectMode cannot edit the original checkpoint block, which predates its activation. Show the locked block and owner-rollback notice in episode 1; prove its immunity during the episode 4 rescue. The saved map is stored on that same block, not a new magic item.
+3. Only the original owner can roll back the server, and only at the original obby's finish. Plant this notice in episode 1 and explain the route in episode 6.
+4. Rollback restores the save from just before Mom got admin: everyone keeps their memories, the original paywall and free route return, and Mom's admin powers, bot, and free loot disappear. It restores the world, not time or the family's learning.
+5. The bot's threat escalates from silly inconvenience to a threatened server shutdown. Keep deletion reversible through rollback; no horror or permanent harm.
+
+SETS AND VISUAL CONTINUITY
+Reuse three sets: original bright checkered lobby/obby, purple server recycle-bin underworld, and cyan maintenance passage to the original finish. Change damage and missing objects as the story progresses. Keep a small episode marker outside the caption lane. Use one main HUD counter relevant to each episode (trophies, copies, bin timer, shutdown timer); do not overload a phone frame with multiple dashboards.
+
+PRODUCTION
+Use Moco's configured local narration and code-drawn canvas art. No paid image/video/voice providers, external asset downloads, automatic posting, or real creator characters. No need for an image model. Review the season plan, cast/style bible, episode 1 script and timed shot plan, and a sample shot through the normal Moco gates before expanding production. Record unavailable music/SFX capabilities rather than pretending they were supplied.
+
+QUALITY BAR
+Read every new script against the preceding episode's ending. Track who holds the checkpoint, where each family member is, whether Mom still has admin, which route is open, and which world changes have happened. Never reset those facts just to fit the template. Review captions at phone size, hands holding props, readable faces, text collisions, lip sync, narration loudness, and the opening/closing frame. Fix issues on the first episode before producing the remaining nine.

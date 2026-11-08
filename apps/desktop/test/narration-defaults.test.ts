@@ -6,6 +6,7 @@ import { voiceRuntimePaths } from "../src/main/voice-models.ts";
 
 it("uses system narration for new and legacy settings", async () => {
   expect(defaultSettings().voice.backend).toBe("system");
+  expect(defaultSettings().voice.device).toBe("auto");
   const port = narrationAudio({ voice: "", rate: 1 }, voiceRuntimePaths("missing", "missing"));
   await expect(port.align()).rejects.toThrow(/system voices/);
 });

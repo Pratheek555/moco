@@ -8,7 +8,7 @@ import type { Line } from "./index.ts";
 
 interface NarrationBackend {
   voices?(language: string): Promise<{ id: string; name: string }[]>;
-  tts(lines: Line[], voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal): Promise<{ file: string; durationSeconds: number; words?: TimedWord[]; backend?: string }>;
+  tts(lines: Line[], voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal, onProgress?: (completed: number, total: number) => void): Promise<{ file: string; durationSeconds: number; words?: TimedWord[]; backend?: string }>;
   align(file: string, lines: Line[], language: string): Promise<TimedWord[]>;
   visemes(file: string, words: TimedWord[]): Promise<VisemeTrack>;
 }
@@ -16,8 +16,8 @@ interface NarrationBackend {
 export function alignedAudio(base: NarrationBackend, options: { python: string; model?: string; worker?: string }) {
   return {
     ...base,
-    async tts(lines: Line[], voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal) {
-      const spoken = await base.tts(lines, voice, language, outDir, signal);
+    async tts(lines: Line[], voice: { voiceId: string; backend: string }, language: string, outDir: string, signal?: AbortSignal, onProgress?: (completed: number, total: number) => void) {
+      const spoken = await base.tts(lines, voice, language, outDir, signal, onProgress);
       const request = join(outDir, "alignment-request.json"), output = join(outDir, "alignment.json");
       await writeFile(request, JSON.stringify({ file: spoken.file, lines, language: language.split("-")[0], model: options.model ?? "small", output }));
       await new Promise<void>((resolve, reject) => {

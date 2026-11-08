@@ -8,7 +8,6 @@ import {
   FilmIcon,
   FolderOpenIcon,
   GripVerticalIcon,
-  ImageIcon,
   RefreshCwIcon,
   Settings2Icon,
 } from "lucide-react";
@@ -16,12 +15,10 @@ import {
   checkYoutube,
   hashtagsIn,
   tagsLength,
-  THUMBNAIL_TEXT_MAX,
   YOUTUBE_CATEGORIES,
   YOUTUBE_LIMITS,
   type PublishDefaults,
   type PublishKit,
-  type PublishThumbnail,
   type YoutubeCategory,
 } from "@moco/spec";
 import { api } from "@/lib/api.ts";
@@ -70,6 +67,8 @@ import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
+import { ThumbnailEditor } from "./ThumbnailEditor";
+
 type Youtube = PublishKit["youtube"];
 type Step = "title" | "description" | "tags";
 
@@ -89,6 +88,7 @@ export function PublishPanel({
   finalPath,
   thumbnail,
   shots,
+  stills = {},
   running,
 }: {
   seriesId: string;
@@ -97,6 +97,7 @@ export function PublishPanel({
   finalPath?: string;
   thumbnail: { url?: string; path?: string };
   shots: { id: string; intent: string }[];
+  stills?: Record<string, string[]>;
   running: boolean;
 }) {
   const version = useApp((s) => s.version),
@@ -356,9 +357,12 @@ export function PublishPanel({
 
       <PublishStep number={3} title="Add the thumbnail">
         <ThumbnailEditor
+          key={`${seriesId}/${episodeId}`}
           seriesId={seriesId}
           episodeId={episodeId}
           saved={data.kit.data.thumbnail}
+          stills={stills}
+          onSaved={reload}
           url={thumbnail.url}
           path={thumbnail.path}
           shots={shots}
@@ -440,7 +444,7 @@ function PublishStep({
 }) {
   return (
     <section className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-2">
+      <div className="flex flex-wrap items-center justify-between gap-2">
         <h3 className="flex items-center gap-2 text-sm font-semibold">
           <span className="flex size-5 items-center justify-center rounded-full bg-muted text-xs tabular-nums">
             {number}
@@ -451,149 +455,6 @@ function PublishStep({
       </div>
       {children}
     </section>
-  );
-}
-
-// The thumbnail the engine rendered, and the shot and headline to render another one from.
-function ThumbnailEditor({
-  seriesId,
-  episodeId,
-  saved,
-  url,
-  path,
-  shots,
-  running,
-}: {
-  seriesId: string;
-  episodeId: string;
-  saved?: PublishThumbnail;
-  url?: string;
-  path?: string;
-  shots: { id: string; intent: string }[];
-  running: boolean;
-}) {
-  const [shotId, setShotId] = useState(saved?.shotId ?? shots[0]?.id ?? ""),
-    [text, setText] = useState(saved?.text ?? ""),
-    [busy, setBusy] = useState(false);
-  // A new thumbnail (rendered or rewritten) resets the form to it.
-  useEffect(() => {
-    setShotId(saved?.shotId ?? shots[0]?.id ?? "");
-    setText(saved?.text ?? "");
-  }, [saved?.shotId, saved?.text, saved?.frame]);
-
-  const length = [...text.trim()].length;
-  const tooLong = length > THUMBNAIL_TEXT_MAX;
-  const changed = !saved || !url || shotId !== saved.shotId || text.trim() !== saved.text;
-  const canRender = changed && !busy && !running && !tooLong && shotId !== "";
-
-  const render = async () => {
-    setBusy(true);
-    try {
-      await api.publish.setThumbnail(seriesId, episodeId, { shotId, text: text.trim() });
-      await useApp.getState().refreshLibrary(); // reloads the episode, and with it the new image
-      useApp.getState().toast("Thumbnail updated", "success");
-    } catch (e) {
-      report(e);
-    } finally {
-      setBusy(false);
-    }
-  };
-
-  return (
-    <>
-      <div className="flex gap-4">
-        <div className="relative aspect-[9/16] w-28 shrink-0 overflow-hidden rounded-lg border bg-muted">
-          {url && path ? (
-            <img
-              key={url}
-              src={url}
-              alt="Episode thumbnail"
-              draggable
-              onDragStart={(e) => {
-                e.preventDefault();
-                api.app.startDrag(path);
-              }}
-              className="size-full cursor-grab object-cover active:cursor-grabbing"
-            />
-          ) : (
-            <span className="flex size-full items-center justify-center p-3 text-center text-xs text-muted-foreground">
-              No thumbnail yet
-            </span>
-          )}
-          {busy && (
-            <div className="absolute inset-0 flex items-center justify-center bg-background/70">
-              <Spinner aria-hidden />
-            </div>
-          )}
-        </div>
-        <div className="flex min-w-0 flex-col items-start gap-3">
-          <p className="text-sm text-pretty text-muted-foreground">
-            {url
-              ? "Drag it onto Thumbnail in Studio. On Instagram, use it as the reel’s cover."
-              : "Pick a shot and a headline, then make one."}
-          </p>
-          {path && (
-            <Button size="sm" variant="outline" onClick={() => void api.app.showItem(path).catch(report)}>
-              <FolderOpenIcon data-icon="inline-start" />
-              Show file
-            </Button>
-          )}
-        </div>
-      </div>
-      <FieldGroup className="gap-4">
-        <Field>
-          <FieldLabel htmlFor="thumbnail-shot">Shot</FieldLabel>
-          <Select value={shotId} onValueChange={setShotId} disabled={shots.length === 0}>
-            <SelectTrigger id="thumbnail-shot" className="w-full">
-              <SelectValue placeholder="Pick a shot" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectGroup>
-                {shots.map((shot) => (
-                  <SelectItem key={shot.id} value={shot.id}>
-                    <span className="truncate">
-                      {humanize(shot.id)} · {shot.intent}
-                    </span>
-                  </SelectItem>
-                ))}
-              </SelectGroup>
-            </SelectContent>
-          </Select>
-          <FieldDescription>The picture comes from the middle of the shot.</FieldDescription>
-        </Field>
-        <Field data-invalid={tooLong}>
-          <FieldLabel htmlFor="thumbnail-text">Headline</FieldLabel>
-          <InputGroup>
-            <InputGroupInput
-              id="thumbnail-text"
-              aria-invalid={tooLong}
-              placeholder="No headline"
-              value={text}
-              onChange={(e) => setText(e.target.value)}
-              onKeyDown={(e) => {
-                if (e.key === "Enter" && canRender) void render();
-              }}
-            />
-            <InputGroupAddon align="inline-end">
-              <InputGroupText className="tabular-nums">
-                {length}/{THUMBNAIL_TEXT_MAX}
-              </InputGroupText>
-            </InputGroupAddon>
-          </InputGroup>
-          {tooLong ? (
-            <FieldError>Keep it to {THUMBNAIL_TEXT_MAX} characters so it reads at feed size.</FieldError>
-          ) : (
-            <FieldDescription>A few big words. Leave it empty for just the picture.</FieldDescription>
-          )}
-        </Field>
-      </FieldGroup>
-      {changed && (
-        <Button size="sm" className="self-start" disabled={!canRender} onClick={() => void render()}>
-          {busy ? <Spinner data-icon="inline-start" aria-hidden /> : <ImageIcon data-icon="inline-start" />}
-          {url ? "Update thumbnail" : "Make thumbnail"}
-        </Button>
-      )}
-    </>
   );
 }
 

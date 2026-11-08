@@ -1,12 +1,38 @@
 import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { Delivery, ScriptLine } from "@moco/spec";
-import { chatterboxAudio, performance } from "../src/chatterbox.ts";
+import { chatterboxAudio, performance, narrationFailure } from "../src/chatterbox.ts";
 import { joinLines } from "../src/system.ts";
 import { wavFrom } from "../src/system.ts";
 import type { Line } from "../src/index.ts";
+
+it("reports the actual memory failure ahead of dependency warnings", () => {
+  expect(narrationFailure(1, "torch.OutOfMemoryError: CUDA out of memory"))
+    .toMatch(/^Not enough GPU memory.*select CPU/);
+  expect(narrationFailure(1, "UserWarning: pkg_resources deprecated\nTraceback (most recent call last):\nOSError: The paging file is too small (os error 1455)"))
+    .toMatch(/^Not enough memory/);
+  expect(narrationFailure(1, "UserWarning: unrelated\nTraceback (most recent call last):\n  worker.py\nValueError: Invalid audio"))
+    .toBe("Neural narration failed (1). ValueError: Invalid audio");
+});
+
+it("serializes model workers across backend instances and releases the queue after failure", async () => {
+  const dir = await mkdtemp(join(tmpdir(), "moco-voice-queue-"));
+  const worker = join(dir, "worker.mjs");
+  const lock = join(dir, "model.lock");
+  await writeFile(worker, `import {openSync,closeSync,unlinkSync} from 'node:fs';
+    const lock = ${JSON.stringify(lock)};
+    const fd = openSync(lock, 'wx');
+    setTimeout(() => { closeSync(fd); unlinkSync(lock); console.error('Traceback (most recent call last):\\nValueError: expected test failure'); process.exit(1); }, 100);`);
+  const results = await Promise.allSettled([1, 2].map((id) =>
+    chatterboxAudio({ python: process.execPath, worker }).tts([{ id: 'a', text: 'Hello.' }],
+      { voiceId: 'default', backend: 'chatterbox' }, 'en', join(dir, String(id)))));
+  for (const result of results) {
+    expect(result.status).toBe('rejected');
+    if (result.status === 'rejected') expect(result.reason.message).toContain('ValueError: expected test failure');
+  }
+});
 
 it("keeps old scripts valid and validates performance directions", () => {
   expect(ScriptLine.parse({ id: "l01", text: "Rise.", beat: "rise" }).delivery).toBeUndefined();
@@ -58,15 +84,99 @@ it("passes performance to the worker and reuses a take when only its pause chang
     for (const line of request.lines) writeFileSync(line.file, Buffer.from(${JSON.stringify(wav.toString("base64"))}, 'base64'));`);
   const lines: Line[] = [{ id: "a", text: "Wait.", delivery: { emotion: "tense", intensity: 0.8, pauseAfterMs: 750 } }, { id: "b", text: "Now." }];
   const voice = { voiceId: "narrator", backend: "chatterbox" };
-  const first = await chatterboxAudio({ python: process.execPath, worker }).tts(lines, voice, "en-IN", dir);
+  const first = await chatterboxAudio({ python: process.execPath, worker, device: "gpu" }).tts(lines, voice, "en-IN", dir);
   const request = JSON.parse(await readFile(capture, "utf8"));
   expect(request.language).toBe("en");
+  expect(request.device).toBe("gpu");
   expect(request.lines[0].emotion).toBe("tense");
   expect(request.lines[0].text).toBe("Wait.");
   lines[0]!.delivery!.pauseAfterMs = 0;
-  const second = await chatterboxAudio({ python: process.execPath, worker: join(dir, "nonexistent.mjs") }).tts(lines, voice, "en-IN", dir);
+  const second = await chatterboxAudio({ python: process.execPath, worker: join(dir, "nonexistent.mjs"), device: "gpu" }).tts(lines, voice, "en-IN", dir);
   expect(first.durationSeconds - second.durationSeconds).toBeCloseTo(0.75);
   expect(second.words[1]!.start).toBe(1);
+});
+
+async function resumableWorker(body: string) {
+  const dir = await mkdtemp(join(tmpdir(), "moco-voice-resume-"));
+  const worker = join(dir, "worker.mjs");
+  const wav = wavFrom({ sampleRate: 1000, samples: new Float32Array(1000).fill(0.2) });
+  await writeFile(worker, `import {readFileSync,writeFileSync,renameSync} from 'node:fs';
+    const request = JSON.parse(readFileSync(process.argv[2], 'utf8'));
+    const wav = Buffer.from(${JSON.stringify(wav.toString("base64"))}, 'base64');
+    const complete = (index) => {
+      const line = request.lines[index];
+      writeFileSync(line.temporaryFile, wav);
+      renameSync(line.temporaryFile, line.file);
+      console.log('MOCO_NARRATION_PROGRESS ' + JSON.stringify({completed:index + 1}));
+    };
+    ${body}`);
+  const lines: Line[] = [{ id: "a", text: "First." }, { id: "b", text: "Second." }, { id: "c", text: "Third." }];
+  return { dir, worker, lines, voice: { voiceId: "narrator", backend: "chatterbox" } };
+}
+
+it("lets a healthy episode exceed the stall deadline while reporting completed lines", async () => {
+  const { dir, worker, lines, voice } = await resumableWorker(`
+    for (let index = 0; index < request.lines.length; index++) {
+      await new Promise(resolve => setTimeout(resolve, 600));
+      complete(index);
+    }`);
+  const progress = vi.fn();
+  const started = Date.now();
+  const result = await chatterboxAudio({ python: process.execPath, worker, stallTimeoutMs: 1200 }).tts(lines, voice, "en", dir, undefined, progress);
+  expect(Date.now() - started).toBeGreaterThan(1200);
+  expect(progress.mock.calls).toEqual([[0, 3], [1, 3], [2, 3], [3, 3]]);
+  expect(result.words.map(word => word.lineId)).toEqual(["a", "b", "c"]);
+  expect((await readdir(join(dir, ".voice-cache"))).every(file => file.endsWith(".wav"))).toBe(true);
+});
+
+it("times out a stalled line despite repeated logs, then retries only missing takes with original seeds", async () => {
+  const { dir, worker, lines, voice } = await resumableWorker(`
+    complete(0);
+    writeFileSync(request.lines[1].temporaryFile, 'unfinished audio');
+    setInterval(() => {
+      console.log('Still working');
+      console.log('MOCO_NARRATION_PROGRESS invalid json');
+      console.log('MOCO_NARRATION_PROGRESS {"completed":1}');
+      console.log('MOCO_NARRATION_PROGRESS {"completed":99}');
+    }, 200);`);
+  await expect(chatterboxAudio({ python: process.execPath, worker, stallTimeoutMs: 1000 }).tts(lines, voice, "en", dir))
+    .rejects.toThrow(/no line progress.*1\/3 new lines saved.*Retry to resume/);
+  expect(await readdir(join(dir, ".voice-cache"))).toHaveLength(1);
+  const capture = join(dir, "retry.json");
+  const retry = await resumableWorker(`
+    writeFileSync(${JSON.stringify(capture)}, JSON.stringify(request));
+    request.lines.forEach((_, index) => complete(index));`);
+  const progress = vi.fn();
+  const result = await chatterboxAudio({ python: process.execPath, worker: retry.worker }).tts(lines, voice, "en", dir, undefined, progress);
+  const request = JSON.parse(await readFile(capture, "utf8"));
+  expect(request.lines.map((line: { text: string; seed: number }) => [line.text, line.seed])).toEqual([["Second.", 43], ["Third.", 44]]);
+  expect(progress.mock.calls).toEqual([[1, 3], [2, 3], [3, 3]]);
+  expect(result.words.map(word => word.lineId)).toEqual(["a", "b", "c"]);
+  expect(await readdir(join(dir, ".voice-cache"))).toHaveLength(3);
+});
+
+it("keeps a committed take after cancellation and releases the worker queue for retry", async () => {
+  const { dir, worker, lines, voice } = await resumableWorker(`complete(0); setInterval(() => {}, 1000);`);
+  const controller = new AbortController();
+  await expect(chatterboxAudio({ python: process.execPath, worker }).tts(lines, voice, "en", dir, controller.signal, (completed) => {
+    if (completed === 1) controller.abort();
+  })).rejects.toThrow(/cancelled/);
+  expect(await readdir(join(dir, ".voice-cache"))).toHaveLength(1);
+  const retry = await resumableWorker(`request.lines.forEach((_, index) => complete(index));`);
+  await expect(chatterboxAudio({ python: process.execPath, worker: retry.worker }).tts(lines, voice, "en", dir)).resolves.toHaveProperty("file");
+  expect(await readdir(join(dir, ".voice-cache"))).toHaveLength(3);
+});
+
+it("retains valid takes when a later line crashes and regenerates damaged cache entries", async () => {
+  const { dir, worker, lines, voice } = await resumableWorker(`
+    complete(0);
+    writeFileSync(request.lines[1].file, 'damaged audio');
+    process.exit(1);`);
+  await expect(chatterboxAudio({ python: process.execPath, worker }).tts(lines, voice, "en", dir)).rejects.toThrow(/Neural narration failed/);
+  const retry = await resumableWorker(`request.lines.forEach((_, index) => complete(index));`);
+  const progress = vi.fn();
+  await chatterboxAudio({ python: process.execPath, worker: retry.worker }).tts(lines, voice, "en", dir, undefined, progress);
+  expect(progress.mock.calls).toEqual([[1, 3], [2, 3], [3, 3]]);
 });
 
 it("routes character references per line and invalidates cached takes when their recording changes", async () => {

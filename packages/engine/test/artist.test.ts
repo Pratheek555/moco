@@ -30,6 +30,7 @@ it("runs artist tools through ordinary planning/generation, skips world building
   const dir=await mkdtemp(join(tmpdir(),"moco-artist-engine-"));
   let authorCalls=0;
   const artist = async (request: AiRequest) => {
+    request.onActivity?.("Drawing the character silhouette.");
     const tools=request.artistTools!;
     const call=async(name:string,args:object)=>tools.find(tool=>tool.name===name)!.call(args);
     const files=JSON.parse((await call("list_files",{})).content.filter(block=>block.type==="text").map(block=>block.text).join("")) as string[];
@@ -39,6 +40,9 @@ it("runs artist tools through ordinary planning/generation, skips world building
     const brief=JSON.parse((await call("read_file",{path:`shots/${id}/brief.json`})).content.filter(block=>block.type==="text").map(block=>block.text).join(""));
     expect(briefPath).toContain("brief.json");
     expect(brief.originalBrief).toContain("FULL-BRIEF-SENTINEL");
+    expect(brief.permissions).toMatchObject({authoringAuthorized:true,script:{status:"approved"},images:{enabled:false}});
+    expect(request.system).toContain("override historical approval");
+    await expect(call("write_file",{path:`shots/${id}/production-state.json`,content:"{}"})).rejects.toThrow(/read-only/);
     if(!files.includes("shared/characters.js"))await call("write_file",{path:"shared/characters.js",content:"function character(){helpers.circle(100,100,50,'#48767a')}"});
     await call("write_file",{path:`shots/${id}/draw.js`,content:"ctx.fillStyle='#e9dfcf';ctx.fillRect(0,0,scene.width,scene.height);character();"});
     await call("write_file",{path:`shots/${id}/scene.json`,content:JSON.stringify({sourceFiles:["shared/characters.js",`shots/${id}/draw.js`],cast:brief.shot.characters,cues:[]})});
@@ -61,9 +65,12 @@ it("runs artist tools through ordinary planning/generation, skips world building
   }),{supportsArtist:true,seesImages:true});
   const render=new FakeRenderPort();
   const engine=createEngine({projectsDir:dir,ai,render,audio:new FakeAudio(0.4)});
-  const id=await engine.createSeries({idea:"FULL-BRIEF-SENTINEL flat vector episode",language:"en",episodes:1,production:{mode:"artist",format:{width:1920,height:1080,fps:60},targetSeconds:45}});
+  const id=await engine.createSeries({idea:"FULL-BRIEF-SENTINEL flat vector episode. No approval has been granted.",language:"en",episodes:1,production:{mode:"artist",format:{width:1920,height:1080,fps:60},targetSeconds:45}});
   for(let gate=0;gate<4;gate++){await advance(engine,id);await approveNext(engine,id);}
   const saved=JSON.parse(await readFile(join(dir,id,"episodes/ep-01/shots/s01/spec.json"),"utf8"));
+  const activityLog = await readFile(join(dir,id,"events.jsonl"),"utf8");
+  expect(activityLog).toContain("Drawing the character silhouette.");
+  expect(activityLog).toContain("Checking the saved artwork and motion");
   expect(saved.data.format).toEqual({width:1920,height:1080,fps:60});
   expect(saved.data.durationFrames).toBeGreaterThan(150);
   expect(saved.data.canvas.source).toContain("function character");
@@ -80,7 +87,7 @@ it("runs artist tools through ordinary planning/generation, skips world building
   await write.call({path:"shared/versions/character-v2.js",content:"function improvedCharacter(){}"});
   await expect(write.call({path:"shared/versions/character-v2.js",content:"overwrite"})).rejects.toThrow(/read-only/);
   for(const request of ai.requests.filter(request=>!request.artistTools))expect(request.prompt).toContain("FULL-BRIEF-SENTINEL");
-  expect(ai.requests.some(request=>request.artistTools?.length===4)).toBe(true);
+  expect(ai.requests.some(request=>request.artistTools?.some(tool=>tool.name==="report_blocker"))).toBe(true);
   const repairJob=await engine.waitForJob(await engine.regenerateShot({seriesId:id,episodeId:"ep-01",shotId:"s01"},"Improve the pose"));
   expect(repairJob.status).toBe("succeeded");
   const archived=JSON.parse(await readFile(join(dir,id,`episodes/ep-01/shots/s01/attempts/artist-${firstAttempt.invocationId}-1.json`),"utf8"));
