@@ -1,11 +1,13 @@
 import { create } from "zustand";
 import { toast as sonner } from "sonner";
+import { ILLUSTRATED_EXPLAINER_ID } from "@moco/engine/templates";
 import {
   api,
   type AiStatus,
   type EngineEvent,
   type LearnJob,
   type SeriesSummary,
+  type SeriesStatus,
   type Settings,
   type TemplateInfo,
 } from "./api.ts";
@@ -29,6 +31,18 @@ export interface ToastOptions {
   action?: { label: string; run: () => void };
 }
 
+/** Unsaved creation choices survive visits to Settings, Library and other pages. */
+export interface ComposerOptions {
+  templateId: string | null;
+  productionMode: string;
+  artistShape: string;
+  artistSeconds: string;
+  audience: string;
+  visualDirection: string;
+  episodes: number;
+  language: string;
+}
+
 interface AppState {
   route: Route;
   history: Route[];
@@ -49,9 +63,11 @@ interface AppState {
   palette: boolean;
   setPalette(open: boolean): void;
   composerIdea: string;
-  /** The template the next series starts from; null = from scratch. */
+  /** The launch format; null explicitly starts from scratch. */
   composerTemplate: string | null;
   setComposerTemplate(id: string | null): void;
+  composerOptions: ComposerOptions | null;
+  setComposerOptions(options: ComposerOptions | null): void;
   templates: TemplateInfo[];
   refreshTemplates(): Promise<void>;
   /** Templates being learned from videos this session, newest last. */
@@ -117,9 +133,13 @@ export const useApp = create<AppState>((set, get) => ({
   setPalette(open) {
     set({ palette: open });
   },
-  composerTemplate: null,
+  composerTemplate: ILLUSTRATED_EXPLAINER_ID,
   setComposerTemplate(id) {
     set({ composerTemplate: id });
+  },
+  composerOptions: null,
+  setComposerOptions(options) {
+    set({ composerOptions: options });
   },
   templates: [],
   async refreshTemplates() {
@@ -280,6 +300,16 @@ export function report(e: unknown) {
 
 export const runningSeries = (library: SeriesSummary[]) =>
   library.filter((s) => s.running);
+
+/** Shot repairs and explicit reviews run jobs without reopening a stage. */
+export function activeStageKey(status: SeriesStatus): string | undefined {
+  const running = status.stages.find(s => s.status === "running");
+  if (running) return running.key;
+  const job = status.activeJob;
+  if (!job || job.target === "next") return undefined;
+  return job.kind === "shot" || job.target.endsWith("/review")
+    ? `${job.target.split("/")[0]}/scenes` : job.target;
+}
 
 // "ep-01/script" → "Episode 1 script"; "bible" → "Series bible".
 export function stageLabel(key: string): string {

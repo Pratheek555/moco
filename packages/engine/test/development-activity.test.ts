@@ -25,7 +25,16 @@ describe("series development activity", () => {
 
 describe("production activity", () => {
   it("streams narration milestones and reports a shot saved only after its artifact exists", async () => {
-    const { engine, dir } = await setup({ scene: request => {
+    const { engine, dir } = await setup({ show: request => {
+      request.onActivity?.("Choosing the visual direction.");
+      return validAnswer(request, "show");
+    }, script: request => {
+      request.onActivity?.("Writing the spoken script.");
+      return validAnswer(request, "script");
+    }, shots: request => {
+      request.onActivity?.("Cutting on measured words.");
+      return validAnswer(request, "shots");
+    }, scene: request => {
       request.onActivity?.("Animating the lighthouse beside the sea.");
       return validAnswer(request, "scene");
     } });
@@ -41,6 +50,9 @@ describe("production activity", () => {
       await approveNext(engine, id);
     }
     await advance(engine, id);
+    for (const [message, key] of [["Choosing the visual direction.", "bible"], ["Writing the spoken script.", "ep-01/script"], ["Cutting on measured words.", "ep-01/shot_list"]]) {
+      expect(events.find(e => e.type === "ai.activity" && e.data.message === message)?.data.key).toBe(key);
+    }
     const narration = events.filter(e => e.type === "ai.activity" && e.data.key === "ep-01/voiceover");
     expect(narration.map(e => e.data.message).join(" ")).toContain("Converting");
     expect(narration.map(e => e.data.message).join(" ")).toContain("word timings");

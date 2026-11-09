@@ -8,6 +8,7 @@
   "author": "Moco",
   "main": "out/main/index.js",
   "scripts": {
+    "test:illustrated-explainer": "node scripts/illustrated-explainer-test.mjs",
     "test:character-reuse": "node scripts/character-reuse-test.mjs",
     "test:label-editor": "node scripts/label-editor-test.mjs",
     "test:recent-chats": "node scripts/recent-chats-test.mjs",

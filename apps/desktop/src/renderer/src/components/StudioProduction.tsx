@@ -2,7 +2,7 @@
 import { ArrowDownIcon, ArrowUpIcon, ChevronDownIcon, ClapperboardIcon, RotateCcwIcon } from "lucide-react";
 import type { SeriesPlan } from "@moco/spec";
 import { api, type SeriesStatus } from "@/lib/api";
-import { report, stageLabel, useApp } from "@/lib/store";
+import { activeStageKey, report, stageLabel, useApp } from "@/lib/store";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { Spinner } from "@/components/ui/spinner";
@@ -38,7 +38,7 @@ export function StudioProduction({ status, plan, review, children }: {
   const next = status.next;
   const waiting = next.kind === "waiting" && next.status === "awaiting_approval"
     ? status.stages.find(s => s.key === next.key) : undefined;
-  const current = status.stages.find(s => s.status === "running");
+  const currentKey = activeStageKey(status);
   const failed = status.stages.find(s => s.status === "failed");
   const job = status.jobs.at(-1);
   const error = failed?.error?.message ?? (job?.status === "failed" ? job.error?.message : undefined);
@@ -59,7 +59,7 @@ export function StudioProduction({ status, plan, review, children }: {
     setClosedSidebar(sidebarKey);
     requestAnimationFrame(() => input.current?.focus());
   };
-  const context = waiting ? stageLabel(waiting.key) : current ? stageLabel(current.key) : "Your series";
+  const context = currentKey ? stageLabel(currentKey) : waiting ? stageLabel(waiting.key) : "Your series";
 
   useEffect(() => {
     if ((waiting || completedEpisode) && follow.current) scroll.current?.scrollTo({ top: 0 });
@@ -127,10 +127,13 @@ export function StudioProduction({ status, plan, review, children }: {
             <span className="generation-state-label" data-state={running ? "working" : finished ? "complete" : error ? "error" : "paused"}>
               <span className="generation-status-dot" data-running={running} />{running ? "Creating your animation" : finished ? "All yours" : error ? "A little help needed" : "Paused, right where you left it"}
             </span>
-            <h1>{running ? current ? stageLabel(current.key) : "Preparing the next step" : finished ? "Your story is ready." : error ? "Let's pick up where we left off." : "Your work is saved."}</h1>
+            <h1>{running ? currentKey ? stageLabel(currentKey) : "Preparing the next step" : finished ? "Your story is ready." : error ? "Let's pick up where we left off." : "Your work is saved."}</h1>
             <p role="status">{running ? "Turning your direction into characters, scenes, and a story that moves. The next milestone is yours to review." : finished ? "From that first little idea to the final frame. Watch your episodes or keep refining the details." : error ?? "Your approved work is safe. Continue whenever inspiration finds you."}</p>
             {running && progress !== undefined && <div className="studio-render-progress"><Progress value={Math.max(0, Math.min(100, progress * 100))} aria-label="Render progress" /><span>{Math.round(progress * 100)}%</span></div>}
-            {!running && <Button disabled={busy} onClick={() => finished ? openBoard() : void work(() => api.stages.run(id, failed?.key))}>{busy ? <Spinner /> : <RotateCcwIcon />}{finished ? "Explore episodes" : error ? "Try again" : "Continue production"}</Button>}
+            {!running && <div className="flex flex-wrap gap-2 pt-2">
+              <Button disabled={busy} onClick={() => finished ? openBoard() : void work(() => api.stages.run(id, failed?.key))}>{busy ? <Spinner /> : <RotateCcwIcon />}{finished ? "Explore episodes" : error ? "Try again" : "Continue production"}</Button>
+              {error && failed?.key.endsWith("/scenes") && <Button variant="outline" onClick={() => useApp.getState().go({ name: "episode", seriesId: id, episodeId: failed.key.split("/")[0]! })}>Review saved shots <ArrowUpIcon /></Button>}
+            </div>}
           </div>}
           {repeatEpisode && <RepeatEpisodePanel status={status} episodeId={repeatEpisode} onReview={() => setClosedSidebar(undefined)} />}
           {status.series.production && !completedEpisode && !repeatEpisode && !running && status.stages.some(stage => stage.key.endsWith("/final") && stage.status === "done") && (finished || nextEpisode) && <NextEpisode status={status} />}

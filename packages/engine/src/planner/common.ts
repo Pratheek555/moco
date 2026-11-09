@@ -19,8 +19,11 @@ export interface PlanCall<T> {
 }
 
 export async function planWithAi<T>(ctx: StageContext, call: PlanCall<T>): Promise<T> {
-  const key = call.promptName === "series" || call.promptName === "series_extend" ? "series_plan" : call.promptName;
-  await ctx.bus.emit(ctx.seriesId, "ai.activity", { key, phase: "started", message: key === "series_plan" ? `Developing your premise and outlining ${ctx.series.episodes} ${ctx.series.episodes === 1 ? "episode" : "episodes"}.` : `Developing the ${key.replaceAll("_", " ")}.` });
+  // The live UI follows stage keys, not prompt names. A bare "script" or
+  // "show" hides real commentary while ep-01/script or bible is running.
+  const stage = ({ series: "series_plan", series_extend: "series_plan", show: "bible", world: "bible", canon: "script", world_extend: "script", shots: "shot_list", memory: "memory_update", retro: "memory_update" } as Partial<Record<PromptName, string>>)[call.promptName] ?? call.promptName;
+  const key = call.scope === "series" ? stage : `${call.scope}/${stage}`;
+  await ctx.bus.emit(ctx.seriesId, "ai.activity", { key, phase: "started", message: key === "series_plan" ? `Developing your premise and outlining ${ctx.series.episodes} ${ctx.series.episodes === 1 ? "episode" : "episodes"}.` : `Developing the ${call.promptName.replaceAll("_", " ")}.` });
   let updates = Promise.resolve();
   try {
     const result = await generateValidated({

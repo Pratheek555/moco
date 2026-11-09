@@ -46,7 +46,12 @@ try {
   const page = await app.firstWindow();
   const errors = [];
   page.on("pageerror", (error) => errors.push(error.message));
-  await expect(page.getByLabel("What story will you tell?")).toBeVisible();
+  await expect(page.getByLabel("What would you like to explain?")).toBeVisible();
+  // This regression covers the existing freeform story workflow explicitly.
+  await page.getByRole("button", { name: "Story options", exact: true }).click();
+  await page.getByLabel("Visual approach").click();
+  await page.getByRole("option", { name: "Animation & 3D", exact: true }).click();
+  await page.getByRole("button", { name: "Done", exact: true }).click();
   await expect(page.getByRole("button", { name: "Create series", exact: true })).toBeDisabled();
   await expect(page.locator('[data-slot="sidebar"]')).toBeVisible();
   await page.getByRole("button", { name: "My series", exact: true }).click();
@@ -568,6 +573,7 @@ try {
   for (const step of ["script", "sample", "preview"]) {
     await app.evaluate(({ ipcMain, BrowserWindow }, step) => {
       const f = globalThis.__developmentFixture;
+      if (step === "script") f.state.decisions.push({ category: "send_back", subject: "ep-01", detail: "The narration runs 24.2 s but the target is 30 s. Add about 18 words, keeping the story beats.", at: new Date().toISOString() });
       delete f.state.activeJob;
       f.state.stages = f.state.stages.map((s) => ({
         ...s,
@@ -606,12 +612,12 @@ try {
       ipcMain.removeHandler("moco:episode.media");
       ipcMain.handle("moco:episode.media", () => ({
         stills: {
-          shot01: [
+          shot01: ["#22354a", "#345f73", "#527f98"].map(color =>
             "data:image/svg+xml," +
               encodeURIComponent(
-                '<svg xmlns="http://www.w3.org/2000/svg" width="180" height="320"><rect width="180" height="320" fill="#22354a"/></svg>',
+                `<svg xmlns="http://www.w3.org/2000/svg" width="180" height="320"><rect width="180" height="320" fill="${color}"/></svg>`,
               ),
-          ],
+          ),
         },
         preview: undefined,
       }));
@@ -626,6 +632,34 @@ try {
     await expect(
       page.locator(".studio-review [data-slot=card-title]"),
     ).toContainText(step === "sample" ? "sample" : step);
+    if (step === "script") {
+      await expect(page.getByText("Narration timing adjustment", { exact: true })).toBeVisible();
+      await expect(page.getByText("Review the revised script before the next recording. Artwork waits for your approval.", { exact: true })).toBeVisible();
+      await expect(page.locator(".studio-review").getByText(/The narration runs 24.2 s/)).toBeVisible();
+      await app.evaluate(({ BrowserWindow }) => {
+        const f = globalThis.__developmentFixture;
+        f.state.decisions.push({ category: "feedback", subject: "ep-01/script", detail: "Keep the opening question.", at: new Date().toISOString() });
+        BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+      });
+      await expect(page.getByText("Narration timing adjustment", { exact: true })).toHaveCount(0);
+    } else await expect(page.getByText("Narration timing adjustment", { exact: true })).toHaveCount(0);
+    if (step === "sample") {
+      const frames = page.getByRole("region", { name: "Sample frames", exact: true });
+      await expect(frames.getByRole("button", { name: "Previous sample frame" })).toBeDisabled();
+      await frames.getByRole("button", { name: "Next sample frame" }).click();
+      await expect(frames.getByText("Sample 2 of 3", { exact: true })).toBeVisible();
+      await frames.getByRole("slider", { name: "Choose sample frame" }).press("End");
+      await expect(frames.getByRole("button", { name: "Next sample frame" })).toBeDisabled();
+      await frames.getByRole("slider", { name: "Choose sample frame" }).press("Home");
+      await frames.getByRole("button", { name: "Enlarge sample frame" }).click();
+      const enlarged = page.getByRole("dialog", { name: "Sample shot", exact: true });
+      await expect(enlarged.getByRole("img", { name: "Enlarged sample frame 1 of 3" })).toBeVisible();
+      await enlarged.getByRole("button", { name: "Next sample frame" }).click();
+      await expect(enlarged.getByText("Sample 2 of 3", { exact: true })).toBeVisible();
+      await page.keyboard.press("Escape");
+      await expect(enlarged).toBeHidden();
+      await expect(frames.getByText("Sample 2 of 3", { exact: true })).toBeVisible();
+    }
     await docked();
     if (step === "preview")
       await expect(
@@ -652,6 +686,27 @@ try {
         .toBe(true);
     }
   }
+  // A saved preview must expose unresolved visual checks before export approval.
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    f.state.stages.find(s => s.key === "ep-01/preview").artifactHash = "flagged-preview-hash";
+    ipcMain.removeHandler("moco:series.artifact");
+    ipcMain.handle("moco:series.artifact", (_e, _id, file) => file === "artifacts/series_plan.json" ? { data: f.plan }
+      : file.endsWith("critique.json") ? new Promise(resolve => {
+        globalThis.__resolvePreviewCritique = () => resolve({ data: { quality: { status: "needs_attention", unresolved: ["s01: Make the pointing direction clear."] } } });
+      }) : null);
+    ipcMain.removeHandler("moco:episode.media");
+    ipcMain.handle("moco:episode.media", () => ({ preview: "data:video/mp4;base64,", stills: {} }));
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  await expect.poll(() => app.evaluate(() => typeof globalThis.__resolvePreviewCritique)).toBe("function");
+  await expect(page.locator(".studio-review video")).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeDisabled();
+  await app.evaluate(() => globalThis.__resolvePreviewCritique());
+  await expect(page.getByText("Visual review needs attention", { exact: true })).toBeVisible();
+  await expect(page.getByText("s01: Make the pointing direction clear.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Review saved shots", exact: true })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Approve", exact: true })).toBeDisabled();
   await page.screenshot({
     path: path.join(artifacts, "03-production-review.png"),
   });
@@ -697,6 +752,18 @@ try {
   await page.locator(".studio-feed .generation-process").evaluate(e => { e.open = false; });
   await page.locator(".studio-feed").scrollIntoViewIfNeeded();
   await page.screenshot({ path: path.join(artifacts, "04-live-shots.png"), animations: "disabled" });
+  // A targeted repair keeps Visuals active even when the next ordinary stage is Preview.
+  await app.evaluate(({ BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    f.state.activeJob = { ...f.state.activeJob, kind: "shot", target: "ep-01/shots/s02" };
+    f.state.stages = f.state.stages.map(s => ({ ...s, status: s.key === "ep-01/scenes" ? "done" : s.status }));
+    f.state.next = { kind: "run", key: "ep-01/preview" };
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  await expect(page.getByRole("button", { name: "Production progress", exact: true })).toContainText("Visuals");
+  await expect(page.getByRole("heading", { name: "Episode 1 scenes", exact: true })).toBeVisible();
+  await expect(page.locator(".studio-feed-working")).toContainText("Episode 1 scenes");
+  await expect(page.getByRole("region", { name: "Shot progress" })).toBeVisible();
   await app.evaluate(({ BrowserWindow }) => {
     const f = globalThis.__developmentFixture;
     delete f.state.activeJob;
@@ -733,6 +800,40 @@ try {
     calls.some((c) => c[0] === "approve" && c[2] === "plan-hash"),
     "approval must use the reviewed artifact hash",
   );
+  // Failed visual review must not hide the existing single-shot repair controls.
+  await app.evaluate(({ ipcMain, BrowserWindow }) => {
+    const f = globalThis.__developmentFixture;
+    delete f.state.activeJob;
+    f.state.series.production = { mode: "artist", format: { width: 1080, height: 1920, fps: 60 } };
+    f.state.stages = [
+      { key: "series_plan", status: "approved" }, { key: "bible", status: "approved" },
+      { key: "ep-01/script", status: "approved" }, { key: "ep-01/voiceover", status: "done" },
+      { key: "ep-01/shot_list", status: "done" },
+      { key: "ep-01/scenes", status: "failed", error: { code: "validation_failed", message: "Visual review needs attention: s01 gaze." } },
+    ];
+    f.state.next = { kind: "waiting", key: "ep-01/scenes", status: "failed" };
+    f.state.jobs = [];
+    f.recoverySaved = false;
+    ipcMain.removeHandler("moco:series.artifact");
+    ipcMain.handle("moco:series.artifact", (_e, _id, file) => file === "artifacts/series_plan.json" ? { data: f.plan }
+      : file.endsWith("shot_list.json") ? { data: { shots: [{ id: "s01", start: 0, end: 5, lineIds: ["l01"], intent: "Point to the booth.", characters: [], location: "booth" }] } } : null);
+    ipcMain.removeHandler("moco:episode.media");
+    ipcMain.handle("moco:episode.media", () => ({ stills: {}, savedShots: f.recoverySaved ? ["s01"] : [] }));
+    ipcMain.removeHandler("moco:episode.regenerateShot");
+    ipcMain.handle("moco:episode.regenerateShot", (_e, ...args) => { f.calls.push(["regenerate", ...args]); return "repair-job"; });
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  await page.getByRole("button", { name: "Review saved shots", exact: true }).click();
+  await expect(page.getByLabel("Redo this shot", { exact: true })).toBeDisabled();
+  await app.evaluate(({ BrowserWindow }) => {
+    globalThis.__developmentFixture.recoverySaved = true;
+    BrowserWindow.getAllWindows()[0].webContents.send("moco:library", {});
+  });
+  await expect(page.getByLabel("Redo this shot", { exact: true })).toBeEnabled();
+  await expect(page.getByText("All shots are saved. Repair this shot and Moco will recheck the cut. Final export still requires a passing review.", { exact: true })).toBeVisible();
+  await page.getByLabel("Redo this shot", { exact: true }).fill("Point toward the booth.");
+  await page.getByRole("button", { name: "Redo shot", exact: true }).click();
+  await expect.poll(() => app.evaluate(() => globalThis.__developmentFixture.calls.filter(c => c[0] === "regenerate").length)).toBe(1);
   assert.deepEqual(errors, []);
   console.log(
     "PASS studio themes, compact layout, all review sidebars, queued direction, live task and shot progress, publishing sidebar, and explicit episode continuation",

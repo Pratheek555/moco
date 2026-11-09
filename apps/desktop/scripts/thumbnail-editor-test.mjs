@@ -23,7 +23,7 @@ try {
   const page = await app.firstWindow();
   const errors = [];
   page.on("pageerror", error => errors.push(error.message));
-  await expect(page.getByLabel("What story will you tell?")).toBeVisible();
+  await expect(page.locator("#idea")).toBeVisible();
   await app.evaluate(({ ipcMain }) => {
     const at = new Date().toISOString();
     const state = { series: { id: "thumbnail-ui", idea: "A real turning point", episodes: 1, language: "en", createdAt: at },
@@ -48,7 +48,7 @@ try {
       f.thumbnail = { ...choice, frame: choice.frame ?? 29, file: "episodes/ep-01/renders/thumbnail.jpg" }; f.revision++;
     });
   });
-  await page.getByLabel("What story will you tell?").fill("A real turning point");
+  await page.locator("#idea").fill("A real turning point");
   await page.getByRole("button", { name: "Create series", exact: true }).click();
   const editor = page.locator(".thumbnail-editor");
   await expect(editor).toBeVisible();

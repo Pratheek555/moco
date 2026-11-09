@@ -42,6 +42,7 @@ it("publishes saved-line progress in order before reporting speech complete", as
   const { engine, audio } = await setup();
   const original = audio.tts.bind(audio);
   const speak = async (...[lines, voice, language, outDir, _signal, onProgress]: Parameters<AudioPort["tts"]>) => {
+    onProgress?.(0, lines.length);
     onProgress?.(1, lines.length);
     onProgress?.(lines.length, lines.length);
     return original(lines, voice, language, outDir);
@@ -58,6 +59,9 @@ it("publishes saved-line progress in order before reporting speech complete", as
   }
   await advance(engine, seriesId);
   const saved = messages.filter(message => message.startsWith("Narration:"));
+  const preparing = messages.findIndex(message => message.includes("first line can take longer"));
+  expect(preparing).toBeGreaterThan(-1);
+  expect(preparing).toBeLessThan(messages.indexOf(saved[0]!));
   expect(saved).toEqual([
     "Narration: 1 of 8 lines saved. Completed lines will be reused on retry.",
     "Narration: 8 of 8 lines saved. Completed lines will be reused on retry.",

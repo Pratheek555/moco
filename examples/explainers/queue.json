@@ -1,0 +1,22 @@
+{
+  "topic": "Explain first in, first out using a queue at a tiny ticket booth. Show three numbered visitors arriving and leaving in order. Make the rule visible with a simple diagram, then return to the booth for the payoff.",
+  "audience": "General audience, no specialist knowledge",
+  "visualDirection": "An original teal-jacketed presenter, warm paper backgrounds and coral accents. Keep the same presenter proportions, face and colors across cuts.",
+  "script": {
+    "targetSeconds": 30,
+    "lines": [
+      { "id": "l01", "text": "Why does a queue work? Meet three visitors waiting for tickets at our tiny booth.", "beat": "Question at the booth", "speaker": "narrator" },
+      { "id": "l02", "text": "The first visitor joins the front. The second waits behind, and the third joins last.", "beat": "Show arrival order", "speaker": "narrator" },
+      { "id": "l03", "text": "When the booth opens, the visitor at the front gets a ticket and leaves first.", "beat": "Show the first departure", "speaker": "narrator" },
+      { "id": "l04", "text": "The others move forward, keeping their order. New arrivals always join the back of this queue.", "beat": "Advance the diagram", "speaker": "narrator" },
+      { "id": "l05", "text": "That rule is first in, first out. Our diagram follows the same order as the visitors.", "beat": "Resolve the opening", "speaker": "narrator" }
+    ],
+    "shotPlan": [
+      { "lineId": "l01", "seconds": 6, "picture": "Medium view of the booth. The original presenter raises an open palm in a questioning pose, looking from the viewer to three waiting visitors. One short physical sign reads TICKETS." },
+      { "lineId": "l02", "seconds": 6, "picture": "Cut to a board closeup to isolate the arrival order. Three numbered tokens enter in order, 1 then 2 then 3. The presenter points to token 1 with gaze following the fingertip. Sparse labels read FRONT and BACK." },
+      { "lineId": "l03", "seconds": 6, "picture": "Cut back to the booth to connect the diagram to the example. Visitor 1 receives a ticket and leaves; 2 and 3 remain in their original order. The presenter turns to follow visitor 1." },
+      { "lineId": "l04", "seconds": 6, "picture": "Diagram closeup makes the change legible. Token 1 exits, 2 and 3 advance together without swapping, and token 4 joins the back. Reveal each movement on its corresponding narration phrase." },
+      { "lineId": "l05", "seconds": 6, "picture": "A wider callback reconnects booth and diagram. The same presenter reacts with a small smile and open hand toward the matching visitor/token order. A physical board reads FIRST IN / FIRST OUT, with all text and faces inside a 10% inset." }
+    ]
+  }
+}

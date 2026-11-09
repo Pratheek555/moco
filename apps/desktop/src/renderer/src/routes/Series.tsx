@@ -11,6 +11,7 @@ import {
 } from "lucide-react";
 import type {
   CanonAddition,
+  Critique,
   EpisodeScript,
   Playbook,
   SeriesBible,
@@ -178,6 +179,11 @@ export function SeriesPage({ id }: { id: string }) {
     (a, b) => a + b,
     0,
   );
+  const scriptRevision = waiting?.key.endsWith("/script")
+    ? status.decisions.findLast(decision =>
+      (decision.category === "send_back" && decision.subject === episodeOf(waiting.key)) ||
+      (decision.category === "feedback" && decision.subject === waiting.key))
+    : undefined;
 
   // All gates share the same bounded studio layout, from the first brief to delivery.
   if (stage("series_plan")?.status !== "approved" && !bible)
@@ -190,7 +196,7 @@ export function SeriesPage({ id }: { id: string }) {
       review={(focus, hasQueuedDirection) =>
         waiting ? (
           <Review
-            key={waiting.key}
+            key={`${waiting.key}:${waiting.artifactHash}`}
             seriesId={id}
             stage={waiting}
             plan={plan}
@@ -199,6 +205,7 @@ export function SeriesPage({ id }: { id: string }) {
             status={status}
             onRequestChanges={focus}
             hasQueuedDirection={hasQueuedDirection}
+            timingAdjustment={scriptRevision?.category === "send_back" ? scriptRevision.detail : undefined}
           />
         ) : null
       }
@@ -730,6 +737,7 @@ function Review({
   status,
   onRequestChanges,
   hasQueuedDirection = false,
+  timingAdjustment,
 }: {
   seriesId: string;
   stage: Stage;
@@ -739,6 +747,7 @@ function Review({
   status: SeriesStatus;
   onRequestChanges?: () => void;
   hasQueuedDirection?: boolean;
+  timingAdjustment?: string;
 }) {
   const [feedback, setFeedback] = useState<string | null>(null),
     [busy, setBusy] = useState<"approve" | "redo" | null>(null);
@@ -758,6 +767,13 @@ function Review({
       episodeId ? api.episode.media(seriesId, episodeId) : undefined,
     [seriesId, episodeId, stage.artifactHash],
   );
+  const { data: critique, error: critiqueError } = useAsync(
+    async () => stage.key.endsWith("/preview") && episodeId
+      ? (await api.series.artifact(seriesId, `episodes/${episodeId}/artifacts/critique.json`))?.data as Critique | undefined
+      : undefined,
+    [seriesId, stage.key, stage.artifactHash],
+  );
+  const qualityBlocked = stage.key.endsWith("/preview") && critique?.quality?.status === "needs_attention";
 
   const act = async (
     kind: "approve" | "redo",
@@ -785,7 +801,9 @@ function Review({
       setFeedback(null);
     });
 
-  const stills = Object.values(media?.stills ?? {}).flat();
+  const stills = stage.key.endsWith("/sample")
+    ? Object.values(media?.stills ?? {})[0] ?? []
+    : Object.values(media?.stills ?? {}).flat();
   const unavailable = stage.key.endsWith("/script")
     ? !script
     : stage.key.endsWith("/sample")
@@ -795,7 +813,7 @@ function Review({
         : stage.key === "bible"
           ? !show && !bible
           : !plan;
-  const loadError = scriptError || mediaError;
+  const loadError = scriptError || mediaError || critiqueError;
   return (
     <Card
       role="region"
@@ -814,6 +832,17 @@ function Review({
         </CardAction>
       </CardHeader>
       <CardContent className="flex flex-col gap-5">
+        {qualityBlocked && <div role="alert" className="rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm">
+          <p className="font-medium">Visual review needs attention</p>
+          <p className="mt-1 text-muted-foreground">You can watch this draft. Repair the flagged shots before approving it for final export.</p>
+          <ul className="mt-2 list-disc space-y-1 pl-4">{critique.quality!.unresolved.map((issue, i) => <li key={i}>{issue}</li>)}</ul>
+          <Button variant="outline" size="sm" className="mt-3" onClick={() => useApp.getState().go({ name: "episode", seriesId, episodeId: episodeId! })}>Review saved shots</Button>
+        </div>}
+        {timingAdjustment && <div role="status" className="rounded-lg border bg-muted/30 p-3 text-sm">
+          <p className="font-medium">Narration timing adjustment</p>
+          <p className="mt-1 text-muted-foreground">{timingAdjustment}</p>
+          <p className="mt-2">Review the revised script before the next recording. Artwork waits for your approval.</p>
+        </div>}
         {loadError && (
           <p role="alert" className="text-sm text-destructive">
             Could not load this review: {loadError}
@@ -911,23 +940,8 @@ function Review({
           </ol>
         )}
         {stage.key.endsWith("/sample") && (
-          <div className="flex gap-3 overflow-x-auto pb-1">
-            {media
-              ? stills.map((url) => (
-                  <img
-                    key={url}
-                    src={url}
-                    alt="Sample shot still"
-                    className="max-h-80 max-w-full shrink-0 rounded-lg border object-contain"
-                  />
-                ))
-              : [0, 1, 2].map((i) => (
-                  <Skeleton
-                    key={i}
-                    className="aspect-[9/16] h-72 shrink-0 rounded-lg"
-                  />
-                ))}
-          </div>
+          stills.length ? <SampleFrames key={stage.artifactHash} stills={stills} />
+            : <Skeleton className="aspect-[9/16] h-72 rounded-lg" />
         )}
         {stage.key.endsWith("/preview") &&
           (media?.preview ? (
@@ -988,7 +1002,7 @@ function Review({
           </>
         )}
         <Button
-          disabled={busy !== null || unavailable || Boolean(loadError) || hasQueuedDirection}
+          disabled={busy !== null || unavailable || Boolean(loadError) || hasQueuedDirection || qualityBlocked || (stage.key.endsWith("/preview") && critique === null)}
           onClick={() => void approve()}
         >
           {busy === "approve" ? (
@@ -1001,4 +1015,32 @@ function Review({
       </CardFooter>
     </Card>
   );
+}
+
+function SampleFrames({ stills }: { stills: string[] }) {
+  const [selected, setSelected] = useState(0);
+  const [enlarged, setEnlarged] = useState(false);
+  const index = Math.min(selected, stills.length - 1);
+  const controls = () => <div className="flex flex-col gap-3">
+    <div className="flex items-center justify-between gap-2">
+      <Button variant="outline" size="sm" aria-label="Previous sample frame" disabled={index === 0} onClick={() => setSelected(index - 1)}>Previous</Button>
+      <span className="text-xs text-muted-foreground tabular-nums" aria-live="polite">Sample {index + 1} of {stills.length}</span>
+      <Button variant="outline" size="sm" aria-label="Next sample frame" disabled={index === stills.length - 1} onClick={() => setSelected(index + 1)}>Next</Button>
+    </div>
+    <input type="range" min={0} max={stills.length - 1} step={1} value={index} aria-label="Choose sample frame" onChange={event => setSelected(Number(event.target.value))} className="w-full accent-primary" />
+  </div>;
+  return <section className="flex flex-col gap-3" aria-label="Sample frames">
+    <button type="button" aria-label="Enlarge sample frame" onClick={() => setEnlarged(true)} className="rounded-lg border bg-muted/20 p-1 focus-visible:outline-2 focus-visible:outline-ring">
+      <img src={stills[index]} alt={`Sample frame ${index + 1} of ${stills.length}`} className="mx-auto max-h-[50dvh] max-w-full rounded-sm object-contain" />
+    </button>
+    {controls()}
+    <p className="text-xs text-muted-foreground">Select a frame to enlarge it. These are sampled poses; watch motion in the full preview.</p>
+    <Dialog open={enlarged} onOpenChange={setEnlarged}>
+      <DialogContent className="max-h-[95dvh] overflow-y-auto sm:max-w-4xl" onEscapeKeyDown={event => event.stopPropagation()}>
+        <DialogHeader><DialogTitle>Sample shot</DialogTitle><DialogDescription>Inspect the character, pose and framing before making the rest.</DialogDescription></DialogHeader>
+        <img src={stills[index]} alt={`Enlarged sample frame ${index + 1} of ${stills.length}`} className="mx-auto max-h-[65dvh] max-w-full rounded-lg object-contain" />
+        {controls()}
+      </DialogContent>
+    </Dialog>
+  </section>;
 }
