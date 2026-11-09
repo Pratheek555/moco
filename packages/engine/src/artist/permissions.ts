@@ -1,6 +1,7 @@
 import type { SeriesInfo, StageContext } from "../pipeline/context.ts";
 import { EngineError } from "../errors.ts";
 import { files } from "../pipeline/stages.ts";
+import { repeatScriptHash } from "../repeat/episode.ts";
 
 export function imageGenerationCapability(series: Pick<SeriesInfo, "idea" | "production">, ai: { supportsImageGeneration?: boolean }) {
   // An explicit production field is preferred. Existing projects may have selected
@@ -20,7 +21,8 @@ export async function artistPermissions(ctx: Pick<StageContext, "ledger" | "stor
   const approved = async (key: string, file: string, kind: "SeriesBible" | "EpisodeScript") => {
     const stage = ctx.ledger.stage(key);
     const artifact = await ctx.store.read(file, kind);
-    if (stage.status !== "approved" || stage.artifactHash !== artifact.meta.contentHash) {
+    const expected = kind === "EpisodeScript" ? repeatScriptHash(ctx, episodeId, artifact.meta.contentHash) : artifact.meta.contentHash;
+    if (stage.status !== "approved" || stage.artifactHash !== expected) {
       throw new EngineError("stage_blocked", `Review and approve the current ${kind === "EpisodeScript" ? "script and storyboard" : "series bible"} before creating artwork.`);
     }
     return { status: "approved" as const, revision: artifact.meta.revision, contentHash: artifact.meta.contentHash, approvedAt: stage.updatedAt };

@@ -31,7 +31,10 @@ export function allTemplates(): TemplateInfo[] {
 }
 
 export function lookupTemplate(id: string | undefined): TemplateInfo | undefined {
-  return id === undefined ? undefined : allTemplates().find((template) => template.id === id);
+  if (id === undefined) return undefined;
+  // Sample revisions pin their own style context and never appear as gallery entries.
+  if (stylesDir && /^sample-[a-f0-9-]{36}$/.test(id)) return readLearnedInfo(join(stylesDir, ".samples", id));
+  return allTemplates().find((template) => template.id === id);
 }
 
 // The template's stage guidance file.
@@ -53,6 +56,7 @@ function readLearnedInfo(folder: string): TemplateInfo | undefined {
       tags: info.tags ?? [],
       story: info.story ?? [],
       look: info.look ?? [],
+      missing: info.missing ?? [],
       palette: info.palette,
       world: info.world === "auto" ? "auto" : "world",
       defaults: { episodes: info.defaults?.episodes ?? 3 },

@@ -1,0 +1,144 @@
+import { mkdtemp, readFile, readdir, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
+import { join } from "node:path";
+import { expect, it, vi } from "vitest";
+import { CanvasLabel, SceneSpec, SPEC_VERSION } from "@moco/spec";
+import { createEngine } from "../src/index.ts";
+import { ArtifactStore } from "../src/store/artifacts.ts";
+import { Ledger } from "../src/store/ledger.ts";
+import { writeJsonAtomic } from "../src/store/workspace.ts";
+import { FakeAi, FakeAudio, FakeRenderPort } from "../src/testing/fakes.ts";
+import { Semaphore } from "../src/jobs/semaphore.ts";
+import { runRender } from "../src/pipeline/render.ts";
+import { files } from "../src/pipeline/stages.ts";
+import type { StageContext } from "../src/pipeline/context.ts";
+import { runStages } from "../src/pipeline/run.ts";
+
+const ref = { seriesId: "labels", episodeId: "ep-01", shotId: "s01" };
+const sceneFile = files.shotSpec(ref.episodeId, ref.shotId);
+async function fixture() {
+  const root = await mkdtemp(join(tmpdir(), "moco-labels-")), dir = join(root, "labels");
+  const series = { id: "labels", specVersion: SPEC_VERSION, idea: "Explain rewards", language: "en", episodes: 1, createdAt: new Date().toISOString(), production: { mode: "artist", format: { width: 640, height: 360, fps: 30 } } };
+  await writeJsonAtomic(join(dir, "series.json"), series);
+  const ledger = await Ledger.load(dir), store = new ArtifactStore(dir, ledger, () => {});
+  ledger.data.episodeIds = ["ep-01"];
+  const shots = ["s01", "s02"].map((id, i) => ({ id, start: i, end: i + 1, intent: "Explain", characters: [], lineIds: ["l01"], location: "board" }));
+  await store.save(files.shotList("ep-01"), "ShotList", { shots }, { producedBy: "engine" });
+  await store.save(files.voiceover("ep-01"), "VoiceoverTrack", { file: "vo.wav", durationSeconds: 2, words: [{ text: "Reward", start: 0, end: 1.9, lineId: "l01" }], visemes: [] }, { producedBy: "engine" });
+  await writeFile(join(dir, "vo.wav"), "accepted-audio-bytes");
+  const labels = [CanvasLabel.parse({ id: "reward", text: "Dopamine", x: 20, y: 20, width: 300, height: 60, fontSize: 24, startFrame: 2, endFrame: 28 }), CanvasLabel.parse({ id: "other", text: "Locked", x: 20, y: 100, width: 300, height: 60, fontSize: 24, startFrame: 0, endFrame: 30 })];
+  for (const shot of shots) await store.save(files.shotSpec("ep-01", shot.id), "SceneSpec", SceneSpec.parse({ shotId: shot.id, durationFrames: 30, format: series.production.format, background: { id: "board" }, actors: [], captions: [], canvas: { version: 1, characterRigs: { presenter: "a".repeat(64) }, source: "ctx.fillStyle='#f3e3cd';ctx.fillRect(0,0,640,360)", labels } }), { producedBy: "ai", backend: "chosen-provider", inputs: [store.inputRef(files.shotList("ep-01")), store.inputRef(files.voiceover("ep-01")), { kind: "SceneInput", contentHash: "accepted-input", revision: 0 }] });
+  await store.save(files.critique("ep-01"), "Critique", { episodeId: "ep-01", shots: [], overall: "Passed", quality: { status: "passed", unresolved: [], sceneHashes: Object.fromEntries(shots.map(shot => [shot.id, store.hashOf(files.shotSpec("ep-01", shot.id))!])), voiceoverHash: store.hashOf(files.voiceover("ep-01"))!, shotListHash: store.hashOf(files.shotList("ep-01"))!, report: "quality/report.json" } }, { producedBy: "engine" });
+  const ai = new FakeAi(() => { throw Error("No model calls allowed"); }), render = new FakeRenderPort();
+  const ctx = { store, dir, render, series, seriesId: "labels", signal: new AbortController().signal, renderSlots: new Semaphore(1), bus: { emit: async () => {} } } as unknown as StageContext;
+  await runRender(ctx, "ep-01", "preview"); await runRender(ctx, "ep-01", "final");
+  for (const key of ["series_plan", "bible", "ep-01/script", "ep-01/voiceover", "ep-01/shot_list", "ep-01/sample", "ep-01/scenes", "ep-01/preview", "ep-01/final", "ep-01/memory_update", "ep-01/publish"]) ledger.setStage(key, { status: key === "ep-01/preview" ? "approved" : "done" });
+  await ledger.save();
+  const open = () => createEngine({ projectsDir: root, ai, render, audio: new FakeAudio() });
+  const engine = open();
+  const input = { sceneHash: store.hashOf(sceneFile)!, labelId: "reward", text: "Reward signal" };
+  return { engine, open, dir, root, store, ledger, render, ai, ctx, input };
+}
+
+it("previews without mutation; applies only one label text; invalidates renders and quality; persists undo", async () => {
+  const f = await fixture();
+  const original = (await f.store.read(sceneFile, "SceneSpec")).data;
+  const lockedFiles = [files.shotSpec("ep-01", "s02"), files.voiceover("ep-01"), files.shotList("ep-01"), "vo.wav"];
+  const lockedBytes = await Promise.all(lockedFiles.map(file => readFile(join(f.dir, file))));
+  const before = await readFile(join(f.dir, sceneFile));
+  expect(await f.engine.renderFreshness(ref)).toEqual({ preview: true, final: true });
+  const preview = await f.engine.previewLabelEdit(ref, f.input);
+  expect(preview.frames).toEqual([2, 14, 27]);
+  expect(await readFile(join(f.dir, sceneFile))).toEqual(before);
+  expect(await f.engine.renderFreshness(ref)).toEqual({ preview: true, final: true });
+  expect((await f.engine.history({ seriesId: ref.seriesId, file: sceneFile }))).toHaveLength(1);
+  await f.engine.applyLabelEdit(ref, preview.id);
+  const updated = await f.engine.readArtifact({ seriesId: ref.seriesId, file: sceneFile }) as { data: SceneSpec; meta: { inputs: unknown[] } };
+  const expected = structuredClone(original); expected.canvas!.labels![0]!.text = "Reward signal";
+  expect(updated.data).toEqual(expected);
+  expect(updated.meta.inputs).toEqual(JSON.parse(before.toString()).meta.inputs);
+  for (const [i, file] of lockedFiles.entries()) expect(await readFile(join(f.dir, file))).toEqual(lockedBytes[i]);
+  expect(await f.engine.renderFreshness(ref)).toEqual({ preview: false, final: false });
+  expect((await f.engine.status(ref.seriesId)).stages.find(stage => stage.key === "ep-01/preview")?.status).toBe("stale");
+  expect((await f.engine.waitForJob(await f.engine.renderFinal(ref))).error?.code).toBe("stage_blocked");
+  expect((await f.engine.waitForJob(await f.engine.renderPreview(ref))).status).toBe("succeeded");
+  const gate = (await f.engine.status(ref.seriesId)).stages.find(stage => stage.key === "ep-01/preview")!;
+  await f.engine.approve({ seriesId: ref.seriesId, key: gate.key }, gate.artifactHash!);
+  const final = await f.engine.waitForJob(await f.engine.renderFinal(ref));
+  expect(final.status).toBe("failed"); expect(final.error?.message).toMatch(/stale/);
+  const reopened = f.open();
+  expect((await reopened.labelEditor(ref)).undoId).toBe(preview.id);
+  await reopened.undoLabelEdit(ref, preview.id);
+  expect((await reopened.readArtifact({ seriesId: ref.seriesId, file: sceneFile }) as { data: SceneSpec }).data).toEqual(original);
+  expect((await reopened.labelEditor(ref)).undoId).toBeUndefined();
+  await expect(reopened.undoLabelEdit(ref, preview.id)).rejects.toMatchObject({ code: "gate_mismatch" });
+  expect(await reopened.history({ seriesId: ref.seriesId, file: sceneFile })).toHaveLength(3);
+  expect(f.ai.requests).toHaveLength(0);
+});
+
+it("rejects stale comparisons, replays and unsupported text without changing the accepted shot", async () => {
+  const f = await fixture();
+  await expect(f.engine.previewLabelEdit(ref, { ...f.input, labelId: "baked-text" })).rejects.toThrow(/supported/);
+  await expect(f.engine.previewLabelEdit(ref, { ...f.input, text: "bad\nline" })).rejects.toThrow(/one line/);
+  await expect(f.engine.previewLabelEdit(ref, { ...f.input, sceneHash: "old" })).rejects.toMatchObject({ code: "gate_mismatch" });
+  const preview = await f.engine.previewLabelEdit(ref, f.input);
+  await f.engine.restore({ seriesId: ref.seriesId, file: files.shotSpec("ep-01", "s02") }, 0);
+  await expect(f.engine.applyLabelEdit(ref, preview.id)).rejects.toMatchObject({ code: "gate_mismatch" });
+  expect((await f.engine.labelEditor(ref)).sceneHash).toBe(f.input.sceneHash);
+  const newPreview = await f.engine.previewLabelEdit(ref, f.input);
+  await f.engine.applyLabelEdit(ref, newPreview.id);
+  await expect(f.engine.applyLabelEdit(ref, newPreview.id)).rejects.toMatchObject({ code: "gate_mismatch" });
+  const stage = (await f.engine.status(ref.seriesId)).stages.find(stage => stage.key === "ep-01/scenes");
+  expect(stage?.status).toBe("done");
+});
+
+it("keeps the accepted version on preview failure and serializes edits against jobs/restores", async () => {
+  const f = await fixture();
+  const before = await readFile(join(f.dir, sceneFile));
+  const originalCheck = f.render.check.bind(f.render);
+  vi.spyOn(f.render, "check").mockImplementation(async (spec, opts) => spec.canvas?.labels?.[0]?.text === "Reward signal" ? { ok: false, errors: [{ shotId: spec.shotId, message: "Label reward overflows its fixed box" }] } : originalCheck(spec, opts));
+  await expect(f.engine.previewLabelEdit(ref, f.input)).rejects.toThrow(/overflows/);
+  expect(await readFile(join(f.dir, sceneFile))).toEqual(before);
+  let release!: () => void;
+  const hold = new Promise<void>(resolve => { release = resolve; });
+  let enter!: () => void;
+  const entered = new Promise<void>(resolve => { enter = resolve; });
+  vi.mocked(f.render.check).mockImplementation(async (spec, opts) => { enter(); await hold; return originalCheck(spec, opts); });
+  const preview = f.engine.previewLabelEdit(ref, f.input);
+  await entered;
+  await expect(f.engine.previewLabelEdit(ref, f.input)).rejects.toMatchObject({ code: "busy" });
+  await expect(f.engine.runStage({ seriesId: ref.seriesId })).rejects.toMatchObject({ code: "busy" });
+  await expect(f.engine.restore({ seriesId: ref.seriesId, file: sceneFile }, 0)).rejects.toMatchObject({ code: "busy" });
+  release(); await preview;
+});
+
+it("rebuilds previews without AI availability, preserves prior cache files, and retains video on render failure", async () => {
+  const f = await fixture();
+  await writeFile(join(f.dir, "episodes/ep-01/renders/preview.mp4"), "old-preview");
+  const cacheFiles = await readdir(join(f.dir, "cache/renders"));
+  const preview = await f.engine.previewLabelEdit(ref, f.input);
+  await f.engine.applyLabelEdit(ref, preview.id);
+  vi.spyOn(f.ai, "available").mockResolvedValue({ ok: false, authMethod: "offline" });
+  const encode = vi.spyOn(f.render, "renderEpisode").mockImplementation(async (_episode, out) => { await writeFile(out, "partial"); throw Error("encoder failed"); });
+  const failed = await f.engine.waitForJob(await f.engine.renderPreview(ref));
+  expect(failed.status).toBe("failed");
+  expect((await readFile(join(f.dir, "episodes/ep-01/renders/preview.mp4"))).toString()).toBe("old-preview");
+  encode.mockImplementation(async (_episode, out) => { await writeFile(out, "new-preview"); return { path: out, durationSeconds: 2 }; });
+  const rebuilt = await f.engine.waitForJob(await f.engine.renderPreview(ref));
+  expect(rebuilt.status).toBe("succeeded");
+  expect((await readFile(join(f.dir, "episodes/ep-01/renders/preview.mp4"))).toString()).toBe("new-preview");
+  expect((await Promise.all(cacheFiles.map(file => readFile(join(f.dir, "cache/renders", file))))).some(bytes => bytes.toString() === "old-preview")).toBe(true);
+  expect(await f.engine.renderFreshness(ref)).toEqual({ preview: true, final: false });
+  expect(f.ai.requests).toHaveLength(0);
+});
+
+it("blocks automatic whole-cut repair on export retries after a precise edit", async () => {
+  const f = await fixture();
+  await f.engine.applyLabelEdit(ref, (await f.engine.previewLabelEdit(ref, f.input)).id);
+  const ledger = await Ledger.load(f.dir), store = new ArtifactStore(f.dir, ledger, () => {});
+  const critique = (await store.read(files.critique("ep-01"), "Critique")).data;
+  await store.save(files.critique("ep-01"), "Critique", { ...critique, quality: { ...critique.quality, status: "needs_attention", unresolved: ["Review required"] } }, { producedBy: "engine" });
+  const ctx = { ...f.ctx, store, ledger, episodeIds: () => ["ep-01"] };
+  await expect(runStages(ctx, "ep-01/final")).rejects.toThrow(/Artwork is locked/);
+  expect(f.ai.requests).toHaveLength(0);
+});

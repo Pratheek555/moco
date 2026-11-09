@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef } from "react";
 import { AbsoluteFill, cancelRender, continueRender, delayRender, useCurrentFrame, useVideoConfig } from "remotion";
 import type { SceneSpec } from "@moco/spec";
 import { canvasDocument } from "../canvas-document.ts";
+import { CanvasLabels } from "./CanvasLabels.tsx";
 
 export function AuthoredCanvas({ scene }: { scene: SceneSpec }) {
   const frame = useCurrentFrame();
@@ -28,5 +29,5 @@ export function AuthoredCanvas({ scene }: { scene: SceneSpec }) {
     if (ready.current) send();
     return () => { window.removeEventListener("message", receive); continueRender(handle); };
   }, [document, frame, fps, handle, scene.shotId]);
-  return <AbsoluteFill><iframe ref={iframe} sandbox="allow-scripts" srcDoc={document} title={`Authored shot ${scene.shotId}`} style={{ width, height, border: 0, pointerEvents: "none" }} /></AbsoluteFill>;
+  return <AbsoluteFill><iframe ref={iframe} sandbox="allow-scripts" srcDoc={document} title={`Authored shot ${scene.shotId}`} style={{ width, height, border: 0, pointerEvents: "none" }} />{scene.canvas!.labels?.length ? <CanvasLabels scene={scene} /> : null}</AbsoluteFill>;
 }

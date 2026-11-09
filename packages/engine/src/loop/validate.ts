@@ -38,6 +38,16 @@ export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
     spec.canvas.cues.forEach((cue, index) => {
       if (cue.atFrame >= spec.durationFrames) issues.push({ path: `canvas.cues[${index}].atFrame`, problem: "cue is outside the shot" });
     });
+    const labelIds = new Set<string>();
+    spec.canvas.labels?.forEach((label, index) => {
+      const path = `canvas.labels[${index}]`;
+      if (labelIds.has(label.id)) issues.push({ path, problem: "duplicate label id" });
+      labelIds.add(label.id);
+      const format = spec.format ?? { width: 1080, height: 1920 };
+      if (label.x + label.width > format.width || label.y + label.height > format.height) issues.push({ path, problem: "label box is outside the frame" });
+      issues.push(...checkFrameRange(label, path, spec.durationFrames));
+      if (label.fontFamily !== "Arial" && !spec.canvas!.fonts?.[label.fontFamily]) issues.push({ path, problem: "label font must be Arial or an embedded font" });
+    });
     if (spec.stage || spec.actors.length || spec.props.length || spec.captions.length || spec.camera.length || spec.fx.length || spec.atmosphere.length) {
       issues.push({ path: "canvas", problem: "canvas owns the complete shot", fix: "Leave stage absent and actors, props, captions, camera, fx and atmosphere empty; draw all elements in canvas.source." });
     }

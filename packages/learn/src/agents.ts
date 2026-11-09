@@ -58,7 +58,7 @@ export type SpecialistOutput = z.infer<typeof SpecialistOutput>;
 export type OverviewOutput = z.infer<typeof OverviewOutput>;
 export type ReferenceCard = z.infer<typeof ReferenceCard>;
 
-export type Role = "overview" | "camera" | "motion" | "graphics" | "story" | "reference" | "merge" | "template";
+export type Role = "overview" | "camera" | "motion" | "graphics" | "story" | "reference" | "merge" | "template" | "template_artist";
 
 export interface AgentTask {
   name: string; // file name of its output, e.g. "camera-2"

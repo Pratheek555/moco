@@ -13,6 +13,8 @@ import type { StageContext } from "./context.ts";
 import { canRun, markDependantsStale, nextStage } from "./machine.ts";
 import { runRender } from "./render.ts";
 import { files, GATED, parseStageKey, stageKey } from "./stages.ts";
+import { assertRepeatBasis, prepareRepeat } from "../repeat/episode.ts";
+import { hashData } from "../store/hash.ts";
 
 // A stage either produced output (with its hash) or sent its input back to be redone.
 type StageOutput = { kind: "done"; hash: string } | { kind: "sent_back" };
@@ -21,13 +23,17 @@ type StageOutput = { kind: "done"; hash: string } | { kind: "sent_back" };
 export async function runStages(ctx: StageContext, firstKey?: string, options: { once?: boolean } = {}): Promise<string[]> {
   const ran: string[] = [];
   let key: string | undefined = firstKey ?? runnableNext(ctx);
+  if (ctx.series?.styleSample && key && ["final", "publish", "memory_update"].includes(parseStageKey(key).stage)) throw new EngineError("stage_blocked", "Style samples stop at approved preview; create a series separately for full production");
   // Older jobs completed scenes even when review was interrupted. Retrying
   // export must resume that work, rather than reject the same report again.
   if (key && parseStageKey(key).stage === "final") {
     const ep = parseStageKey(key).episodeId!;
     if (ctx.store.has(files.critique(ep))) {
       const quality = (await ctx.store.read(files.critique(ep), "Critique")).data.quality;
-      if (quality?.status === "needs_attention") key = stageKey("scenes", ep);
+      if (quality?.status === "needs_attention") {
+        if (ctx.ledger.stage(stageKey("scenes", ep)).preserveArtwork) throw new EngineError("stage_blocked", "Visual review needs attention. Artwork is locked after a label edit; review without repairs or explicitly redo a shot before exporting.");
+        key = stageKey("scenes", ep);
+      }
     }
   }
 
@@ -47,6 +53,7 @@ export async function runStages(ctx: StageContext, firstKey?: string, options: {
 }
 
 function runnableNext(ctx: StageContext): string | undefined {
+  if (ctx.series?.styleSample && ctx.ledger.stage(`${ctx.episodeIds()[0]}/preview`).status === "approved") return undefined;
   const next = nextStage(ctx.ledger, ctx.episodeIds());
   return next.kind === "run" ? next.key : undefined;
 }
@@ -64,6 +71,11 @@ async function runOne(ctx: StageContext, key: string): Promise<{ status: "done" 
   await ctx.bus.emit(ctx.seriesId, "stage.started", { key });
 
   try {
+    const episode = parseStageKey(key).episodeId;
+    if (episode) {
+      await assertRepeatBasis(ctx, episode);
+      if (!["memory_update", "publish"].includes(parseStageKey(key).stage)) await prepareRepeat(ctx, episode);
+    }
     const output = await execute(ctx, key, feedback);
 
     // Send-back: this stage goes back to pending; the stage it sent back to runs next.
@@ -73,7 +85,12 @@ async function runOne(ctx: StageContext, key: string): Promise<{ status: "done" 
       return { status: "done" };
     }
 
-    const gated = GATED.has(parseStageKey(key).stage);
+    const combined = key === "series_plan" && appending
+      ? Object.values(ctx.ledger.data.repeatEpisodes ?? {}).find(ep => ep.outlinePending)
+      : undefined;
+    if (combined) combined.outlineHash = hashData((await ctx.store.read(files.seriesPlan, "SeriesPlan")).data.episodes.find(ep => ep.id === combined.episodeId));
+    // Opt-in only: this outline is shown and approved at the script gate, before any speech/artwork.
+    const gated = GATED.has(parseStageKey(key).stage) && !combined;
     const status = gated ? "awaiting_approval" : "done";
     ctx.ledger.setStage(key, { status, artifactHash: output.hash, feedback: undefined });
 

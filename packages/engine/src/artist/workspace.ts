@@ -1,5 +1,5 @@
 import { appendFile, copyFile, lstat, mkdir, readFile, readdir, rm, writeFile } from "node:fs/promises";
-import { basename, dirname, extname, isAbsolute, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { createHash } from "node:crypto";
 import * as z from "zod";
 import type { ArtistTool, ToolContent } from "@moco/ai";
@@ -14,13 +14,12 @@ import { canvasFonts } from "./fonts.ts";
 import { files } from "../pipeline/stages.ts";
 import { artistPermissions } from "./permissions.ts";
 import { EngineError } from "../errors.ts";
+import { workspacePath } from "./paths.ts";
+import { readArtwork } from "./manifest.ts";
+import { readCharacterRig } from "./characters.ts";
+export { workspacePath } from "./paths.ts";
 
-const Manifest = z.object({
-  sourceFiles: z.array(z.string()).min(1).max(12),
-  cast: z.array(z.string()).max(20),
-  assets: z.record(z.string(), z.string()).default({}),
-  cues: z.array(z.object({ id: z.string(), atFrame: z.number().int().nonnegative() })).max(100).default([]),
-});
+import { writeJsonAtomic } from "../store/workspace.ts";
 const Read = z.object({ path: z.string() });
 const Write = Read.extend({ content: z.string().max(10_000_000), encoding: z.enum(["utf8", "base64"]).default("utf8") });
 const Preview = z.object({ frames: z.array(z.number().int().nonnegative()).max(12).optional() });
@@ -36,18 +35,6 @@ export async function publishShotStills(ctx:Pick<StageContext,"dir">,ep:string,s
   for(const file of stills) await copyFile(file,join(dir,basename(file)));
 }
 
-// Check every path component, including the root: no absolute paths, traversal, links or Windows streams.
-export async function workspacePath(root: string, name: string): Promise<string> {
-  if (!name || isAbsolute(name) || name.includes("\\") || name.includes(":") || name.split("/").some((part) => !part || part === "." || part === "..")) throw Error("Use a relative workspace path without traversal");
-  const target = resolve(root, name);
-  if (relative(root, target).startsWith("..")) throw Error("Path escapes workspace");
-  for (const current of [resolve(root), ...name.split("/").map((_, index, parts) => resolve(root, ...parts.slice(0, index + 1)))]) {
-    const info = await lstat(current).catch((error: NodeJS.ErrnoException) => { if (error.code === "ENOENT") return undefined; throw error; });
-    if (info?.isSymbolicLink()) throw Error("Workspace links are not allowed");
-  }
-  return target;
-}
-
 export function temporalFrames(scene: SceneSpec): number[] {
   const last = scene.durationFrames - 1;
   const regular = Array.from({ length: 8 }, (_, index) => Math.round(last * index / 7));
@@ -56,9 +43,7 @@ export function temporalFrames(scene: SceneSpec): number[] {
   return candidates.length <= 12 ? candidates : Array.from({ length: 12 }, (_, index) => candidates[Math.round((candidates.length - 1) * index / 11)]!);
 }
 
-// Roll back editable shot files together with a rejected embedded scene. Shared versions are append-only.
-export async function snapshotShotWorkspace(ctx: Pick<StageContext,"dir">, episodeId:string, shotId:string) {
-  const root=resolve(ctx.dir,"episodes",episodeId,"artist"), prefix=`shots/${shotId}`;
+async function snapshotDirectory(root: string, prefix: string) {
   const list=async(path:string):Promise<string[]>=>{
     const folder=await workspacePath(root,path);
     const entries=await readdir(folder,{withFileTypes:true}).catch((error:NodeJS.ErrnoException)=>{if(error.code==="ENOENT")return [];throw error});
@@ -78,8 +63,17 @@ export async function snapshotShotWorkspace(ctx: Pick<StageContext,"dir">, episo
   };
 }
 
+// Roll back editable artwork AND the stills shown to the user together with a
+// rejected embedded scene. Shared versions and review evidence remain append-only.
+export async function snapshotShotWorkspace(ctx: Pick<StageContext,"dir">, episodeId:string, shotId:string) {
+  const artwork = await snapshotDirectory(resolve(ctx.dir,"episodes",episodeId,"artist"), `shots/${shotId}`);
+  const stills = await snapshotDirectory(resolve(ctx.dir), `${files.shotDir(episodeId,shotId)}/stills`);
+  return async () => { await artwork(); await stills(); };
+}
+
 export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, production: ArtistProduction) {
   const permissions = await artistPermissions(ctx, inputs.episodeId);
+  const repeat = ctx.ledger.data.repeatEpisodes?.[inputs.episodeId];
   if (permissions.images.requested && !permissions.images.available) throw new EngineError("stage_blocked", permissions.images.reason);
   if ((inputs.voiceover.fps ?? 30) !== production.format.fps) throw Error("Voice-track fps differs from the project format; regenerate narration/timing before authoring shots");
   const root = join(ctx.dir, "episodes", inputs.episodeId, "artist");
@@ -112,9 +106,25 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     return { ...word, wordIndex, occurrence, startFrame: Math.round(word.start * production.format.fps) - Math.round(inputs.shot.start * production.format.fps) };
   }).filter((word) => word.start >= inputs.shot.start && word.start < inputs.shot.end);
   const timeline = ctx.store.has(files.shotList(inputs.episodeId)) ? (await ctx.store.read(files.shotList(inputs.episodeId), "ShotList")).data.shots : [inputs.shot];
-  await writeContext(`${shotRoot}/brief.json`, { permissions, originalBrief: ctx.series.idea, templateBrief, availableFonts: Object.keys(fonts), production, show: inputs.show, timeline, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback });
+  const approvedCharacters = Object.fromEntries(await Promise.all(Object.entries(inputs.characterRigs ?? {}).map(async ([id, version]) => {
+    const rig = await readCharacterRig(ctx, id, version);
+    return [`approved-characters/${id}.json`, { castId: id, version, sources: rig.sources, notes: rig.notes, imageIds: Object.keys(rig.assets), limitation: rig.provenance.review.limitation }];
+  })));
+  await writeContext(`${shotRoot}/brief.json`, { permissions, originalBrief: ctx.series.idea, templateBrief, availableFonts: Object.keys(fonts), production, show: inputs.show, timeline, shot: inputs.shot, durationFrames: brief.durationFrames, words, feedback: inputs.feedback, characterRigs: inputs.characterRigs ?? {}, approvedCharacters: Object.keys(approvedCharacters) });
   await writeContext(`${shotRoot}/production-state.json`, permissions);
   const manifestPath = `${shotRoot}/scene.json`;
+  // The accepted artifact is authoritative after a direct label edit or undo.
+  // Rehydrate editable metadata before the next artist invocation, without
+  // rewriting any drawing source or shared assets during a precise edit.
+  const acceptedFile = files.shotSpec(inputs.episodeId, inputs.shot.id);
+  if (ctx.store.has(acceptedFile)) {
+    const accepted = (await ctx.store.read(acceptedFile, "SceneSpec")).data.canvas;
+    const manifestFile = await workspacePath(root, manifestPath);
+    const existing = await readFile(manifestFile, "utf8").catch(() => undefined);
+    if (existing && accepted?.labels) {
+      await writeJsonAtomic(manifestFile, { ...JSON.parse(existing), labels: accepted.labels });
+    }
+  }
   const lockPath = join(root, "shared.lock.json");
   const sharedLock = await readFile(lockPath, "utf8").then(value => JSON.parse(value) as { inherited?: string }, () => undefined);
   const locked = Boolean(sharedLock && (sharedLock.inherited || ctx.ledger.stage(`${inputs.episodeId}/sample`).status === "approved"));
@@ -141,24 +151,14 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     if (used.length >= 180) throw Error(`Artist file limit reached for ${shotFile ? `scene ${inputs.shot.id}` : "shared assets"} (180). Reuse existing files.`);
   };
   const assemble = async () => {
-    const contents = await readFile(await workspacePath(root, manifestPath), "utf8").catch((error: NodeJS.ErrnoException) => {
-      if (error.code === "ENOENT") throw Error(`The artist did not save the scene for ${inputs.shot.id}. No renderable artwork was created. Use report_blocker to explain any missing capability instead of ending without a scene.`);
+    const artwork = await readArtwork(ctx, root, inputs.shot.id, inputs.characterRigs ?? {}).catch((error: NodeJS.ErrnoException) => {
+      if (error.code === "ENOENT") throw Error(`The artist did not save the scene or a required artwork file for ${inputs.shot.id}. Use report_blocker for a missing capability.`);
       throw error;
     });
-    const manifest = Manifest.parse(JSON.parse(contents));
-    if (inputs.shot.characters.length && !manifest.sourceFiles.some((path) => path.startsWith("shared/"))) throw Error("Characters must use a reusable shared design file from shared/");
-    const sources = await Promise.all(manifest.sourceFiles.map(async (path) => {
-      if (!ownFile(path) || extname(path) !== ".js") throw Error("Source files must be .js files under shared/ or this shot");
-      return `// ${path}\n${await readFile(await workspacePath(root, path), "utf8")}`;
-    }));
-    const designSources=Object.fromEntries(await Promise.all(manifest.sourceFiles.filter(path=>path.startsWith("shared/")).map(async path=>[path,hash(await readFile(await workspacePath(root,path)))])));
-    const assets: Record<string, string> = {};
-    for (const [id, path] of Object.entries(manifest.assets)) {
-      const mime = ({ ".png": "png", ".jpg": "jpeg", ".jpeg": "jpeg", ".webp": "webp" } as Record<string, string>)[extname(path)];
-      if (!ownFile(path) || !mime) throw Error("Images must be PNG/JPEG/WebP files within this workspace");
-      assets[id] = `data:image/${mime};base64,${(await readFile(await workspacePath(root, path))).toString("base64")}`;
-    }
-    const spec = SceneSpec.parse({ shotId: inputs.shot.id, durationFrames: brief.durationFrames, format: production.format, background: { id: inputs.shot.location }, actors: [], captions: [], canvas: { version: 1, source: sources.join("\n"), cast: manifest.cast, cues: manifest.cues, assets, fonts, designSources } });
+    const { manifest, source, assets, designSources, characterRigs } = artwork;
+    if (inputs.shot.characters.length && !artwork.sharedSources.length) throw Error("Characters must use a reusable shared design file from shared/ or an approved character rig");
+    if (inputs.requireCharacterRigs && Object.entries(inputs.characterRigs ?? {}).some(([id, version]) => characterRigs[id] !== version)) throw Error("This shot must use the explicitly selected character version");
+    const spec = SceneSpec.parse({ shotId: inputs.shot.id, durationFrames: brief.durationFrames, format: production.format, background: { id: inputs.shot.location }, actors: [], captions: [], canvas: { version: 1, source, cast: manifest.cast, cues: manifest.cues, assets, fonts, designSources, characterRigs, labels: manifest.labels } });
     const issues = validateScene(spec, { brief, bible: inputs.bible, catalog: ctx.catalog });
     if (issues.length) throw Error(JSON.stringify(issues));
     return spec;
@@ -172,14 +172,17 @@ export async function artistWorkspace(ctx: StageContext, inputs: SceneInputs, pr
     try { return await call(args); } catch (error) { await audit({ tool: name, error: error instanceof Error ? error.message : String(error) }); throw error; }
   }) });
   const tools: ArtistTool[] = [
-    tool("list_files", "List saved artwork and earlier shots. Reuse shared character designs.", z.object({}), async () => text(await list(root))),
+    tool("list_files", "List saved artwork, approved character rigs and earlier shots.", z.object({}), async () => text([...await list(root), ...Object.keys(approvedCharacters)])),
     tool("read_file", "Read a UTF-8 source/manifest/design/brief file within the artist workspace.", Read, async (args) => {
-      const { path } = Read.parse(args); const file = await workspacePath(root, path);
+      const { path } = Read.parse(args);
+      if (Object.hasOwn(approvedCharacters, path)) return text(approvedCharacters[path]);
+      const file = await workspacePath(root, path);
       const bytes = await readFile(file); if (bytes.length > 150_000) throw Error("Read is limited to 150 KB text files");
       return text(bytes.toString("utf8"));
     }),
     tool("write_file", "Create/edit JS canvas artwork, JSON manifests/design notes, or base64 PNG/JPEG/WebP assets. No shell or outside files. Shared designs freeze after the first accepted shot.", Write, async (args) => {
       const { path, content, encoding } = Write.parse(args);
+      if (repeat && !path.startsWith(`${shotRoot}/`)) throw new EngineError("stage_blocked", "This repeat episode reuses approved designs. Use the standard series review workflow for a new or changed recurring design; only this shot's files can be written here.");
       const version=path.startsWith("shared/versions/") && !await lstat(await workspacePath(root,path)).then(()=>true,()=>false);
       if (!ownFile(path) || path.endsWith("/brief.json") || path.endsWith("/production-state.json") || (!path.startsWith(`${shotRoot}/`) && locked && !version)) throw Error("Write only this shot's files; approved shared files and production state are read-only. Publish new shared designs under shared/versions/ with a new name.");
       if (!/\.(js|json|md|png|jpg|jpeg|webp)$/.test(path)) throw Error("Unsupported artist file extension");

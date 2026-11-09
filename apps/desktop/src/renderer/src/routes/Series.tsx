@@ -202,6 +202,7 @@ export function SeriesPage({ id }: { id: string }) {
             plan={plan}
             bible={bible}
             show={show}
+            status={status}
             onRequestChanges={focus}
             hasQueuedDirection={hasQueuedDirection}
             timingAdjustment={scriptRevision?.category === "send_back" ? scriptRevision.detail : undefined}
@@ -733,6 +734,7 @@ function Review({
   plan,
   bible,
   show,
+  status,
   onRequestChanges,
   hasQueuedDirection = false,
   timingAdjustment,
@@ -742,6 +744,7 @@ function Review({
   plan?: SeriesPlan;
   bible?: SeriesBible;
   show?: ShowBible;
+  status: SeriesStatus;
   onRequestChanges?: () => void;
   hasQueuedDirection?: boolean;
   timingAdjustment?: string;
@@ -750,6 +753,8 @@ function Review({
     [busy, setBusy] = useState<"approve" | "redo" | null>(null);
   const file = reviewFile(stage.key);
   const episodeId = episodeOf(stage.key);
+  const repeat = episodeId ? status.repeatEpisodes?.[episodeId] : undefined;
+  const combinedOutline = repeat?.outlinePending ? plan?.episodes.find(episode => episode.id === episodeId) : undefined;
   const { data: script, error: scriptError } = useAsync(
     async () =>
       file?.endsWith("script.json")
@@ -817,10 +822,10 @@ function Review({
     >
       <CardHeader>
         <CardTitle id="review-title">
-          Review {inSentence(stageLabel(stage.key))}
+          {combinedOutline ? "Review outline and script" : `Review ${inSentence(stageLabel(stage.key))}`}
         </CardTitle>
         <CardDescription>
-          Review the draft below. Approve to continue, or send a note for changes.
+          {combinedOutline ? "Approve this episode outline and script together, or send a note for changes. Your characters, voices and visual rules carry forward." : "Review the draft below. Approve to continue, or send a note for changes."}
         </CardDescription>
         <CardAction>
           <Badge>Waiting for you</Badge>
@@ -902,6 +907,7 @@ function Review({
             </div>
           </div>
         )}
+        {combinedOutline && <section aria-label="Episode outline" className="rounded-lg border p-3 text-sm"><h3 className="font-semibold">{combinedOutline.title}</h3><p className="mt-1">{combinedOutline.synopsis}</p></section>}
         {script && (
           <ol className="flex flex-col gap-3 select-text">
             {script.lines.map((line) => (
@@ -1004,7 +1010,7 @@ function Review({
           ) : (
             <CheckIcon data-icon="inline-start" />
           )}
-          Approve
+          {combinedOutline ? "Approve outline and script" : "Approve"}
         </Button>
       </CardFooter>
     </Card>

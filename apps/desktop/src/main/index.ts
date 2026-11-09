@@ -139,7 +139,7 @@ let host: { process: UtilityProcess; engine: Engine } | null = null;
 const running = new Set<string>();
 const codexAccount = createCodexAccountManager();
 let pendingJobStarts = 0;
-const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "publish.rewrite", "publish.setThumbnail", "templates.learn"]);
+const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "characters.apply", "publish.rewrite", "publish.setThumbnail", "templates.learn", "templates.createSample"]);
 
 function startEngineHost(): Engine {
   const entry = path.join(app.getAppPath(), "src", "main", "engine-host.ts");
@@ -201,7 +201,7 @@ function onEngineEvent(event: EngineEvent) {
 // Each run is its own utility process (main/learn-host.ts); jobs are kept for this session so the page can show them.
 const learnJobs = new Map<string, { view: LearnJob; process: UtilityProcess }>();
 
-function startLearning(input: { name: string; sources: string[] }): string {
+function startLearning(input: { name: string; sources: string[]; referenceImages?: string[] }): string {
   const name = input.name.trim();
   const sources = input.sources.map((source) => source.trim()).filter(Boolean);
   if (!name) throw new Error("Give the template a name");
@@ -211,7 +211,7 @@ function startLearning(input: { name: string; sources: string[] }): string {
 
   const id = `learn-${Date.now().toString(36)}`;
   const child = utilityProcess.fork(path.join(app.getAppPath(), "src", "main", "learn-host.ts"), [], { serviceName: "moco-learn", stdio: "pipe" });
-  const view: LearnJob = { id, name, sources, state: "running", step: "fetch", log: [], startedAt: new Date().toISOString() };
+  const view: LearnJob = { id, name, sources, referenceImages: input.referenceImages, state: "running", step: "fetch", log: [], startedAt: new Date().toISOString() };
   learnJobs.set(id, { view, process: child });
   const note = (line: string) => {
     view.log = [...view.log, line].slice(-200);
@@ -236,7 +236,7 @@ function startLearning(input: { name: string; sources: string[] }): string {
     Object.assign(view, { state: "error", error: `The learning process stopped (code ${code})` });
     send("learn", view);
   });
-  const config: LearnHostInput = { name, sources, stylesDir: stylesDir(), aiProvider: settings.aiProvider };
+  const config: LearnHostInput = { name, sources, referenceImages: input.referenceImages, stylesDir: stylesDir(), aiProvider: settings.aiProvider };
   child.postMessage(config);
   send("learn", view);
   return id;
@@ -313,11 +313,18 @@ async function episodeMedia(
   const stills: Record<string, string[]> = {};
   for (const shotId of shotIds) {
     stills[shotId] = await stillUrls(path.join(shotsDir, shotId, "stills"));
+    if (existsSync(path.join(dir, "edits", `${shotId}-stills.json`))) {
+      const edited = await engine().labelEditor({ seriesId, episodeId, shotId });
+      if (edited.stills) stills[shotId] = await Promise.all(edited.stills.map(file => versionedUrl(path.join(settings.projectsDir, seriesId, file))));
+    }
   }
+  const fresh = await engine().renderFreshness({ seriesId, episodeId });
   return {
-    preview: existsSync(preview) ? await versionedUrl(preview) : undefined,
-    final: existsSync(final) ? await versionedUrl(final) : undefined,
-    finalPath: existsSync(final) ? final : undefined,
+    preview: fresh.preview && existsSync(preview) ? await versionedUrl(preview) : undefined,
+    final: fresh.final && existsSync(final) ? await versionedUrl(final) : undefined,
+    finalPath: fresh.final && existsSync(final) ? final : undefined,
+    outdatedPreview: existsSync(preview) && !fresh.preview,
+    outdatedFinal: existsSync(final) && !fresh.final,
     thumbnail: existsSync(thumbnail) ? await versionedUrl(thumbnail) : undefined,
     thumbnailPath: existsSync(thumbnail) ? thumbnail : undefined,
     stills,
@@ -453,11 +460,24 @@ app
 
     handle("kit.catalog", () => catalog);
     handle("templates.list", () => [...TEMPLATES, ...learnedTemplates(stylesDir())]);
+    handle("templates.chooseVideos", async () => {
+      const result = await dialog.showOpenDialog({ properties: ["openFile", "multiSelections"], filters: [{ name: "Reference videos", extensions: ["mp4", "mov", "mkv", "webm", "avi", "m4v"] }] });
+      return result.canceled ? [] : result.filePaths;
+    });
+    handle("templates.createSample", async (input: import("@moco/engine").StyleSampleInput) => {
+      const id = await engine().createStyleSample(input);
+      await engine().runStage({ seriesId: id });
+      send("library", { seriesId: id });
+      return id;
+    });
+    handle("templates.samples", (templateId: string) => engine().styleSamples(templateId));
+    handle("templates.sampleReview", (seriesId: string) => engine().styleSampleReview(seriesId));
+    handle("templates.approveSample", (seriesId: string, hash: string) => engine().approveStyleSample(seriesId, hash));
     handle("templates.importPrompt", async (input: import("@moco/engine/templates/import").PromptTemplateInput) => {
       const { importPromptTemplate } = await import("@moco/engine/templates/import");
       return importPromptTemplate(stylesDir(), input);
     });
-    handle("templates.learn", (input: { name: string; sources: string[] }) => startLearning(input));
+    handle("templates.learn", (input: { name: string; sources: string[]; referenceImages?: string[] }) => startLearning(input));
     handle("templates.jobs", () => [...learnJobs.values()].map((job) => job.view));
     handle("templates.cancelLearn", (jobId: string) => {
       const job = learnJobs.get(jobId);
@@ -471,7 +491,7 @@ app
       if (template?.learned) await shell.openPath(template.learned.dir);
     });
     handle("templates.remove", async (id: string) => {
-      if ((await engine().listSeries()).some(series => series.template === id)) throw new Error("This template is used by an existing series. Keep it so that series can continue generating.");
+      if ((await engine().listSeries()).some(series => series.template === id || series.styleSample?.templateId === id)) throw new Error("This template is used by an existing series or sample. Keep it so its saved work remains accessible.");
       const template = learnedTemplates(stylesDir()).find((candidate) => candidate.id === id);
       if (!template?.learned) throw new Error("Only learned templates can be removed");
       if (path.dirname(template.learned.dir) !== stylesDir()) throw new Error("That template is outside the styles folder");
@@ -501,6 +521,8 @@ app
     handle("series.extend", (id: string, input: { episodes: number; note?: string }) =>
       engine().extendSeries(id, input),
     );
+    handle("series.repeat", (id: string, input: { topic?: string }) => engine().nextEpisode(id, input));
+    handle("series.repeatOffer", (id: string) => engine().repeatOffer(id));
     handle("series.status", (id: string) => engine().status(id));
     handle("series.artifact", (seriesId: string, file: string) =>
       artifact(seriesId, file),
@@ -529,6 +551,26 @@ app
     handle("episode.media", (seriesId: string, episodeId: string) =>
       episodeMedia(seriesId, episodeId),
     );
+    handle("episode.inspect", (seriesId: string, episodeId: string) => engine().inspectPreview({ seriesId, episodeId }));
+    handle("characters.list", (seriesId: string) => engine().listCharacters(seriesId));
+    handle("characters.save", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }) =>
+      engine().saveCharacter({ seriesId, episodeId, shotId }, choice));
+    handle("characters.apply", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; version: string; sceneHash: string }) =>
+      engine().applyCharacter({ seriesId, episodeId, shotId }, choice));
+    handle("episode.labelEditor", (seriesId: string, episodeId: string, shotId: string) => engine().labelEditor({ seriesId, episodeId, shotId }));
+    handle("episode.previewLabelEdit", async (seriesId: string, episodeId: string, shotId: string, input: { sceneHash: string; labelId: string; text: string }) => {
+      const result = await engine().previewLabelEdit({ seriesId, episodeId, shotId }, input);
+      const url = (file: string) => versionedUrl(path.join(settings.projectsDir, safeId(seriesId, "series id"), file));
+      return { ...result, before: await Promise.all(result.before.map(url)), after: await Promise.all(result.after.map(url)) };
+    });
+    const edit = async (method: "applyLabelEdit" | "undoLabelEdit", seriesId: string, episodeId: string, shotId: string, id: string) => {
+      await engine()[method]({ seriesId, episodeId, shotId }, id);
+      send("library", { seriesId });
+    };
+    handle("episode.applyLabelEdit", (seriesId: string, episodeId: string, shotId: string, id: string) => edit("applyLabelEdit", seriesId, episodeId, shotId, id));
+    handle("episode.undoLabelEdit", (seriesId: string, episodeId: string, shotId: string, id: string) => edit("undoLabelEdit", seriesId, episodeId, shotId, id));
+    handle("episode.renderPreview", (seriesId: string, episodeId: string) => engine().renderPreview({ seriesId, episodeId }));
+    handle("episode.review", (seriesId: string, episodeId: string) => engine().reviewEpisode({ seriesId, episodeId }, { repair: false }));
     handle(
       "episode.regenerateShot",
       (seriesId: string, episodeId: string, shotId: string, feedback?: string) =>

@@ -5,13 +5,14 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { join } from "node:path";
 import type { AiBackend } from "@moco/ai";
+import { extractReferenceFrames, LearnProduction, parseStyleImages } from "./artist.ts";
 import {
   OverviewOutput, overviewTask, planSpecialists, ReferenceCard, referenceTask, runAgent, SpecialistOutput,
   type AgentContext, type AgentTask,
 } from "./agents.ts";
 import { fetchReference, referenceId, type ReferenceMeta } from "./fetch.ts";
 import { measureReference, type Measurements } from "./measure.ts";
-import { findLeaks, mergePrompt, metricTable, metricText, revisePrompt, SkillDraft, TemplateDraft, templatePrompt, type Leak } from "./merge.ts";
+import { ArtistTemplateDraft, findLeaks, mergePrompt, metricTable, metricText, revisePrompt, SkillDraft, TemplateDraft, templatePrompt, type Leak } from "./merge.ts";
 import { renderSheets, type SheetSet } from "./sheets.ts";
 import { renderCard, renderMeasurements, renderSkill, renderTemplate, skillSlug, templateInfo, writeOutputs } from "./skill.ts";
 import { defaultTools, type Tools } from "./tools.ts";
@@ -20,6 +21,7 @@ export { defaultTools, type Tools } from "./tools.ts";
 export { referenceId } from "./fetch.ts";
 export type { Measurements } from "./measure.ts";
 export type { Leak } from "./merge.ts";
+export type { LearnProduction } from "./artist.ts";
 
 export interface LearnOptions {
   name: string; // the style's name, e.g. "Cartoon fact shorts"
@@ -33,6 +35,8 @@ export interface LearnOptions {
   concurrency?: number; // agent calls at once, default 3
   timeoutMs?: number; // per agent call, default 20 minutes
   exampleTemplate?: string; // an existing moco template, shown to the template writer as a format example
+  production?: LearnProduction; // explicit Canvas opt-in; omitted = legacy template compilation
+  referenceImages?: string[]; // optional appearance-only PNG/JPEG/WebP data URLs; up to five, under 3 MB each
   stopAfter?: "measure"; // measure and draw sheets, no agents
   signal?: AbortSignal;
   onEvent?: (event: LearnEvent) => void;
@@ -63,6 +67,11 @@ interface Prepared {
 }
 
 export async function learnStyle(options: LearnOptions): Promise<LearnResult> {
+  if (options.sources.length < 1 || options.sources.length > 10) throw Error("Add 1–10 reference videos");
+  if (new Set(options.sources.map(referenceId)).size !== options.sources.length) throw Error("Use each reference video once and give local videos distinct filenames so their measurements stay separate");
+  const production = options.production && LearnProduction.parse(options.production);
+  const uploadedImages = parseStyleImages(options.referenceImages ?? []);
+  if (uploadedImages.length && !production) throw Error("Style frames require Canvas artist production settings");
   const tools = options.tools ?? defaultTools();
   const slug = skillSlug(options.name);
   const dir = join(options.stylesDir, slug);
@@ -131,23 +140,41 @@ export async function learnStyle(options: LearnOptions): Promise<LearnResult> {
     "skill/SKILL.md": skill,
     "skill/references/measurements.md": renderMeasurements(rows, all),
     ...Object.fromEntries(prepared.map((ref, i) => [`refs/${ref.id}/report.md`, renderCard(analysed[i]!.card, ref.meta)])),
+    "style-rules.json": JSON.stringify({ version: 1, sections: draft.sections, checklist: draft.checklist, avoid: draft.avoid, measurements: rows, references: prepared.map((ref, i) => ({ id: ref.id, source: ref.meta.source, rules: analysed[i]!.card.rules })) }, null, 2),
+    // Kept separately from the reusable skill: these are exclusion evidence,
+    // never examples to copy into a new script or character design.
+    "content-exclusions.json": JSON.stringify({ version: 1, references: prepared.map((ref, i) => ({ id: ref.id, contentSpecifics: analysed[i]!.card.contentSpecifics, words: ref.measurements.words.map((word) => word.w) })) }, null, 2),
   });
 
   // The same rules as a moco template.
   emit("template", "compiling the moco template");
-  const templateTask: AgentTask = { name: "template", role: "template", images: [], prompt: templatePrompt(skill, options.exampleTemplate) };
-  let template = await runAgent(ctx, templateTask, TemplateDraft, join(dir, "agents", "template.json"));
+  const referenceImages: string[] = [];
+  if (production) {
+    await mkdir(join(dir, "references"), { recursive: true });
+    for (const [index, image] of uploadedImages.entries()) {
+      const path = `references/${index}.${image.extension}`;
+      await writeFile(join(dir, path), image.bytes);
+      referenceImages.push(path);
+    }
+    const frames = await extractReferenceFrames(all, dir, tools, options.signal, uploadedImages.length);
+    referenceImages.push(...frames.map((frame) => frame.path));
+    await writeFile(join(dir, "reference-images.json"), JSON.stringify({ version: 1, images: [...referenceImages.slice(0, uploadedImages.length).map((path) => ({ path, kind: "uploaded-still" })), ...frames.map((frame) => ({ ...frame, kind: "video-frame" }))] }, null, 2));
+    emit("template", `Style context: ${uploadedImages.length} uploaded appearance frame(s), ${frames.length} sampled video frame(s); motion evidence remains in the measured frame sheets`);
+  }
+  const templateTask: AgentTask = { name: "template", role: production ? "template_artist" : "template", images: referenceImages.map((path) => join(dir, path)), prompt: templatePrompt(skill, options.exampleTemplate) + (production ? "\n\nProduction settings (user-selected, never replace):\n" + JSON.stringify(production) + "\nAttached source frames guide illustration appearance only. Motion findings come from the measured guide, never inferred from uploaded stills. Create original characters and artwork; source frames are not assets to embed in the new sample." : "") };
+  const templateSchema = production ? ArtistTemplateDraft : TemplateDraft;
+  let template = await runAgent(ctx, templateTask, templateSchema, join(dir, "agents", "template.json"));
   const templateText = () => `${renderTemplate(template, slug, metas)}\n${JSON.stringify(template.info)}`;
   let templateLeaks = findLeaks(templateText(), refsWithCards);
   if (templateLeaks.length > 0) {
     emit("template", `revising: reference content found (${templateLeaks.map((leak) => leak.phrase).slice(0, 6).join(", ")})`);
-    template = await runAgent(ctx, { ...templateTask, name: "template-revise", prompt: revisePrompt(templateTask.prompt, template, templateLeaks) }, TemplateDraft, join(dir, "agents", "template-revise.json"));
+    template = await runAgent(ctx, { ...templateTask, name: "template-revise", prompt: revisePrompt(templateTask.prompt, template, templateLeaks) }, templateSchema, join(dir, "agents", "template-revise.json"));
     templateLeaks = findLeaks(templateText(), refsWithCards);
   }
   const remaining = [...leaks, ...templateLeaks];
   await writeOutputs(dir, {
     "moco-template.md": renderTemplate(template, slug, metas),
-    "moco-template.json": `${JSON.stringify(templateInfo(template, slug), null, 2)}\n`,
+    "moco-template.json": `${JSON.stringify({ ...templateInfo(template, slug), ...(production && { production, creativePrompt: `${skill}\n\n${Object.entries(template.stages).filter(([, body]) => body.trim()).map(([stage, body]) => `## Guidance for ${stage}\n${body}`).join("\n\n")}`, referenceImages }) }, null, 2)}\n`,
     "leaks.json": `${JSON.stringify(remaining, null, 2)}\n`,
   });
 

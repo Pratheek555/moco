@@ -1,6 +1,7 @@
 // Stage memory_update: after an episode's preview is approved, the AI writes what later episodes must remember.
 // Facts may only be about cast members or kit locations, so memory can't drift from the bible.
-import { ContinuityUpdate, type SeriesMemory } from "@moco/spec";
+import { ContinuityUpdate, SeriesMemory } from "@moco/spec";
+import { hashData } from "../store/hash.ts";
 import { joinSections, jsonSection, promptRef } from "../generator/prompts.ts";
 import type { Issue } from "../loop/feedback.ts";
 import type { StageContext } from "../pipeline/context.ts";
@@ -10,6 +11,13 @@ import { readBible } from "../canon/merge.ts";
 import { runRetro } from "../learn/playbook.ts";
 
 export async function runMemoryUpdate(ctx: StageContext, episodeId: string): Promise<string> {
+  const repeat = ctx.ledger.data.repeatEpisodes?.[episodeId];
+  // The artifact and this checkpoint share the store's ledger save. A crash after saving memory
+  // must not append the same episode's facts again or reject its own updated continuity.
+  if (repeat?.memoryResultHash && ctx.store.hashOf(files.memory) === repeat.memoryResultHash && repeat.memoryScriptHash === ctx.store.hashOf(files.script(episodeId))) {
+    await ctx.store.read(files.memory, "SeriesMemory");
+    return repeat.memoryResultHash;
+  }
   const bible = await readBible(ctx);
   const script = (await ctx.store.read(files.script(episodeId), "EpisodeScript")).data;
   const memory: SeriesMemory = ctx.store.has(files.memory)
@@ -29,7 +37,11 @@ export async function runMemoryUpdate(ctx: StageContext, episodeId: string): Pro
     check: (data) => checkUpdate(data, entities, episodeId),
   });
 
-  const merged: SeriesMemory = { storySoFar: update.storySoFar, facts: [...memory.facts, ...update.newFacts] };
+  const merged: SeriesMemory = { storySoFar: update.storySoFar, facts: [...(repeat ? memory.facts.filter(fact => fact.sinceEpisode !== episodeId) : memory.facts), ...update.newFacts] };
+  if (repeat) {
+    repeat.memoryResultHash = hashData(SeriesMemory.parse(merged));
+    repeat.memoryScriptHash = ctx.store.hashOf(files.script(episodeId));
+  }
   const saved = await ctx.store.save(files.memory, "SeriesMemory", merged, {
     producedBy: "ai",
     backend: ctx.ai.backendId,

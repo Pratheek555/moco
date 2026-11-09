@@ -9,6 +9,8 @@
   "main": "out/main/index.js",
   "scripts": {
     "test:illustrated-explainer": "node scripts/illustrated-explainer-test.mjs",
+    "test:character-reuse": "node scripts/character-reuse-test.mjs",
+    "test:label-editor": "node scripts/label-editor-test.mjs",
     "test:recent-chats": "node scripts/recent-chats-test.mjs",
     "test:studio-development": "node scripts/studio-development-test.mjs",
     "test:thumbnail-editor": "node scripts/thumbnail-editor-test.mjs",
@@ -21,6 +23,8 @@
     "test:voice-settings": "node scripts/voice-settings-test.mjs",
     "test:account-switch": "node scripts/account-switch-test.mjs",
     "test:duration-settings": "node scripts/duration-settings-test.mjs",
+    "test:repeat-episode": "node scripts/repeat-episode-test.mjs",
+    "test:style-sample": "node scripts/style-sample-test.mjs",
     "test:voice-audio": "node scripts/voice-audio-test.mjs"
   },
   "dependencies": {

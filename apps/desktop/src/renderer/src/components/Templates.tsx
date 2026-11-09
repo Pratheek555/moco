@@ -88,11 +88,13 @@ export function TemplateCard({
   selected,
   onSelect,
   onDetails,
+  onSample,
 }: {
   template: TemplateInfo;
   selected?: boolean;
   onSelect(): void;
   onDetails?(): void;
+  onSample?(): void;
 }) {
   return (
     <Card
@@ -106,7 +108,7 @@ export function TemplateCard({
         {template.learned && (
           <Badge variant="secondary" className="absolute top-3 right-3">
             <SparklesIcon />
-            {template.creativePrompt ? "Prompt" : "Learned"}
+            {template.learned.sources.length ? "Learned" : "Prompt"}
           </Badge>
         )}
         {selected && (
@@ -129,6 +131,7 @@ export function TemplateCard({
           ))}
         </div>
         <div className="flex gap-1">
+          {onSample && <Button variant="outline" size="sm" onClick={onSample}>Make a sample</Button>}
           {onDetails && (
             <Button variant="ghost" size="sm" onClick={onDetails}>
               Details
@@ -144,7 +147,7 @@ export function TemplateCard({
 }
 
 // Everything the template does, so the user knows what they're choosing.
-export function TemplateSheet({ template, onOpenChange }: { template: TemplateInfo | null; onOpenChange(open: boolean): void }) {
+export function TemplateSheet({ template, onOpenChange, onSample }: { template: TemplateInfo | null; onOpenChange(open: boolean): void; onSample?(template: TemplateInfo): void }) {
   return (
     <Sheet open={template !== null} onOpenChange={onOpenChange}>
       <SheetContent className="w-full gap-0 overflow-y-auto sm:max-w-md">
@@ -202,6 +205,7 @@ export function TemplateSheet({ template, onOpenChange }: { template: TemplateIn
               </div>
             </div>
             <SheetFooter className="mt-auto border-t">
+              {template.production && template.learned && onSample && <Button variant="outline" onClick={() => { onOpenChange(false); onSample(template); }}>Make a sample on your topic</Button>}
               <Button
                 onClick={() => {
                   onOpenChange(false);
@@ -225,7 +229,7 @@ function LearnedFrom({ template, onRemoved }: { template: TemplateInfo; onRemove
   return (
     <div className="flex flex-col gap-1.5">
       <span>
-        {template.creativePrompt ? "Saved from your creative prompt" : `Learned from ${learned.sources.length} video${learned.sources.length === 1 ? "" : "s"}`}
+        {learned.sources.length ? `Learned from ${learned.sources.length} video${learned.sources.length === 1 ? "" : "s"}` : "Saved from your creative prompt"}
         {learned.learnedAt ? ` on ${new Date(learned.learnedAt).toLocaleDateString()}` : ""}:
       </span>
       {learned.sources.map((source) => (
@@ -234,7 +238,7 @@ function LearnedFrom({ template, onRemoved }: { template: TemplateInfo; onRemove
           variant="link"
           size="sm"
           className="h-auto justify-start truncate p-0 text-xs"
-          onClick={() => void api.app.openExternal(source)}
+          onClick={() => void (/^https?:\/\//i.test(source) ? api.app.openExternal(source) : api.app.openPath(source)).catch(report)}
         >
           {source}
           <ExternalLinkIcon data-icon="inline-end" />
