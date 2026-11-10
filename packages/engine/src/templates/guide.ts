@@ -13,9 +13,10 @@ export function isTemplateStage(name: string): name is TemplateStage {
 export function templateGuide(templateId: string, stage: TemplateStage): string {
   const template = lookupTemplate(templateId);
   if (!template) throw new EngineError("invalid_id", `unknown template "${templateId}"`);
-  // Adding optional reference support must not invalidate existing text-only art.
-  if(template.creativePrompt && !templateImages(templateId).length) return `## Template: ${template.name}\nFollow this creative brief for ${stage}. Use only tools exposed by Moco. Record unavailable capabilities explicitly; never silently substitute a different visual style.\n${template.creativePrompt}`;
-  if (template.creativePrompt) return `## Template: ${template.name}\nFollow this creative brief for ${stage}. Use only tools exposed by Moco. Record unavailable capabilities explicitly; never silently substitute a different visual style. Style reference frames, when attached, show composition, character proportions and illustration detail; use them as evidence without copying logos or creator characters.\n${template.creativePrompt}\nReference hashes: ${templateImages(templateId).map(path => createHash("sha256").update(readFileSync(path)).digest("hex")).join(",")}`;
+  if (template.creativePrompt) {
+    const images = templateImages(templateId);
+    return `## Template: ${template.name}\nFollow this creative brief for ${stage}. Use only tools exposed by Moco. Record unavailable capabilities explicitly; never silently substitute a different visual style. The project's production.format overrides template dimensions, aspect ratio and frame rate. Adapt composition, staging, camera paths and text to that frame instead of cropping a landscape layout.${images.length ? " Style reference frames, when attached, show composition, character proportions and illustration detail; use them as evidence without copying logos or creator characters." : ""}\n${template.creativePrompt}${images.length ? `\nReference hashes: ${images.map(path => createHash("sha256").update(readFileSync(path)).digest("hex")).join(",")}` : ""}`;
+  }
   const text = templateText(template);
   const sections = text.split(/^# /m).slice(1);
   const section = sections.find((candidate) => candidate.slice(0, candidate.indexOf("\n")).trim() === stage);

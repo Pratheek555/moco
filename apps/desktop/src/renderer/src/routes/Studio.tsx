@@ -64,6 +64,12 @@ const SPARKS = [
   ["A last-lap F1 duel", IDEAS[5]!],
 ] as const;
 
+const VIDEO_SHAPES = [
+  { id: "landscape", label: "Landscape · 16:9", width: 1920, height: 1080 },
+  { id: "portrait", label: "Portrait · 9:16", width: 1080, height: 1920 },
+  { id: "square", label: "Square · 1:1", width: 1080, height: 1080 },
+] as const;
+
 export function Studio() {
   const settings = useApp((s) => s.settings)!,
     dark = useApp((s) => s.dark),
@@ -82,11 +88,18 @@ export function Studio() {
   const [motionPaused, setMotionPaused] = useState(false);
   const [details, setDetails] = useState<TemplateInfo | null>(null);
   const [productionMode, setProductionMode] = useState("standard");
-  const [artistShape, setArtistShape] = useState("landscape");
+  const [videoShape, setVideoShape] = useState<string | null>(null);
   const [artistSeconds, setArtistSeconds] = useState("");
   const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
     [starting, setStarting] = useState(false);
+  const baseProduction = template?.production ?? { mode: "artist" as const, format: { width: 1920, height: 1080, fps: 60 } };
+  const shape = VIDEO_SHAPES.find(option => option.id === videoShape);
+  const production = template?.production || productionMode === "artist" ? {
+    ...baseProduction,
+    format: shape ? { width: shape.width, height: shape.height, fps: baseProduction.format.fps } : baseProduction.format,
+  } : undefined;
+  const selectedShape = production && VIDEO_SHAPES.find(option => option.width * production.format.height === option.height * production.format.width)?.id;
 
   useLayoutEffect(() => {
     const input = ideaInput.current;
@@ -120,7 +133,8 @@ export function Studio() {
     setStarting(true);
     try {
       const id = await api.series.create({ idea: idea.trim(), episodes, language,
-        ...(productionMode === "artist" ? { production: { mode: "artist" as const, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 60 }, ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : template ? { template: template.id } : {}),
+        ...(template ? { template: template.id } : {}),
+        ...(production ? { production: { ...production, ...(productionMode === "artist" && artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : {}),
       });
       setIdea("");
       setTemplateId(null);
@@ -253,24 +267,24 @@ export function Studio() {
                   </ItemActions>
                 </Item>
               )}
-              {template?.production && (
-                <FieldDescription>{template.production.format.width} &times; {template.production.format.height} &middot; {template.production.format.fps} fps &middot; {template.production.targetSeconds ? `${template.production.targetSeconds}s` : "Length from your prompt"}</FieldDescription>
-              )}
-              {productionMode === "artist" && (
-                <FieldGroup className="rounded-lg border bg-muted/30 p-4">
-                  <div className="grid gap-4 sm:grid-cols-2">
+            </FieldSet>
+            <Separator />
+            <FieldSet>
+              <FieldLegend variant="label">Format &amp; narration</FieldLegend>
+              {production && (
+                  <div className={`grid gap-4 ${productionMode === "artist" ? "sm:grid-cols-2" : ""}`}>
                     <Field>
                       <FieldLabel htmlFor="story-shape">Video shape</FieldLabel>
-                      <Select value={artistShape} onValueChange={setArtistShape} disabled={starting}>
+                      <Select value={selectedShape ?? "template"} onValueChange={value => setVideoShape(value === "template" ? null : value)} disabled={starting}>
                         <SelectTrigger id="story-shape" className="w-full" aria-label="Video shape"><SelectValue /></SelectTrigger>
                         <SelectContent position="popper" align="start">
-                          <SelectItem value="landscape">Landscape &middot; 16:9</SelectItem>
-                          <SelectItem value="portrait">Portrait &middot; 9:16</SelectItem>
+                          {!VIDEO_SHAPES.some(option => option.width * baseProduction.format.height === option.height * baseProduction.format.width) && <SelectItem value="template">Template default &middot; {baseProduction.format.width} &times; {baseProduction.format.height}</SelectItem>}
+                          {VIDEO_SHAPES.map(option => <SelectItem key={option.id} value={option.id}>{option.label}</SelectItem>)}
                         </SelectContent>
                       </Select>
-                      <FieldDescription>1080p &middot; 60 fps</FieldDescription>
+                      <FieldDescription>{production.format.width} &times; {production.format.height} &middot; {production.format.fps} fps{template?.production && " · Your template adapts to this shape."}</FieldDescription>
                     </Field>
-                    <Field>
+                    {productionMode === "artist" && <Field>
                       <FieldLabel htmlFor="artist-seconds">Length in seconds (optional)</FieldLabel>
                       <Input
                         id="artist-seconds" type="number" step="any" value={artistSeconds}
@@ -279,14 +293,9 @@ export function Studio() {
                         aria-invalid={Boolean(artistSeconds.trim() && (!Number.isFinite(Number(artistSeconds)) || Number(artistSeconds) <= 0))}
                       />
                       <FieldDescription id="story-duration-help">Leave blank to follow your prompt.</FieldDescription>
-                    </Field>
+                    </Field>}
                   </div>
-                </FieldGroup>
               )}
-            </FieldSet>
-            <Separator />
-            <FieldSet>
-              <FieldLegend variant="label">Format &amp; narration</FieldLegend>
               <div className="grid gap-4 sm:grid-cols-2">
                 <Field>
                   <FieldLabel htmlFor="story-episodes">Episodes</FieldLabel>

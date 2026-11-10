@@ -9,7 +9,7 @@ import { checkShotPlan } from "../src/planner/script.ts";
 import { createEngine } from "../src/index.ts";
 import { FakeAi, FakeAudio, FakeRenderPort } from "../src/testing/fakes.ts";
 import type { AudioPort } from "../src/ports.ts";
-import { advance, approveNext, validAnswer, scriptData } from "./helpers.ts";
+import { advance, approveNext, validAnswer, scriptData, section } from "./helpers.ts";
 
 it("persists arbitrary prompts and routes planning to canvas, stopping before voice for script + pictures", async () => {
   const dir = await mkdtemp(join(tmpdir(), "moco-prompt-"));
@@ -37,9 +37,12 @@ it("persists arbitrary prompts and routes planning to canvas, stopping before vo
       return validAnswer(request, task);
     }), { supportsArtist: true, seesImages: true });
     const engine = createEngine({ projectsDir: dir, stylesDir: join(dir,"styles"), ai, audio, render: new FakeRenderPort() });
-    const id = await engine.createSeries({ idea: "Why do we dream?", language: "en", template: imported.id });
+    const defaultId = await engine.createSeries({ idea: "Template defaults", language: "en", template: imported.id });
+    expect((await engine.status(defaultId)).series.production).toEqual(production);
+    const portrait = { ...production, format: { width: 1080, height: 1920, fps: 60 } };
+    const id = await engine.createSeries({ idea: "Why do we dream?", language: "en", template: imported.id, production: portrait });
     expect((await engine.status(id)).series.episodes).toBe(1);
-    expect((await engine.status(id)).series.production).toEqual(production);
+    expect((await engine.status(id)).series).toMatchObject({ template: imported.id, production: portrait });
     for (let n=0;n<2;n++) { await advance(engine,id); await approveNext(engine,id); }
     await advance(engine,id);
     expect((await engine.status(id)).next).toMatchObject({kind:"waiting",key:"ep-01/script"});
@@ -50,6 +53,8 @@ it("persists arbitrary prompts and routes planning to canvas, stopping before vo
     const saved = JSON.parse(await readFile(join(dir,id,"episodes/ep-01/artifacts/script.json"),"utf8"));
     expect(saved.data.shotPlan).toHaveLength(8);
     expect(ai.requests.every(request => request.system.includes("NO OUTLINES sentinel"))).toBe(true);
+    expect(ai.requests.every(request => request.system.includes("production.format overrides template dimensions"))).toBe(true);
+    for (const request of ai.requests) expect(section(request.prompt, "Production settings")).toEqual(portrait);
     expect(ai.requests.every(request => request.prompt.includes("USER-SELECTED LOCAL MODE"))).toBe(true);
     expect(ai.requests.every(request => request.images?.[0]===templateImages(imported.id)[0])).toBe(true);
     await approveNext(engine,id);

@@ -16,6 +16,7 @@ it("offers the original 2D template without forcing short-form timing onto a mas
     const guide = templateGuide(template.id, stage);
     expect(guide).toContain("script AND storyboard approval");
     expect(guide).toContain("ONE master episode and THREE derivative edits");
+    expect(guide).toContain("This style works in landscape, portrait, square and other aspect ratios.");
   }
 });
 

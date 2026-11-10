@@ -3,7 +3,10 @@
 The built-in **kurzgesat style** template adds original layered 2D science
 storytelling, source-linked claims, expressive rigs and script/storyboard approval
 before assets or narration. It preserves explicit runtimes, including long-form
-films. It does not include copied characters or artwork, a reference video, or
+films. In Studio's **Format & narration**, choose landscape, portrait or square
+independently of the template. Template formats are defaults; your selection
+keeps the template's artwork, narration settings and frame rate while adapting
+composition to the chosen frame. It does not include copied characters or artwork, a reference video, or
 automatic connections to image and voice providers.
 
 `examples/series/deep-ocean.txt` contains the complete five-minute film script,
