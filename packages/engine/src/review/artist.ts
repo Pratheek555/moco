@@ -51,7 +51,9 @@ export function motionFrames(spec:SceneSpec,shot:Shot,shared:Shared) {
   // Authored cues can describe non-spoken action after the last word (a loop,
   // hand release or rewind). Word anchors alone cannot establish that motion.
   const cues=spec.canvas?.cues ?? [];
-  const anchors=cues.length?cues.slice(0,6).map(c=>c.atFrame):shot.actionChecks?.length?[]:[last/3,last*2/3];
+  // Fast entrances can use six consecutive cues by themselves. Later authored
+  // events (labels, snaps, prop contact) still need their own review evidence.
+  const anchors=cues.length?cues.map(c=>c.atFrame):shot.actionChecks?.length?[]:[last/3,last*2/3];
   for(const anchor of anchors)for(const d of [-6,0,6])frames.push(Math.max(0,Math.min(last,Math.round(anchor+d))));
   for(const cue of cues.filter(c=>/rewind/i.test(c.id))) {
     const end=Math.min(last,cue.atFrame+Math.ceil(fps*.65));

@@ -25,12 +25,12 @@ describe("templates", () => {
 
   it("refuses a template that doesn't exist", async () => {
     const { engine } = await setup();
-    await expect(engine.createSeries({ idea: "A bridge", language: "en", template: "nope" })).rejects.toThrow("unknown template");
+    await expect(engine.createSeries({ production: null, idea: "A bridge", language: "en", template: "nope" })).rejects.toThrow("unknown template");
   });
 
   it("guides every planning prompt and builds a world even when the AI picked a kit cast", async () => {
     const { engine, dir, ai } = await setup({ world: () => testWorld() }); // the default bible answer casts kit characters
-    const seriesId = await engine.createSeries({ idea: "Soldiers march a bridge down", language: "en", episodes: 1, template: "cartoon-3d-short" });
+    const seriesId = await engine.createSeries({ production: null, idea: "Soldiers march a bridge down", language: "en", episodes: 1, template: "cartoon-3d-short" });
     expect((await engine.status(seriesId)).series.template).toBe("cartoon-3d-short");
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
@@ -57,7 +57,7 @@ describe("templates", () => {
       expect(allTemplates().find((template) => template.id === "deadpan-facts")).toMatchObject({ name: "Deadpan facts", learned: { dir: folder, sources: ["https://youtu.be/x"] } });
       expect(templateGuide("deadpan-facts", "series")).toContain("One cause-and-effect chain");
       expect(templateGuide("deadpan-facts", "script")).toBe(""); // stages it doesn't guide stay as they are
-      const seriesId = await engine.createSeries({ idea: "A bridge", language: "en", episodes: 1, template: "deadpan-facts" });
+      const seriesId = await engine.createSeries({ production: null, idea: "A bridge", language: "en", episodes: 1, template: "deadpan-facts" });
       await advance(engine, seriesId);
       expect(ai.requests.find((request) => request.system.includes("prompt: series"))!.system).toContain("## Template: Deadpan facts");
     } finally {

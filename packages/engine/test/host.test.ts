@@ -24,7 +24,7 @@ it("calls the engine, forwards events and errors through the port", async () => 
   const events: string[] = [];
   client.on("*", (event) => events.push(event.type));
 
-  const seriesId = await client.createSeries({ idea: "Gita over the wire", language: "en", episodes: 1 });
+  const seriesId = await client.createSeries({ production: null, idea: "Gita over the wire", language: "en", episodes: 1 });
   const job = await client.waitForJob(await client.runStage({ seriesId }));
   expect(job.status).toBe("succeeded");
   expect((await client.status(seriesId)).next).toMatchObject({ kind: "waiting", key: "series_plan" });

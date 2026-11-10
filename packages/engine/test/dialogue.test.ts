@@ -32,7 +32,7 @@ it("carries locked voices through synthesis, measured speakers and saved scenes"
   });
   Object.assign(audio, { voices: async () => [{ id: "voice-a", name: "A" }, { id: "voice-b", name: "B" }] });
   const tts = vi.spyOn(audio, "tts");
-  const id = await engine.createSeries({ idea: "Two friends talk", language: "en", episodes: 1 });
+  const id = await engine.createSeries({ production: null, idea: "Two friends talk", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate++) { await advance(engine, id); await approveNext(engine, id); }
   await advance(engine, id);
   expect(tts.mock.calls[0]![0].slice(0, 3)).toMatchObject([{ voiceId: undefined }, { voiceId: "voice-a" }, { voiceId: "voice-b" }]);

@@ -8,7 +8,7 @@ import { advance, approveNext, setup } from "./helpers.ts";
 // Run a one-episode series to the end, approving every gate.
 async function finishedSeries(overrides: Parameters<typeof setup>[0] = {}) {
   const env = await setup(overrides);
-  const seriesId = await env.engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 1 });
+  const seriesId = await env.engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 1 });
   for (let round = 0; round < 10; round += 1) {
     await advance(env.engine, seriesId);
     if ((await env.engine.status(seriesId)).next.kind !== "waiting") break;

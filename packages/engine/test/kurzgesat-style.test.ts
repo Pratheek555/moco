@@ -52,7 +52,7 @@ it("keeps the ocean master and all derivative edits contiguous, source-linked an
 
 it("blocks a changed narration backend before invoking speech", async () => {
   const { engine, audio, ai, render, dir } = await setup();
-  const id = await engine.createSeries({ idea: "A scientific discovery", language: "en", episodes: 1 });
+  const id = await engine.createSeries({ production: null, idea: "A scientific discovery", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate++) { await advance(engine, id); await approveNext(engine, id); }
   const original = audio.tts;
   let calls = 0;

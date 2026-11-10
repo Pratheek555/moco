@@ -145,7 +145,7 @@ async function upToDate(ctx: StageContext, specFile: string, sceneInput: InputRe
 // and the lip-sync track (from the audio).
 function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
   const visemes = shotVisemes(inputs.shot, inputs.voiceover);
-  return { ...withBibleVariants(spec, inputs.bible), visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: !spec.canvas && inputs.world ? worldForShot(inputs.world, spec) : undefined };
+  return { ...withBibleVariants(spec, inputs.bible), transition: spec.transition ?? inputs.shot.transition, visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: !spec.canvas && inputs.world ? worldForShot(inputs.world, spec) : undefined };
 }
 
 function withBibleVariants(spec: SceneSpec, bible: SeriesBible): SceneSpec {

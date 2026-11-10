@@ -77,7 +77,7 @@ export interface SeriesStatus {
 }
 
 export interface Engine {
-  createSeries(input: { idea: string; language: string; episodes?: number; template?: string; production?: ArtistProduction }): Promise<SeriesId>;
+  createSeries(input: { idea: string; language: string; episodes?: number; template?: string; production?: ArtistProduction | null }): Promise<SeriesId>;
   // Plan `episodes` more after the approved ones, steered by an optional note. The longer plan waits for approval.
   extendSeries(seriesId: SeriesId, input: { episodes: number; note?: string }): Promise<JobId>;
   listSeries(): Promise<SeriesInfo[]>;
@@ -194,7 +194,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       dir: series.dir,
       // Artist duration comes from the user's field or the approved show plan,
       // never the legacy short-reel defaults.
-      config: series.info.production ? { ...config, targetSeconds: series.info.production.targetSeconds
+      config: series.info.production ? { ...config, shotSecondsBounds: { min: 0, max: Number.MAX_SAFE_INTEGER }, targetSeconds: series.info.production.targetSeconds
         ? { min: series.info.production.targetSeconds, max: series.info.production.targetSeconds }
         : { min: 0, max: Number.MAX_SAFE_INTEGER } } : config,
       catalog: series.world ? worldCatalog(catalog, series.world) : catalog,
@@ -296,7 +296,9 @@ export function createEngine(options: CreateEngineOptions): Engine {
       if (!/^[a-z]{2,3}(-[A-Za-z]{2,4})?$/.test(input.language)) throw new EngineError("invalid_id", `"${input.language}" is not a language code like "en" or "hi"`);
       if (!Number.isInteger(episodes) || episodes < 1 || episodes > 30) throw new EngineError("invalid_id", "episodes must be 1–30");
       if (input.template !== undefined && !template) throw new EngineError("invalid_id", `unknown template "${input.template}"`);
-      const settings = input.production ?? template?.production;
+      // null explicitly selects the legacy kit/world route; old saved series are never migrated.
+      const settings = input.production === null ? undefined : input.production ?? template?.production
+        ?? (!template ? { mode: "artist", localOnly: true, format: { width: 1080, height: 1920, fps: 30 } } : undefined);
       const production = settings ? ArtistProduction.parse(settings) : undefined;
       if (production && !options.ai.supportsArtist) throw new EngineError("validation_failed", "This AI backend does not support the artist workspace. Choose a supported backend before creating the project.");
       if (production && template && !template.production) throw new EngineError("validation_failed", "This template requires the kit/world pipeline. Choose a prompt template for custom illustration.");

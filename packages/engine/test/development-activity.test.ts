@@ -12,7 +12,7 @@ describe("series development activity", () => {
     } });
     const events: EngineEvent[] = [];
     engine.on("*", (event) => events.push(event));
-    const id = await engine.createSeries({ idea: "A light in the fog", language: "en", episodes: 1 });
+    const id = await engine.createSeries({ production: null, idea: "A light in the fog", language: "en", episodes: 1 });
     await advance(engine, id);
     expect(events.filter((event) => event.type === "ai.activity").map((event) => event.data.phase)).toEqual(["started", "working", "checked"]);
     expect(events.find((event) => event.data.phase === "working")?.data.message).toBe("I’m outlining the first episode.");
@@ -35,7 +35,7 @@ describe("production activity", () => {
       events.push(event);
       if (event.type === "shot.done") savedHash = JSON.parse(readFileSync(join(dir, event.seriesId, `episodes/${event.data.episodeId}/shots/${event.data.shotId}/spec.json`), "utf8")).meta.contentHash;
     });
-    const id = await engine.createSeries({ idea: "A light in the fog", language: "en", episodes: 1 });
+    const id = await engine.createSeries({ production: null, idea: "A light in the fog", language: "en", episodes: 1 });
     for (let gate = 0; gate < 3; gate++) {
       await advance(engine, id);
       await approveNext(engine, id);

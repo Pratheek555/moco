@@ -10,7 +10,7 @@ it("extends a generated-world series without replacing its cast, world or approv
     world: () => testWorld(),
     script: () => { const script = scriptData(); return { ...script, lines: script.lines.map((line) => ({ ...line, delivery })) }; },
   });
-  const seriesId = await engine.createSeries({ idea: "A sailor at an unfamiliar harbour", language: "en", episodes: 1 });
+  const seriesId = await engine.createSeries({ production: null, idea: "A sailor at an unfamiliar harbour", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate += 1) {
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);

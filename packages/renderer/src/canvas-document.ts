@@ -1,5 +1,6 @@
 import type { CanvasScene } from "@moco/spec";
 import { actingSource } from "./acting.ts";
+import { drawingHelpersSource } from "./drawing-helpers.ts";
 
 // Opaque-origin iframe: no same-origin, network, popups, forms or parent DOM access.
 // CSP is defense in depth, not an OS sandbox. Renderer timeouts bound failed draws.
@@ -30,7 +31,8 @@ addEventListener('message',event=>{
   try{
     // Reset ALL canvas state and pixels; frames may arrive in any order.
     canvas.width=config.width;
-    draw(ctx,Object.freeze({frame,fps,t:frame/fps,width:config.width,height:config.height,assets}),helpers);
+    const scene=Object.freeze({frame,fps,t:frame/fps,width:config.width,height:config.height,assets,words:config.words||[],data:config.data||{}});
+    draw(ctx,scene,{...helpers,...(${drawingHelpersSource})(ctx,scene)});
     send({kind:'moco:drawn',request});
   }catch(error){send({kind:'moco:error',request,message:String(error.message||error)})}
 });

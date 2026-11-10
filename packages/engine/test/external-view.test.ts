@@ -6,7 +6,7 @@ import { advance, approveNext, setup } from "./helpers.ts";
 
 it("views another engine's committed extension without a false tamper error or ledger writes", async () => {
   const viewer = await setup();
-  const id = await viewer.engine.createSeries({ idea: "A harbour adventure", language: "en", episodes: 1 });
+  const id = await viewer.engine.createSeries({ production: null, idea: "A harbour adventure", language: "en", episodes: 1 });
   await advance(viewer.engine, id);
   await approveNext(viewer.engine, id);
   await viewer.engine.readArtifact({ seriesId: id, file: "artifacts/series_plan.json" });
@@ -35,7 +35,7 @@ it("does not mark another engine's active generation interrupted merely by openi
     started();
     return new Promise((_, reject) => request.signal!.addEventListener("abort", () => reject(new Error("cancelled"))));
   } });
-  const id = await writer.engine.createSeries({ idea: "Still generating", language: "en", episodes: 1 });
+  const id = await writer.engine.createSeries({ production: null, idea: "Still generating", language: "en", episodes: 1 });
   const job = await writer.engine.runStage({ seriesId: id });
   await ready;
   try {

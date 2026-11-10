@@ -4,7 +4,7 @@ A one-time-purchase desktop app that turns an idea (e.g. "a Mahabharat series") 
 How it works
 • The user types a story or series idea.
 • Claude/ChatGPT breaks it into episodes and scenes.
-• The AI writes scene specs (JSON, validated by @moco/spec) that the renderer turns into animation, using the pre-built kit if the story fits it and otherwise a 3D world the AI builds as data (World in @moco/spec, drawn by packages/kit/src/stages/world).
+• The AI writes scene specs (JSON, validated by @moco/spec) that the renderer turns into animation, using freeform authored drawing by default (shared series code/data, drawn in an isolated Canvas iframe). The kit and generated 3D worlds remain explicit options (World in @moco/spec, drawn by packages/kit/src/stages/world).
 • The app renders it locally to a 9:16 MP4 with voiceover, captions and music.
 • Rendering errors go back to the AI to fix automatically.
 Business model

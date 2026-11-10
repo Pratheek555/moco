@@ -2,6 +2,7 @@
 // for each planning stage (series.md → "# series", "# script", …) plus a few rules the engine enforces in code.
 // This file is plain data so the desktop UI can list templates without loading the engine.
 import { KURZGESAT_STYLE_PROMPT } from "./kurzgesat-style.ts";
+import { DOODLES_PROMPT } from "./doodles.ts";
 
 // The planning stages a template can guide; each is a "# <stage>" section of the template's .md file.
 export const TEMPLATE_STAGES = ["series", "series_extend", "show", "bible", "world", "script", "shots", "scene", "artist", "publish"] as const;
@@ -33,6 +34,25 @@ export interface TemplateInfo {
 }
 
 export const TEMPLATES: TemplateInfo[] = [
+  {
+    id: "doodles",
+    name: "Doodles",
+    tagline: "Big-headed doodle puppets, painted worlds and deadpan visual jokes.",
+    description: "Original hand-drawn 2D explainers with bold ink outlines, snap-to-pose acting and narration-timed graphics. Made for vertical video with bespoke painted settings and reusable character drawings.",
+    tags: ["2D", "History", "Explainer", "Comedy"],
+    story: ["Your subject with original characters, settings and visual gags", "Dry, deadpan humour with readable reveals and reactions", "Narration-timed labels, charts and cutaways"],
+    look: ["Huge pale egg heads, dot eyes, bold uneven ink and one-tone cel shadows", "Whole-pose and expression swaps, quick pops and held reactions", "Painterly layered backgrounds, soft light, vignette and paper texture", "Portrait staging with safe space for faces, actions and labels"],
+    palette: { sky: ["#354b48", "#c6d1b2"], ground: "#a99b71", accents: ["#ce8c42", "#496d70", "#f2ecdb", "#873f40"] },
+    world: "auto",
+    defaults: { episodes: 1 },
+    production: { mode: "artist", localOnly: true, format: { width: 1080, height: 1920, fps: 30 } },
+    creativePrompt: DOODLES_PROMPT,
+    ideas: [
+      { label: "The water clock's lunch break", idea: "An original museum doodle explains a water clock by catching drips in a marked bowl, then gives the bowl an absurdly official lunch-break sign. Explain the mechanism; the keeper and joke are fictional." },
+      { label: "A message before electricity", idea: "Two original doodle signal keepers show how a distant flag can carry a message; a tiny visual misunderstanding lands the deadpan payoff. Keep the invented scene distinct from historical fact." },
+      { label: "Why a seal mattered", idea: "An original archive clerk explains how a wax seal can reveal that a letter was opened, then eyes an oversized stamp. Do not claim seals make messages impossible to tamper with." },
+    ],
+  },
   {
     id: "kurzgesat-style",
     name: "kurzgesat style",

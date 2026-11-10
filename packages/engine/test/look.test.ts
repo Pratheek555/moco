@@ -35,7 +35,7 @@ describe("looking at shots", () => {
   it("shows the director every shot and redoes only the weak one, with the notes", async () => {
     const { engine, ai } = await setup({ look_shots: director("s02", "the subject is out of frame") });
     ai.seesImages = true;
-    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 1 });
     await toPreview(engine, seriesId);
 
     const looks = ai.requests.filter((request) => taskOf(request) === "look_shots");
@@ -61,7 +61,7 @@ describe("looking at shots", () => {
     };
     const { engine, ai, dir } = await setup({ look_shots: director("s02", "the subject is out of frame", 1), scene });
     ai.seesImages = true;
-    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 1 });
     await toPreview(engine, seriesId);
 
     // The repair scored 1, worse than the 2 it replaced: the old shot is back, as a newer revision.
@@ -77,7 +77,7 @@ describe("looking at shots", () => {
 
   it("never asks a backend that can't see", async () => {
     const { engine, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 1 });
     await toPreview(engine, seriesId);
     expect(ai.requests.some((request) => taskOf(request).startsWith("look_"))).toBe(false);
   });
@@ -85,7 +85,7 @@ describe("looking at shots", () => {
   it("carries on when the review itself fails", async () => {
     const { engine, ai } = await setup({ look_shots: () => { throw new Error("vision down"); } });
     ai.seesImages = true;
-    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 1 });
     await toPreview(engine, seriesId);
     expect((await engine.status(seriesId)).next).toMatchObject({ kind: "waiting", key: "ep-01/preview" });
   });
@@ -102,7 +102,7 @@ describe("looking at models", () => {
       fix_model: () => rebuilt,
     });
     ai.seesImages = true;
-    const seriesId = await engine.createSeries({ idea: "A sailor at an unfamiliar harbour", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "A sailor at an unfamiliar harbour", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
     await advance(engine, seriesId); // the bible builds the world

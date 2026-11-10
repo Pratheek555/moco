@@ -881,3 +881,13 @@ old and new code (a worktree of the old commit) and keep both folders.
 - nodejs-whisper (whisper.cpp): https://github.com/ChetanXpro/nodejs-whisper
 - Piper status: https://www.cekura.ai/discover/piper-tts
 - ElevenLabs TTS with timestamps: https://elevenlabs.io/docs/api-reference/streaming-with-timestamps
+
+
+### Freeform drawing default (2026-11-10, spec 0.15.0)
+New untemplated series use artist production by default; explicit legacy templates and `production: null` keep
+kit/world routing, and saved projects retain their routes. Drawing is unrestricted JavaScript inside the existing
+opaque-origin Canvas iframe, with revisioned per-series `AuthoredLibrary` code/data/assets and embedded scene
+snapshots for reproducibility. Optional motion/text/grade helpers are conveniences. Shot lengths and new place/cast
+choices are free on this route. Dissolve/fade-through-black use incoming-shot time without shifting narration.
+See `docs/authored-scenes.md` for contracts, decisions, isolation, proof generation and validation evidence.
+This supersedes the earlier ?4.1 future mini-DSL proposal for the authored path. The original kit/world contracts remain.

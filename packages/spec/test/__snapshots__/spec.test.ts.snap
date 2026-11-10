@@ -206,8 +206,7 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
       "properties": {
         "assets": {
           "additionalProperties": {
-            "maxLength": 8000000,
-            "pattern": "^data:image\\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$",
+            "pattern": "^data:image\\/(png|jpeg|webp|svg\\+xml);base64,[A-Za-z0-9+/=]+$",
             "type": "string",
           },
           "default": {},
@@ -221,7 +220,6 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
           "items": {
             "type": "string",
           },
-          "maxItems": 20,
           "type": "array",
         },
         "cues": {
@@ -243,8 +241,14 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
             ],
             "type": "object",
           },
-          "maxItems": 200,
           "type": "array",
+        },
+        "data": {
+          "additionalProperties": {},
+          "propertyNames": {
+            "type": "string",
+          },
+          "type": "object",
         },
         "designSources": {
           "additionalProperties": {
@@ -257,8 +261,7 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
         },
         "fonts": {
           "additionalProperties": {
-            "maxLength": 3000000,
-            "pattern": "^data:font\\/ttf;base64,[A-Za-z0-9+/=]+$",
+            "pattern": "^data:font\\/(ttf|otf|woff|woff2);base64,[A-Za-z0-9+/=]+$",
             "type": "string",
           },
           "propertyNames": {
@@ -267,13 +270,43 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
           "type": "object",
         },
         "source": {
-          "maxLength": 100000,
           "minLength": 1,
           "type": "string",
         },
         "version": {
           "const": 1,
           "type": "number",
+        },
+        "words": {
+          "items": {
+            "properties": {
+              "endFrame": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer",
+              },
+              "startFrame": {
+                "maximum": 9007199254740991,
+                "minimum": -9007199254740991,
+                "type": "integer",
+              },
+              "text": {
+                "type": "string",
+              },
+              "wordIndex": {
+                "maximum": 9007199254740991,
+                "minimum": 0,
+                "type": "integer",
+              },
+            },
+            "required": [
+              "text",
+              "startFrame",
+              "endFrame",
+            ],
+            "type": "object",
+          },
+          "type": "array",
         },
       },
       "required": [
@@ -324,18 +357,18 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
     "format": {
       "properties": {
         "fps": {
-          "maximum": 60,
-          "minimum": 1,
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
           "type": "integer",
         },
         "height": {
-          "maximum": 4096,
-          "minimum": 16,
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
           "type": "integer",
         },
         "width": {
-          "maximum": 4096,
-          "minimum": 16,
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
           "type": "integer",
         },
       },
@@ -796,6 +829,28 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
     },
     "timeOfDay": {
       "type": "string",
+    },
+    "transition": {
+      "properties": {
+        "durationFrames": {
+          "exclusiveMinimum": 0,
+          "maximum": 9007199254740991,
+          "type": "integer",
+        },
+        "type": {
+          "enum": [
+            "cut",
+            "dissolve",
+            "fade-through-black",
+          ],
+          "type": "string",
+        },
+      },
+      "required": [
+        "type",
+        "durationFrames",
+      ],
+      "type": "object",
     },
   },
   "required": [

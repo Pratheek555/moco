@@ -11,7 +11,7 @@ it("carries approved delivery directions all the way to the audio backend", asyn
   const measured=vi.fn(async()=>{throw Error("Legacy productions must keep their existing narration route");});
   Object.assign(audio,{ttsMeasured:measured});
   const tts = vi.spyOn(audio, "tts");
-  const seriesId = await engine.createSeries({ idea: "A difficult choice", language: "en", episodes: 1 });
+  const seriesId = await engine.createSeries({ production: null, idea: "A difficult choice", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate += 1) {
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
@@ -29,7 +29,7 @@ it("frees the renderer's browser before loading the voice, so both never sit in 
     releasedBeforeTts = render.releases;
     return Object.getPrototypeOf(audio).tts.apply(this, args);
   });
-  const seriesId = await engine.createSeries({ idea: "A quiet harbour", language: "en", episodes: 1 });
+  const seriesId = await engine.createSeries({ production: null, idea: "A quiet harbour", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate += 1) {
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
@@ -51,7 +51,7 @@ it("publishes saved-line progress in order before reporting speech complete", as
   engine.on("ai.activity", event => {
     if (event.data.key === "ep-01/voiceover") messages.push(String(event.data.message));
   });
-  const seriesId = await engine.createSeries({ idea: "A slow ocean narration", language: "en", episodes: 1 });
+  const seriesId = await engine.createSeries({ production: null, idea: "A slow ocean narration", language: "en", episodes: 1 });
   for (let gate = 0; gate < 3; gate += 1) {
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);

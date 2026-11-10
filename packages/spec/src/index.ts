@@ -22,7 +22,8 @@ export * from "./thumbnail.ts";
 //   0.12.0: optional authored canvas scenes and per-scene format; export permits variable sizes/rates.
 //   0.13.0: artist project settings, explicit voice-track fps, requirement availability and review evidence.
 //   0.14.0: optional thumbnail design; existing kits parse without changes.
-export const SPEC_VERSION = "0.14.0";
+//   0.15.0: unbounded authored code/assets, timed words, reusable series library and shot transitions (additive).
+export const SPEC_VERSION = "0.15.0";
 
 // Renderer output is fixed: 1080×1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -216,7 +217,7 @@ export const CastMember = z.object({
 export type CastMember = z.infer<typeof CastMember>;
 
 export const SeriesBible = z.object({
-  cast: z.array(CastMember).min(1),
+  cast: z.array(CastMember),
   style: z.object({
     palette: z.array(z.string()),
     captionStyle: z.string(),
@@ -263,8 +264,8 @@ export const ShowBible = z.object({
     signature: z.array(z.string().min(1)).max(6), // gestures, poses or props that make them instantly them
     voice: z.string().min(1),
     voiceId: z.string().min(1).optional(), // a real id offered by the configured audio backend
-  })).max(12),
-  places: z.array(z.object({ id: Slug, name: z.string().min(1), description: z.string().min(1), mood: z.string().min(1) })).max(8),
+  })),
+  places: z.array(z.object({ id: Slug, name: z.string().min(1), description: z.string().min(1), mood: z.string().min(1) })),
 });
 export type ShowBible = z.infer<typeof ShowBible>;
 
@@ -333,7 +334,7 @@ export const VoiceoverTrack = z.object({
   durationSeconds: z.number().positive(),
   words: z.array(TimedWord).min(1),
   visemes: VisemeTrack.default([]), // whole-episode frames, computed from the audio by the audio package
-  fps: z.number().int().min(1).max(60).optional(), // absent on legacy tracks: 30 fps
+  fps: z.number().int().positive().optional(), // absent on legacy tracks: 30 fps
   speakers: z.array(z.object({ speaker: z.string(), start: z.number().nonnegative(), end: z.number().positive() })).optional(),
 });
 export type VoiceoverTrack = z.infer<typeof VoiceoverTrack>;
@@ -344,6 +345,13 @@ export const ActionCheck = z.object({
   fromWord: z.number().int().nonnegative(), // whole-track word indices, occurrence-safe
   toWord: z.number().int().nonnegative(),
 });
+// Applied during the incoming shot, with the outgoing final frame held underneath.
+export const ShotTransition = z.object({
+  type: z.enum(["cut", "dissolve", "fade-through-black"]),
+  durationFrames: z.number().int().positive(),
+});
+export type ShotTransition = z.infer<typeof ShotTransition>;
+
 export const Shot = z.object({
   id: z.string().min(1),
   start: z.number().nonnegative(), // seconds, snapped to word boundaries
@@ -353,6 +361,7 @@ export const Shot = z.object({
   characters: z.array(z.string()), // bible cast ids
   location: z.string().min(1), // kit background id
   cameraHint: z.string().optional(),
+  transition: ShotTransition.optional(),
   actionChecks: z.array(ActionCheck).max(8).optional(),
 });
 export type Shot = z.infer<typeof Shot>;
@@ -455,19 +464,21 @@ export type SceneStage = z.infer<typeof SceneStage>;
 // Embedded raster assets make the artifact self-contained and part of its content hash.
 export const CanvasScene = z.object({
   version: z.literal(1),
-  fonts: z.record(z.string(), z.string().max(3_000_000).regex(/^data:font\/ttf;base64,[A-Za-z0-9+/=]+$/)).optional(),
-  source: z.string().min(1).max(100_000),
-  cast: z.array(z.string()).max(20).default([]),
-  assets: z.record(z.string(), z.string().max(8_000_000).regex(/^data:image\/(png|jpeg|webp);base64,[A-Za-z0-9+/=]+$/)).default({}),
-  cues: z.array(z.object({ id: z.string(), atFrame: z.number().int().nonnegative() })).max(200).default([]),
+  fonts: z.record(z.string(), z.string().regex(/^data:font\/(ttf|otf|woff|woff2);base64,[A-Za-z0-9+/=]+$/)).optional(),
+  source: z.string().min(1),
+  cast: z.array(z.string()).default([]),
+  assets: z.record(z.string(), z.string().regex(/^data:image\/(png|jpeg|webp|svg\+xml);base64,[A-Za-z0-9+/=]+$/)).default({}),
+  cues: z.array(z.object({ id: z.string(), atFrame: z.number().int().nonnegative() })).default([]),
+  words: z.array(z.object({ text: z.string(), startFrame: z.number().int(), endFrame: z.number().int(), wordIndex: z.number().int().nonnegative().optional() })).optional(),
+  data: z.record(z.string(), z.unknown()).optional(),
   designSources: z.record(z.string(), z.string()).optional(),
 });
 export type CanvasScene = z.infer<typeof CanvasScene>;
 
 export const VideoFormat = z.object({
-  width: z.number().int().min(16).max(4096),
-  height: z.number().int().min(16).max(4096),
-  fps: z.number().int().min(1).max(60),
+  width: z.number().int().positive(),
+  height: z.number().int().positive(),
+  fps: z.number().int().positive(),
 });
 export const ArtistProduction = z.object({
   mode: z.literal("artist"),
@@ -482,6 +493,7 @@ export const SceneSpec = z.object({
   shotId: z.string(),
   durationFrames: z.number().int().positive(),
   canvas: CanvasScene.optional(),
+  transition: ShotTransition.optional(),
   format: VideoFormat.optional(), // absent on existing projects: 1080x1920 at 30 fps
   background: z.object({ id: z.string(), parallax: z.boolean().default(true) }),
   stage: SceneStage.optional(), // required on a 3D stage; actors, props and camera moves don't apply there
@@ -704,7 +716,15 @@ export function checkYoutube(meta: Pick<YoutubeMetadata, "title" | "description"
 // ---------- Registry ----------
 
 // Every artifact kind the engine can store, by name. Meta.kind is one of these keys.
+// Series memory for authored characters/props/backgrounds/data. Published names are immutable;
+// extend by adding a versioned path. Shots pin source bytes and hashes, so old episodes never drift.
+export const AuthoredLibrary = z.object({ files: z.record(z.string(), z.object({
+  content: z.string(), encoding: z.enum(["utf8", "base64"]), hash: z.string(),
+})) });
+export type AuthoredLibrary = z.infer<typeof AuthoredLibrary>;
+
 export const ArtifactSchemas = {
+  AuthoredLibrary,
   SeriesPlan,
   Vocabulary,
   Critique,

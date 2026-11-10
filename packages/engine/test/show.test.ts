@@ -43,7 +43,7 @@ describe("show bible", () => {
 
   it("is written before casting and reaches every later stage's prompt", async () => {
     const { engine, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Krishna guides Arjuna", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna guides Arjuna", language: "en", episodes: 1 });
     await advance(engine, seriesId); // series plan
     await approveNext(engine, seriesId);
     await advance(engine, seriesId); // show bible + bible

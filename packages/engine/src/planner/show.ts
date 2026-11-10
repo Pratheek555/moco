@@ -30,11 +30,11 @@ export async function runShow(ctx: StageContext, plan: SeriesPlan, feedback?: st
       jsonSection("Engine limits", limits),
       notebookSection(await provenLessons(ctx)),
       jsonSection("Available voices", voices),
-      jsonSection("Ready-made kit characters (only worth using if a story character truly is one)", ctx.catalog.characters.map((character) => character.id)),
+      ctx.series.production ? "Freeform is the default: original characters, bespoke drawings and motion in any genre. Cast and places are continuity references, not a drawing vocabulary. A purely graphical show can have an empty cast. Helpers are optional; all Canvas 2D paths (including SVG Path2D), gradients, text, embedded images, layers and blend modes are available." : jsonSection("Ready-made kit characters (only worth using if a story character truly is one)", ctx.catalog.characters.map((character) => character.id)),
       await previousSection(ctx, files.show, "ShowBible", feedback),
       feedbackSection(feedback),
     ]),
-    check: (data) => [...checkShow(data, ctx.config), ...data.cast.flatMap((member, index) => member.voiceId && !voices.some((voice) => voice.id === member.voiceId)
+    check: (data) => [...checkShow(data, ctx.config, Boolean(ctx.series.production)), ...data.cast.flatMap((member, index) => member.voiceId && !voices.some((voice) => voice.id === member.voiceId)
       ? [{ path: `cast[${index}].voiceId`, problem: "voice is not available", allowed: voices.map((voice) => voice.id), fix: "Choose an offered voice or omit voiceId." }] : [])],
   });
   await ctx.store.save(files.show, "ShowBible", show, {
@@ -67,7 +67,7 @@ function showLimits(config: EngineConfig) {
   return { episodeSeconds: config.targetSeconds, shotSeconds: config.shotSecondsBounds };
 }
 
-export function checkShow(show: ShowBible, config: EngineConfig): Issue[] {
+export function checkShow(show: ShowBible, config: EngineConfig, freeform = false): Issue[] {
   const { episodeSeconds, shotSeconds } = showLimits(config);
   const issues: Issue[] = [
     ...checkIds(show.cast.map((member) => member.id), "cast", /^[a-z0-9][a-z0-9-]*$/, "hanuman"),
@@ -85,7 +85,7 @@ export function checkShow(show: ShowBible, config: EngineConfig): Issue[] {
   const tokens = show.look.palette.map((colour) => colour.token);
   const repeated = tokens.filter((token, index) => tokens.indexOf(token) !== index);
   if (repeated.length > 0) issues.push({ path: "look.palette", problem: `token ${repeated.join(", ")} is used twice`, fix: "Make tokens unique." });
-  if (show.cast.length === 0) issues.push({ path: "cast", problem: "is empty", fix: "Every series has at least one on-screen character, or a narrator figure." });
+  if (!freeform && show.cast.length === 0) issues.push({ path: "cast", problem: "is empty", fix: "Every series has at least one on-screen character, or a narrator figure." });
   return issues;
 }
 

@@ -35,7 +35,7 @@ export async function generateArtistScene(ctx: StageContext, inputs: SceneInputs
     let stills:string[]=[];
     try {
       spec = await workspace.assemble();
-      if (!workspace.reviewed(spec)) throw Error("The FINAL saved source/assets were not successfully previewed. Call render_preview after the last edit before completing the shot.");
+      if (!workspace.reviewed(spec)) throw Error(workspace.previewIssue(spec) ?? "The FINAL saved source/assets were not successfully previewed. Call render_preview after the last edit before completing the shot.");
       const checked = await ctx.renderSlots.run(() => ctx.render.check(spec!, { frames: temporalFrames(spec!), outDir: join(workspace.root, "checks", inputs.shot.id, String(attempt)) }));
       if (!checked.ok) throw Error(JSON.stringify(checked.errors));
       stills=checked.stills;

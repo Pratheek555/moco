@@ -3,7 +3,7 @@
 // and grain, and finally the captions, which stay crisp on top.
 // Unknown kit ids throw errors tagged with the spec path, so the engine can feed them back to the AI.
 import { Fragment } from "react";
-import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame } from "remotion";
+import { AbsoluteFill, Img, interpolate, Sequence, staticFile, useCurrentFrame, useVideoConfig } from "remotion";
 import { CameraMotionBlur } from "@remotion/motion-blur";
 import { AuthoredCanvas } from "./AuthoredCanvas.tsx";
 import { RemoteCanvas } from "./RemoteCanvas.tsx";
@@ -39,8 +39,12 @@ interface PlacedAtmosphere {
 // `strict`: set by the render check, where a camera the set blocks is an error for the AI to fix. In an episode render it
 // is pulled in until it can see, so one blocked frame never stops a whole episode.
 export function Scene({ scene, strict = false }: { scene: RenderScene; strict?: boolean }) {
-  if (scene.canvasUrl) return <RemoteCanvas key={scene.canvasUrl} scene={scene} url={scene.canvasUrl} />;
-  return scene.canvas ? <AuthoredCanvas scene={scene} /> : <KitScene scene={scene} strict={strict} />;
+  const frame = useCurrentFrame();
+  if (scene.canvasUrl || scene.canvas) return <AbsoluteFill>
+    {scene.canvasUrl ? <RemoteCanvas key={scene.canvasUrl} scene={scene} url={scene.canvasUrl} /> : <AuthoredCanvas scene={scene} />}
+    <Captions captions={scene.captions} frame={frame} />
+  </AbsoluteFill>;
+  return <KitScene scene={scene} strict={strict} />;
 }
 
 function KitScene({ scene, strict = false }: { scene: SceneSpec; strict?: boolean }) {
@@ -230,18 +234,19 @@ function FxLayer({ id, path, durationFrames }: { id: string; path: string; durat
 
 // Captions sit at 64% of the frame height: clear of Instagram's buttons and caption overlay at the bottom.
 function Captions({ captions, frame }: { captions: Caption[]; frame: number }) {
+  const { width, height } = useVideoConfig();
   const caption = captions.find((candidate) => frame >= candidate.startFrame && frame < candidate.endFrame);
   if (!caption) return null;
   const pop = interpolate(frame - caption.startFrame, [0, 4], [0.82, 1], { extrapolateRight: "clamp" });
   return (
-    <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "center", paddingTop: FRAME_HEIGHT * 0.64 }}>
+    <AbsoluteFill style={{ justifyContent: "flex-start", alignItems: "center", paddingTop: height * 0.64 }}>
       <div
         style={{
-          maxWidth: FRAME_WIDTH * 0.84,
+          maxWidth: width * 0.84,
           textAlign: "center",
           fontFamily: "'Arial Black', 'Noto Sans Devanagari', Arial, sans-serif",
           fontWeight: 900,
-          fontSize: 92,
+          fontSize: 92 * width / FRAME_WIDTH,
           lineHeight: 1.1,
           color: caption.emphasis ? "#ffd54f" : "#ffffff",
           WebkitTextStroke: "14px #111",

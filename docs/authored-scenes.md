@@ -1,5 +1,94 @@
 # Authored scenes: first working prototype
 
+## Freeform default (2026-11-10, spec 0.15.0)
+
+New stories without a template default to `production.mode: "artist"`, local artwork, 1080?1920 at 30 fps.
+The desktop starts on Freeform illustration. Local-only production settings override historical image-provider requests, so ordinary illustration briefs cannot block on a remote image tool. Explicit `production: null` selects kit/world; an explicit legacy
+template retains its existing route. Saved series are not migrated to a new route. The older prototype notes below
+are historical; this section supersedes their code/asset limits and proposed next steps.
+
+The author writes ordinary JavaScript function-body snippets, concatenated in manifest order. There are no kit
+pose, expression, camera or easing enums on this path. Full Canvas 2D is available: SVG `Path2D`, gradients, text,
+clipping, filters, embedded PNG/JPEG/WebP/SVG images, local canvas/OffscreenCanvas layers and blend modes. Helpers
+are optional. Source/file/read byte ceilings, source-file/file/cast/cue counts, and schema dimensions/fps caps were
+removed. Physical browser/codec limits, rendering watchdogs, AI-call and preview budgets still apply; these are
+resource controls, not artwork vocabulary. Freeform shots can depart from the show's suggested duration range,
+introduce new places or characters, and use an empty cast for graphics-only work. Cast declarations and cue bounds
+still check the shot's requirements; they do not inspect or restrict drawing commands.
+
+The artist manifest additionally accepts:
+
+```json
+{
+  "sourceFiles": ["shared/characters.js", "shots/s01/draw.js"],
+  "cast": ["original-character"],
+  "dataFiles": {"palette": "shared/palette.json"},
+  "assets": {"symbol": "assets/symbol.svg"},
+  "fonts": {"My Typeface": "assets/typeface.woff2"},
+  "transition": {"type": "dissolve", "durationFrames": 12}
+}
+```
+
+`scene.words` supplies text, shot-local startFrame/endFrame and whole-track wordIndex. `scene.data` contains the
+manifest's parsed JSON files; `scene.assets` contains decoded images. An optional manifest `captions` array uses
+moco's normal overlay; source can instead draw arbitrary word-by-word captions with `helpers.wordText`. Caption
+text, when supplied as an overlay, still matches narration. No overlay is forced onto a custom composition.
+
+Shared code, data, assets and fonts are published into the revisioned series artifact
+`artifacts/authored-library.json`. It is restored into any later episode, independently of whether the preceding
+episode has an artist workspace. Published paths are immutable; add a new name under `shared/versions/` for a new
+rig/asset. Every shot embeds its chosen source, data, fonts and images and records shared source hashes, so new
+library revisions cannot change old renders. Old projects can bootstrap this artifact from their existing shared
+workspace. The library lives alongside the series' narrative memory and playbook; it is not a global asset pool.
+
+Optional helpers now include snap, pop/overshoot, easeOut, hold, stagger, gravityArc, camera drift/push, step on
+twos/threes, seededRandom, words/wordText, palette, grade, vignette, paper, rimLight and offscreen layer. See
+`packages/engine/src/generator/prompts/artist.md` for exact signatures and direction guidance. Pacing, pose/face
+swaps, entrances, camera drift, event density, cel shading and original designs are guidance, not validation.
+
+`Shot.transition` and `SceneSpec.transition` support cut, dissolve and fade-through-black. Transitions run inside
+the incoming shot over the outgoing final frame, clamped to the incoming duration. Voiceover and cut times are
+unchanged. A missing transition remains a hard cut, including for old specs. The first shot ignores an incoming
+transition. Hand-authored code can draw additional effects within its own shot.
+
+The opaque-origin `sandbox="allow-scripts"` iframe and its CSP are unchanged: no same-origin/parent DOM, file,
+network, workers or process access. Local layer creation does not add host privileges. Remotion injects a browser
+`process.env.NODE_ENV` shim; it has no Node methods. Intentional blank/flat-colour authored holds are left to visual review rather than rejected as drawing errors. Runtime exceptions retain canvas.source, shot and frame feedback,
+and a failed preview's actual message is also retained in the outer retry. The existing critic/repair/quality gates
+continue to operate on rendered temporal evidence. Browser resource exhaustion is still not an OS-level quota.
+
+Design decisions (one per line):
+- Keep the artist contract rather than inventing another production mode; default only newly created untemplated stories.
+- Keep kit/world templates and `production: null` as explicit options; never rewrite saved production settings.
+- Persist shared assets as append-only named series artifacts and pin exact bytes in each scene.
+- Offer functions as conveniences; no new drawing DSL or motion vocabulary validation.
+- Apply transitions inside incoming time over a held outgoing frame to preserve narration and word timing.
+- Keep sandbox/CSP and execution watchdogs; remove arbitrary drawing complexity ceilings.
+- Bump the additive schema to 0.15.0 and renderer cache version to 0.10.0.
+
+Proof: `pnpm exec tsx scripts/freeform-proof.ts`, inspect the six `s01-1.png`?`s03-2.png` files, then
+`pnpm exec tsx scripts/freeform-proof.ts --render`. This uses real artist manifest assembly, L2 validation,
+Remotion L3 checks, ArtifactStore, engine runRender and episode composition. It is a hand-authored fixture with
+manual visual review, not a live-AI/automated-critic benchmark. Narration uses moco's offline systemAudio backend
+(measured line durations and estimated word times). The 12-second H.264 proof has 360 frames, 1080?1920 at 30 fps,
+AAC narration, three shots, Pip reused in two shots, a five-frame pop, one-frame pose swap, dissolve and fade-through-black.
+Six full-size encoded stills are saved alongside the MP4 and were visually inspected. Provenance, hash-bound
+fixture review and normal saved artifacts are included.
+
+Default proof directory:
+`C:\Users\prath\AppData\Local\Temp\claude\3fd6186c8caca1fe\e78eb94b-2564-4524-87ab-c2cf7fdca0df\scratchpad\freeform-proof`.
+
+Verification: workspace + desktop typecheck passed. Focused engine/helper/compatibility/review tests: 38 passed.
+Full opt-in Chromium canvas suite: 9 passed, including native drawing, exact transitions, intentional flat-colour
+holds, >100 MiB episodes, frame seeks, isolation, fonts, runtime failures and repairs. Reduced-concurrency workspace run: 331 passed, 15 skipped, one unchanged CRLF art-fixture failure;
+excluding that fixture: 328 passed, 16 skipped (including the added opt-in flat-colour check). Plain `pnpm test` also reproduces baseline 5-second timeouts under
+full concurrency. Baseline/current logs are copied into the proof directory. The expanded browser suite exposed a cleanup/recycle race after thrown source errors at the still-frame budget.
+Tracking idempotent page closes before shared-browser disposal removed the unhandled Target.closeTarget rejection;
+the complete browser suite now exits cleanly. Final plain run: 313 passed, 19 failed (18 timeouts and the art fixture),
+15 skipped, before adding one further opt-in test. The pre-edit baseline log has 303 passed, 20 failed (19 timeouts
+and the same art fixture), 13 skipped. No kit source/fixture changes were made to hide these failures.
+
+
 Issue: https://github.com/Pratheek555/moco/issues/15
 
 Moco can now render a shot from AI-authored Canvas 2D code, in addition to its existing kit/world paths. This gives

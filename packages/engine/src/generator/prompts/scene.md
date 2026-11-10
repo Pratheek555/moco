@@ -1,16 +1,16 @@
-<!-- prompt: scene v8 -->
+<!-- prompt: scene v9 -->
 ## Authored canvas option (overrides the kit/world rules below when selected)
 
 When the brief needs flat illustrations, text on physical signs, custom diagrams or actions the kit cannot express,
 you may return `canvas: {version:1, source, cast, assets, cues}` in the scene JSON. `source` is the JavaScript BODY
-of a function `(ctx, scene, helpers)`: standard CanvasRenderingContext2D, scene={frame,fps,t,width,height,assets}.
-Draw the COMPLETE shot. Leave stage absent and actors, props, captions, camera, fx and atmosphere empty. Keep the
+of a function `(ctx, scene, helpers)`: standard CanvasRenderingContext2D, scene={frame,fps,t,width,height,assets,words,data}.
+Draw the COMPLETE shot. Leave stage absent and actors, props, camera, fx and atmosphere empty. Optional captions use the moco overlay; custom timed captions can be drawn in source. Keep the
 given shotId/durationFrames/background.id. Declare the visible cast ids in canvas.cast. Respect the show's ban on
 subtitles: draw text onto its illustrated sign/screen, under the same camera transform. Do not silently replace
 requested visuals with captions. Existing kit/world scenes still follow the rules below.
 
-`assets` optionally maps ids to embedded PNG/JPEG/WebP data URLs; draw them with ctx.drawImage(scene.assets[id],...).
-No URLs, imports, network, Node, DOM dependencies, timers, persistent state, Math.random or Date. Each draw starts
+`assets` optionally maps ids to embedded PNG/JPEG/WebP/SVG data URLs; draw them with ctx.drawImage(scene.assets[id],...).
+No external URLs, imports, network, file or process access. Local canvases/OffscreenCanvas, SVG Path2D, gradients, text, images and blend modes are available. Avoid timers, persistent state, Math.random or Date. Each draw starts
 with a clean canvas and must draw correctly at ANY frame, in ANY order. Create artwork directly with canvas if no
 image assets are provided. Use stable character designs across shots; do not promise an unavailable image service.
 Keep output format absent here: the shot's frame timing is fixed by the engine's supplied brief.
@@ -22,6 +22,17 @@ type(text,x,baselineY,startSeconds,t,fontSize=48,colour='#2b2d42',lettersPerSeco
 Set cues=[{id,atFrame}] from the supplied voiceover word frames, using the intended occurrence for repeated words.
 Visual review checks required text, purposeful character movement and framing, even if the source runs successfully.
 Source errors and rendered frames come back through the same repair loop: fix canvas.source/assets when needed.
+The artist route is the default for new stories and offers revisioned shared series code/data and the full helper library.
+On this JSON escape path the same optional helpers exist: snap, pop, overshoot, easeOut, hold, stagger, gravityArc,
+camera, step, seededRandom, words/wordText, palette, grade, vignette, paper, rimLight and layer. They are conveniences,
+never a vocabulary limit. Optional transition={type:"cut"|"dissolve"|"fade-through-black",durationFrames:12} starts this
+shot over the held previous final frame without changing narration timing.
+Direction guidance, not validation: median 3.5?6 s shots; ~85% hard cuts with occasional dissolves; original characters;
+1?2 frame pose/expression swaps at 30 fps, holds 0.3?2 s, separately drawn facings; ~6?8 mouths and 8 eye states held
+per phrase, optional lip sync; pop entrance with ~5-frame overshoot, ease-out slides, short fades and stagger;
+slow linear camera drift, ~5 visual events per 10 s and no dead stretch over 6 s; new/re-cropped background per shot,
+one dominant hue, bold outlines and one-tone cel shading; emotion through pose/expression/symbol swaps;
+charts/labels/maps build with narration. Adapt to the genre and show.
 
 You direct one shot of an animated 9:16 reel by writing a SceneSpec as JSON. A renderer turns it into frames.
 

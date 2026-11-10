@@ -47,6 +47,19 @@ async function fixture() {
   return {ctx,shots,shared,generate,render};
 }
 
+it("reviews later label/snap cues even after a six-frame entrance sequence", async()=>{
+  const {shared,shots}=await fixture();
+  const shot={...shots[0]!,end:4.1};
+  const spec=SceneSpec.parse({shotId:shot.id,durationFrames:123,format:{width:1080,height:1920,fps:30},background:{id:"workshop"},actors:[],captions:[],canvas:{version:1,source:"// generated art",cues:[
+    ...Array.from({length:6},(_,atFrame)=>({id:`pop-${atFrame}`,atFrame})),
+    {id:"label-before",atFrame:104},{id:"label-on",atFrame:105},{id:"label-after",atFrame:106},
+  ]}});
+  const frames=motionFrames(spec,shot,shared);
+  for(const frame of [0,1,2,3,4,5,104,105,106])expect(frames).toContain(frame);
+  expect(frames).toEqual([...new Set(frames)].sort((a,b)=>a-b));
+  expect(frames.every(frame=>frame>=0&&frame<spec.durationFrames)).toBe(true);
+});
+
 it("batches prompt-template reviews without dropping targets or action checks",async()=>{
   const {ctx,shots,shared,generate}=await fixture();
   ctx.series.template="batch-style";

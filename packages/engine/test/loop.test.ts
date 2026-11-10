@@ -13,7 +13,7 @@ import { advance, approveNext, sceneFor, section, setup } from "./helpers.ts";
 
 // Approve plan, bible, script and the sample shot, then generate every scene (stops at the preview gate).
 async function toScenes(engine: Awaited<ReturnType<typeof setup>>["engine"]) {
-  const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+  const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
   for (let gate = 0; gate < 4; gate += 1) {
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
@@ -82,7 +82,7 @@ describe("scene loop", () => {
     const { dir, ai } = await setup({ scene: () => "never valid" });
     const limits = { ...defaultConfig(dir).limits, maxAiCallsPerEpisode: 3 }; // this job: shot list + 2 scene attempts
     const engine = createEngine({ projectsDir: dir, ai, render: new FakeRenderPort(), audio: new FakeAudio(0.4), config: { limits } });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 3; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId);

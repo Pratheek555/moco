@@ -38,7 +38,7 @@ it("saves successful scene timelines as a revisioned series vocabulary", async (
       return spec;
     },
   });
-  const id = await engine.createSeries({ idea: "A sailor listens", language: "en", episodes: 1 });
+  const id = await engine.createSeries({ production: null, idea: "A sailor listens", language: "en", episodes: 1 });
   for (let i = 0; i < 4; i++) { await advance(engine, id); await approveNext(engine, id); }
   await advance(engine, id);
   const artifact = await engine.readArtifact({ seriesId: id, file: "artifacts/vocabulary.json" }) as { data: { entries: { source: string }[] } };

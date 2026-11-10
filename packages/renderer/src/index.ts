@@ -16,7 +16,7 @@ import { serveEpisodeInput } from "./episode-input.ts";
 
 // Part of the engine's render cache key: bump it whenever the same spec renders differently, or old videos come back.
 // (Not the kit version: that one is in every shot's input hash, so bumping it sends every shot back to the AI.)
-export const RENDERER_VERSION = "0.9.0"; // self-contained offline canvas fonts
+export const RENDERER_VERSION = "0.10.2"; // seeded ink, bounded-cost paint streaks and stroked lettering
 
 // Remotion keeps a persistent webpack cache that doesn't notice a reinstall. When pnpm re-resolves a package under a new
 // peer-dependency folder, the cache still points at the old one and a bundle ends up with two copies of
@@ -74,6 +74,7 @@ const QUALITY = {
 export function createRemotionRenderPort(options: RemotionRenderOptions = {}): RemotionRenderPort {
   let serveUrl: Promise<string> | undefined;
   let browser: ReturnType<typeof openBrowser> | undefined;
+  const closingPages = new Set<Promise<void>>();
   const shared = { binariesDirectory: options.binariesDirectory ?? null, chromiumOptions: { gl: "angle" as const } }; // 3D stages need ANGLE
 
   const getServeUrl = () => {
@@ -90,13 +91,33 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
   };
   // One browser for all stills and renders; opening Chrome per call is slow.
   const getBrowser = () => {
-    browser ??= openBrowser("chrome", { browserExecutable: options.browserExecutable ?? null, chromeMode: "headless-shell", chromiumOptions: shared.chromiumOptions }); // the GL choice is made when the browser launches
+    browser ??= openBrowser("chrome", { browserExecutable: options.browserExecutable ?? null, chromeMode: "headless-shell", chromiumOptions: shared.chromiumOptions }).then((instance) => {
+      // Remotion starts page cleanup without awaiting it when source throws. Track
+      // those closes before recycling the shared browser, and make cleanup idempotent.
+      // Otherwise a failed check at the recycle boundary leaks Target.closeTarget.
+      const newPage = instance.newPage.bind(instance);
+      instance.newPage = async (options) => {
+        const page = await newPage(options), close = page.close.bind(page);
+        let pending: Promise<void> | undefined;
+        page.close = (options) => {
+          if (!pending) {
+            pending = close(options).catch((error: unknown) => { if (!isInfrastructureError(error)) throw error; });
+            closingPages.add(pending);
+            void pending.finally(() => closingPages.delete(pending!)).catch(() => {});
+          }
+          return pending;
+        };
+        return page;
+      };
+      return instance;
+    }); // the GL choice is made when the browser launches
     return browser;
   };
   // After a crash or hang the browser can't be trusted: close it (if it's still there) and open a new one next time.
   const resetBrowser = async () => {
     const old = browser;
     browser = undefined;
+    await withTimeout(Promise.allSettled([...closingPages]), 1_000).catch(() => {});
     await old?.then((instance) => instance.close({ silent: true })).catch(() => undefined);
   };
   const stillTimeoutMs = options.stillTimeoutMs ?? 60_000;
@@ -131,7 +152,9 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
           stills.push(output);
           // A frame that renders fine but shows nothing is as broken as one that throws.
           const reason = await blankStill(output);
-          if (reason) blank.push(blankError(spec, frame, reason));
+          // An authored hold/fade may intentionally be a flat colour or black.
+          // Its visual meaning belongs to the critic, not a hard drawing rule.
+          if (reason && !spec.canvas) blank.push(blankError(spec, frame, reason));
         }
         return blank.length > 0 ? { ok: false, errors: blank } : { ok: true, stills };
       } catch (err) {
@@ -223,6 +246,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
     },
 
     async close() {
+      await withTimeout(Promise.allSettled([...closingPages]), 1_000).catch(() => {});
       if (browser) await (await browser).close({ silent: true });
       browser = undefined;
     },

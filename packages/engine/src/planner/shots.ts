@@ -3,7 +3,7 @@
 // That way shot boundaries always land on word boundaries and every word is in exactly one shot.
 import * as z from "zod";
 import type { Catalog } from "@moco/kit";
-import { ActionCheck, VoiceoverTrack, type SeriesBible, type Shot, type ShotList, type TimedWord } from "@moco/spec";
+import { ActionCheck, ShotTransition, VoiceoverTrack, type SeriesBible, type Shot, type ShotList, type TimedWord } from "@moco/spec";
 import type { EngineConfig } from "../config.ts";
 import { feedbackSection, joinSections, jsonSection, promptRef } from "../generator/prompts.ts";
 import type { Issue } from "../loop/feedback.ts";
@@ -22,6 +22,7 @@ const ShotDraft = z.object({
   characters: z.array(z.string()),
   location: z.string(),
   cameraHint: z.string().optional(),
+  transition: ShotTransition.optional(),
   actionChecks: z.array(ActionCheck).max(8).optional(),
 });
 const ShotDraftList = z.object({ shots: z.array(ShotDraft).min(1) });
@@ -35,7 +36,7 @@ export async function runShotList(ctx: StageContext, episodeId: string, feedback
   // When re-cutting after an edit, show the previous cut so unchanged shots stay the same (and their specs get reused).
   const previous = await previousShotList(ctx, episodeId);
   const show = await readShow(ctx);
-  const shotSeconds = shotSecondsFor(ctx.config, show);
+  const shotSeconds = ctx.series.production ? { min: 0, max: Number.MAX_SAFE_INTEGER } : shotSecondsFor(ctx.config, show);
 
   const draft = await planWithAi(ctx, {
     scope: episodeId,
@@ -54,7 +55,7 @@ export async function runShotList(ctx: StageContext, episodeId: string, feedback
       previous ? jsonSection("Previous cut — keep shots whose words didn't change exactly as they were", previous) : "",
       feedbackSection(feedback),
     ]),
-    check: (data) => [...checkShotDrafts(data, voiceover, bible, ctx.catalog, shotSeconds, ctx.series.production ? show?.places.map((place) => place.id) : undefined), ...(ctx.series.production ? data.shots.flatMap((shot, index) => !shot.actionChecks?.length ? [{path:`shots[${index}].actionChecks`,problem:"Declare observable actions with word indices"}] : []) : [])],
+    check: (data) => [...checkShotDrafts(data, voiceover, bible, ctx.catalog, shotSeconds, ctx.series.production ? show?.places.map((place) => place.id) : undefined, Boolean(ctx.series.production)), ...(ctx.series.production ? data.shots.flatMap((shot, index) => !shot.actionChecks?.length ? [{path:`shots[${index}].actionChecks`,problem:"Declare observable actions with word indices"}] : []) : [])],
   });
 
   const shotList: ShotList = { shots: timeShots(draft, voiceover) };
@@ -79,6 +80,7 @@ async function previousShotList(ctx: StageContext, episodeId: string) {
     location: shot.location,
     cameraHint: shot.cameraHint,
     actionChecks: shot.actionChecks,
+    transition: shot.transition,
   }));
 }
 
@@ -103,7 +105,7 @@ function uniqueLineIds(words: TimedWord[]): string[] {
   return [...new Set(words.map((word) => word.lineId))];
 }
 
-export function checkShotDrafts(draft: ShotDraftList, voiceover: VoiceoverTrack, bible: SeriesBible, catalog: Catalog, shotSeconds: EngineConfig["shotSeconds"], locationsOverride?: string[]): Issue[] {
+export function checkShotDrafts(draft: ShotDraftList, voiceover: VoiceoverTrack, bible: SeriesBible, catalog: Catalog, shotSeconds: EngineConfig["shotSeconds"], locationsOverride?: string[], freeform = false): Issue[] {
   const cutIssues = checkCutPoints(draft, voiceover.words.length);
   // Only time the shots once the cut points are valid; otherwise lengths are meaningless.
   if (cutIssues.length > 0) return cutIssues;
@@ -112,8 +114,8 @@ export function checkShotDrafts(draft: ShotDraftList, voiceover: VoiceoverTrack,
   const locations = locationsOverride ?? catalog.backgrounds.map((background) => background.id);
   const timed = timeShots(draft, voiceover);
   return [
-    ...checkIds(draft.shots.map((shot) => shot.id), "shots", /^s\d{2,3}$/, "s01"),
-    ...timed.flatMap((shot, index) => checkShot(shot, `shots[${index}]`, castIds, locations, shotSeconds)),
+    ...checkIds(draft.shots.map((shot) => shot.id), "shots", /^s\d{2,}$/, "s01"),
+    ...timed.flatMap((shot, index) => checkShot(shot, `shots[${index}]`, castIds, locations, shotSeconds, freeform)),
     ...draft.shots.flatMap((shot,index)=> (shot.actionChecks ?? []).flatMap((action)=> {
       const end=draft.shots[index+1]?.fromWord ?? voiceover.words.length;
       return action.fromWord < shot.fromWord || action.toWord < action.fromWord || action.toWord >= end ? [{path:`shots[${index}].actionChecks`,problem:`Action ${action.id} must use word indices within this shot`}] : [];
@@ -132,18 +134,18 @@ function checkCutPoints(draft: ShotDraftList, wordCount: number): Issue[] {
   });
 }
 
-function checkShot(shot: Shot, path: string, castIds: string[], locations: string[], shotSeconds: EngineConfig["shotSeconds"]): Issue[] {
+function checkShot(shot: Shot, path: string, castIds: string[], locations: string[], shotSeconds: EngineConfig["shotSeconds"], freeform = false): Issue[] {
   const issues: Issue[] = [];
   const length = shot.end - shot.start;
   const { min, max } = shotSeconds;
   if (length < min || length > max) {
     issues.push({ path, problem: `lasts ${length.toFixed(2)} s, shots must be ${min}–${max} s`, fix: "Move the cut points." });
   }
-  if (!locations.includes(shot.location)) {
+  if (!freeform && !locations.includes(shot.location)) {
     issues.push({ path: `${path}.location`, problem: `"${shot.location}" is not a kit background`, allowed: locations, fix: "Pick one." });
   }
   const unknown = shot.characters.filter((character) => !castIds.includes(character));
-  if (unknown.length > 0) {
+  if (!freeform && unknown.length > 0) {
     issues.push({ path: `${path}.characters`, problem: `${unknown.join(", ")} not in the cast`, allowed: castIds, fix: "Use cast ids only." });
   }
   return issues;

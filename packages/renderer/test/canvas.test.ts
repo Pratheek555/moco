@@ -23,6 +23,50 @@ describe.runIf(process.env.MOCO_RENDER_TESTS)("authored canvas renderer", () => 
   const port = createRemotionRenderPort({stillFrameBudget:6});
   afterAll(() => port.close());
   const scene = (source: string) => SceneSpec.parse({shotId:"canvas",durationFrames:60,format:{width:640,height:360,fps:60},background:{id:"custom"},actors:[],captions:[],canvas:{version:1,source}});
+  it("leaves intentional blank/flat-colour authored holds to visual review", async () => {
+    const held = scene("ctx.fillStyle='#000000';ctx.fillRect(0,0,640,360)");
+    const checked = await port.check(held,{frames:[0],outDir:await mkdtemp(join(tmpdir(),"moco-authored-hold-"))});
+    expect(checked.ok).toBe(true);
+  },240_000);
+  it("composites dissolves and fade-through-black at exact cut frames, including seeks", async () => {
+    const red = scene("ctx.fillStyle='#ff0000';ctx.fillRect(0,0,640,360)");
+    const blue = {...scene("ctx.fillStyle='#0000ff';ctx.fillRect(0,0,640,360)"),shotId:"blue",transition:{type:"dissolve" as const,durationFrames:11}};
+    const green = {...scene("ctx.fillStyle='#00ff00';ctx.fillRect(0,0,640,360)"),shotId:"green",transition:{type:"fade-through-black" as const,durationFrames:11}};
+    const input = await serveEpisodeInput({episodeId:"transitions",scenes:[red,blue,green],audio:{voiceover:""},export:red.format!});
+    try {
+      const serveUrl = await bundle({entryPoint:fileURLToPath(new URL("../src/remotion/index.ts",import.meta.url)),publicDir:KIT_ASSETS_DIR});
+      const inputProps = {episode:input.episode,audioUrl:null};
+      const composition = await selectComposition({serveUrl,id:"Episode",inputProps});
+      expect(composition.durationInFrames).toBe(180);
+      const expected: Record<number,number[]> = {60:[255,0,0],65:[127,0,128],70:[0,0,255],120:[0,0,255],125:[0,0,0],130:[0,255,0]};
+      await renderFrames({composition,serveUrl,inputProps,frames:[125,65,60,130,70,120],concurrency:1,scale:.5,imageFormat:"png",outputDir:null,onStart:()=>{},onFrameUpdate:()=>{},
+        onFrameBuffer:(buffer,frame)=>{
+          const rgb = [...decodePng(buffer).data.slice(0,3)];
+          rgb.forEach((value,index)=>expect(Math.abs(value-expected[frame]![index]!),`frame ${frame}`).toBeLessThanOrEqual(1));
+        }});
+    } finally { await input.close(); }
+  },240_000);
+  it("offers native SVG paths, SVG images, gradients, text, blend modes and offscreen layers inside isolation", async () => {
+    const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="10" height="10"><rect width="10" height="10" fill="gold"/></svg>';
+    const spec = scene(`
+      // Remotion injects a browser-only process.env.NODE_ENV shim, not Node.
+      if(typeof require!=='undefined'||(typeof process!=='undefined'&&(typeof process.cwd==='function'||process.versions?.node)))throw Error('host access');
+      let blocked=false;try{parent.document.body.innerHTML='bad'}catch{blocked=true}
+      if(!blocked)throw Error('parent access');
+      const g=ctx.createLinearGradient(0,0,640,360);g.addColorStop(0,'#cc3f72');g.addColorStop(1,'#293f77');
+      ctx.fillStyle=g;ctx.fillRect(0,0,640,360);
+      const layer=helpers.layer(80,80),lc=layer.getContext('2d');lc.fillStyle='#58bdaa';
+      lc.fill(new Path2D('M0 0 L80 0 L40 80 Z'));ctx.drawImage(layer,100,100);
+      ctx.globalCompositeOperation='screen';ctx.drawImage(scene.assets.icon,300,80,100,100);ctx.globalCompositeOperation='source-over';
+      ctx.font='28px Arial';helpers.wordText(scene.words,20,300);
+      if(scene.data.original!=='yes')throw Error('missing data');
+    `);
+    spec.canvas!.assets = {icon:`data:image/svg+xml;base64,${Buffer.from(svg).toString("base64")}`};
+    spec.canvas!.words = [{text:"Original",startFrame:0,endFrame:60}];
+    spec.canvas!.data = {original:"yes"};
+    const checked = await port.check(spec,{frames:[0,30],outDir:await mkdtemp(join(tmpdir(),"moco-native-drawing-"))});
+    expect(checked.ok,JSON.stringify(checked)).toBe(true);
+  },240_000);
   it("waits for loaded drawings on the first frame, across cuts, and after seeks", async () => {
     const first = scene("ctx.fillStyle='#ff0000';ctx.fillRect(0,0,scene.width,scene.height)");
     const second = scene("ctx.fillStyle='#0000ff';ctx.fillRect(0,0,scene.width,scene.height)");

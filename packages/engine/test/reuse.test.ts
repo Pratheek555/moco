@@ -9,7 +9,7 @@ import { advance, approveNext, setup } from "./helpers.ts";
 describe("reuse", () => {
   it("reuses scene specs and the preview render when inputs are unchanged", async () => {
     const { engine, ai, render } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 4; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId); // plan, bible, script, sample

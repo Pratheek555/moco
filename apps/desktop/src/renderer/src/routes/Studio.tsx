@@ -81,8 +81,8 @@ export function Studio() {
   const [historyOpen, setHistoryOpen] = useState(false);
   const [motionPaused, setMotionPaused] = useState(false);
   const [details, setDetails] = useState<TemplateInfo | null>(null);
-  const [productionMode, setProductionMode] = useState("standard");
-  const [artistShape, setArtistShape] = useState("landscape");
+  const [productionMode, setProductionMode] = useState(template ? "standard" : "artist");
+  const [artistShape, setArtistShape] = useState("portrait");
   const [artistSeconds, setArtistSeconds] = useState("");
   const [episodes, setEpisodes] = useState(() => template?.defaults.episodes ?? settings.defaults.episodes),
     [language, setLanguage] = useState(settings.defaults.language),
@@ -120,7 +120,7 @@ export function Studio() {
     setStarting(true);
     try {
       const id = await api.series.create({ idea: idea.trim(), episodes, language,
-        ...(productionMode === "artist" ? { production: { mode: "artist" as const, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 60 }, ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : template ? { template: template.id } : {}),
+        ...(productionMode === "artist" ? { production: { mode: "artist" as const, localOnly: true, format: { width: artistShape === "landscape" ? 1920 : 1080, height: artistShape === "landscape" ? 1080 : 1920, fps: 30 }, ...(artistSeconds.trim() ? { targetSeconds: Number(artistSeconds) } : {}) } } : template ? { template: template.id } : { production: null }),
       });
       setIdea("");
       setTemplateId(null);
@@ -153,7 +153,7 @@ export function Studio() {
   // Changing the look must not replace the episode count the user chose.
   const chooseTemplate = (next: TemplateInfo | undefined) => {
     setTemplateId(next?.id ?? null);
-    setProductionMode("standard");
+    setProductionMode(next ? "standard" : "artist");
   };
 
   return (
@@ -218,7 +218,7 @@ export function Studio() {
                     <SelectContent position="popper" align="start">
                       {template?.production && <SelectItem value="template">Prompt template &middot; 2D canvas</SelectItem>}
                       <SelectItem value="standard">Animation &amp; 3D</SelectItem>
-                      <SelectItem value="artist">Custom illustration &middot; experimental</SelectItem>
+                      <SelectItem value="artist">Freeform illustration &middot; default</SelectItem>
                     </SelectContent>
                   </Select>
                 </Field>

@@ -19,7 +19,7 @@ describe("pipeline", () => {
     const { engine, ai } = await setup();
     const completed: string[] = [];
     engine.on("episode.completed", event => completed.push(String(event.data.episodeId)));
-    const id = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 2 });
+    const id = await engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 2 });
     for (let gate = 0; gate < 5; gate++) {
       await advance(engine, id);
       await approveNext(engine, id);
@@ -40,7 +40,7 @@ describe("pipeline", () => {
 
   it("runs a whole episode, stopping at every gate", async () => {
     const { engine, dir, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna at Kurukshetra", language: "en", episodes: 2 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna and Arjuna at Kurukshetra", language: "en", episodes: 2 });
 
     // Each gate stops the run; approving it lets the next run continue.
     const gates: string[] = [];
@@ -88,7 +88,7 @@ describe("pipeline", () => {
       return { ...answer, style: { ...answer.style, timeOfDay: "dusk" } };
     };
     const { engine, dir } = await setup({ bible, scene: (request) => ({ ...sceneFor(request.prompt), timeOfDay: "noon" }) });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 3; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId); // plan, bible, script
@@ -100,7 +100,7 @@ describe("pipeline", () => {
 
   it("adds episodes after the approved ones without redoing the episodes already made", async () => {
     const { engine, dir, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await expect(engine.extendSeries(seriesId, { episodes: 2 })).rejects.toMatchObject({ code: "stage_blocked" });
     for (let gate = 0; gate < 3; gate += 1) {
       await advance(engine, seriesId);
@@ -142,7 +142,7 @@ describe("pipeline", () => {
 
   it("refuses approval with a stale hash", async () => {
     const { engine } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await expect(engine.approve({ seriesId, key: "series_plan" }, "not-the-hash")).rejects.toMatchObject({ code: "gate_mismatch" });
     await expect(engine.approve({ seriesId, key: "bible" }, "x")).rejects.toMatchObject({ code: "not_awaiting_approval" });
@@ -150,7 +150,7 @@ describe("pipeline", () => {
 
   it("puts reject() feedback into the next prompt", async () => {
     const { engine, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await engine.reject({ seriesId, key: "series_plan" }, "Make it about Karna instead");
     await advance(engine, seriesId);
@@ -161,7 +161,7 @@ describe("pipeline", () => {
   it("builds a world for a story the kit can't play, and casts it", async () => {
     const style = { palette: ["#000000"], captionStyle: "bold", mood: "fast", timeOfDay: "dusk" };
     const { engine, ai } = await setup({ bible: () => ({ cast: [], style }), world: () => testWorld() });
-    const seriesId = await engine.createSeries({ idea: "A young sailor", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "A young sailor", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
 
@@ -175,14 +175,14 @@ describe("pipeline", () => {
 
   it("shows what the AI said when it refuses to answer", async () => {
     const { engine } = await setup({ series: () => { throw new SchemaRefusal("I can't plan this story"); } });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     const job = await engine.waitForJob(await engine.runStage({ seriesId }));
     expect(job.error?.message).toContain("I can't plan this story");
   });
 
   it("gives a note on the preview to the shots it was rendered from", async () => {
     const { engine, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 4; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId); // plan, bible, script, sample
@@ -201,7 +201,7 @@ describe("pipeline", () => {
     const { engine, ai } = await setup({ series: untilStopped });
     const failures: unknown[] = [];
     engine.on("stage.failed", (event) => failures.push(event));
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
 
     const jobId = await engine.runStage({ seriesId });
     await vi.waitFor(() => expect(ai.requests).toHaveLength(1));
@@ -215,7 +215,7 @@ describe("pipeline", () => {
   it("doesn't start the AI calls still queued when a job is stopped", async () => {
     let hold = false;
     const { engine, ai } = await setup({ scene: (request) => (hold ? untilStopped(request) : sceneFor(request.prompt)) });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 4; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId); // plan, bible, script, sample
@@ -234,7 +234,7 @@ describe("pipeline", () => {
     const { dir, ai } = await setup();
     const limits = { ...defaultConfig(dir).limits, maxAiCallsPerEpisode: 1 };
     const engine = createEngine({ projectsDir: dir, ai, render: new FakeRenderPort(), audio: new FakeAudio(), config: { limits } });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await engine.reject({ seriesId, key: "series_plan" }, "again");
     await advance(engine, seriesId); // the series scope's second call, in a new job
@@ -243,7 +243,7 @@ describe("pipeline", () => {
 
   it("records each AI call under today's date for the usage page", async () => {
     const { engine } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     const { usage } = await engine.status(seriesId);
     const today = localDate(new Date());
@@ -256,7 +256,7 @@ describe("pipeline", () => {
   it("sends the script back when the measured voiceover is off target, then gives up after the cap", async () => {
     // 0.55 s per word makes the 112-word script ~62 s against a 45 s target.
     const { engine, ai } = await setup({}, undefined, 0.55);
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 2; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId); // plan, bible
@@ -284,7 +284,7 @@ describe("pipeline", () => {
   it("marks downstream stages stale when an approved script is restored to an older revision", async () => {
     let variant = 0;
     const { engine } = await setup({ script: () => ({ ...scriptData(), lines: scriptData().lines.map((line) => ({ ...line, beat: `v${variant}` })) }) });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     await approveNext(engine, seriesId);
     await advance(engine, seriesId);
@@ -310,7 +310,7 @@ describe("pipeline", () => {
 
   it("detects a file edited outside the engine", async () => {
     const { engine, dir } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(engine, seriesId);
     const file = join(dir, seriesId, "artifacts/series_plan.json");
     const envelope = JSON.parse(await readFile(file, "utf8"));
@@ -326,7 +326,7 @@ describe("pipeline", () => {
 
   it("resumes after a restart from what is on disk", async () => {
     const first = await setup();
-    const seriesId = await first.engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await first.engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await advance(first.engine, seriesId);
     await approveNext(first.engine, seriesId);
 
@@ -338,7 +338,7 @@ describe("pipeline", () => {
 
   it("regenerates one shot with feedback and stales the preview", async () => {
     const { engine, ai } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     for (let gate = 0; gate < 4; gate += 1) {
       await advance(engine, seriesId);
       await approveNext(engine, seriesId); // plan, bible, script, sample
@@ -359,14 +359,14 @@ describe("pipeline", () => {
       render: new FakeRenderPort(),
       audio: new FakeAudio(),
     });
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     const job = await engine.waitForJob(await engine.runStage({ seriesId }));
     expect(job.error).toMatchObject({ code: "ai_unavailable" });
   });
 
   it("skips projects made before specVersion existed instead of failing the list", async () => {
     const { engine, dir } = await setup();
-    const seriesId = await engine.createSeries({ idea: "Gita", language: "en", episodes: 1 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Gita", language: "en", episodes: 1 });
     await mkdir(join(dir, "old-demo"));
     await writeFile(join(dir, "old-demo", "series.json"), JSON.stringify({ id: "old-demo", title: "Old" }));
     expect((await engine.listSeries()).map((info) => info.id)).toEqual([seriesId]);
@@ -375,7 +375,7 @@ describe("pipeline", () => {
 
   it("rejects unsafe input", async () => {
     const { engine } = await setup();
-    await expect(engine.createSeries({ idea: "x", language: "../../etc", episodes: 1 })).rejects.toMatchObject({ code: "invalid_id" });
+    await expect(engine.createSeries({ production: null, idea: "x", language: "../../etc", episodes: 1 })).rejects.toMatchObject({ code: "invalid_id" });
     await expect(engine.status("../outside")).rejects.toMatchObject({ code: "invalid_id" });
   });
 });

@@ -18,7 +18,7 @@ it("allows requested GPT Image 2, but never enables it for unrelated or local-on
   expect(imageGenerationCapability({idea:"Generate images of a forest",production},ai).enabled).toBe(true);
   expect(imageGenerationCapability({idea:"Draw a forest",production},ai).enabled).toBe(false);
   expect(imageGenerationCapability({idea:"No image generation",production},ai).enabled).toBe(false);
-  expect(imageGenerationCapability({idea:"GPT Image 2",production:{...production,localOnly:true}},ai).enabled).toBe(false);
+  expect(imageGenerationCapability({idea:"GPT Image 2",production:{...production,localOnly:true}},ai)).toMatchObject({enabled:false,requested:false});
   expect(imageGenerationCapability({idea:"GPT Image 2",production},{})).toMatchObject({requested:true,available:false});
 });
 
@@ -169,14 +169,14 @@ it("finishes a 40-shot image episode past 60 calls and 180 files, reusing saved 
   expect((await engine.status(id)).next).toMatchObject({kind:"waiting",key:"ep-01/preview"});
 },60_000);
 
-it("bounds new scene files and generated images while allowing repairs at the file cap",async()=>{
+it("allows more than 180 authored files while keeping workspace boundaries",async()=>{
   let imageCalls=0;
   const {engine,id,dir,ai}=await setup(async request=>{
     const call=(name:string,args:object)=>request.artistTools!.find(t=>t.name===name)!.call(args);
     await call("write_file",{path:"shots/s01/existing-0.js",content:"// repaired"});
-    await expect(call("write_file",{path:"shots/s01/overflow.js",content:"// new"})).rejects.toThrow("file limit reached for scene s01");
-    await expect(call("generate_image",{path:"shots/s01/overflow.png",prompt:"Ocean"})).rejects.toThrow("file limit reached for scene s01");
-    await call("report_blocker",{reason:"File capacity checked"});
+    await call("write_file",{path:"shots/s01/overflow.js",content:"// new"});
+    await expect(call("write_file",{path:"../escape.js",content:"// outside"})).rejects.toThrow();
+    await call("report_blocker",{reason:"File boundaries checked"});
     return {};
   },"Use GPT Image 2");
   const root=join(dir,id,"episodes/ep-01/artist/shots/s01");
@@ -186,7 +186,8 @@ it("bounds new scene files and generated images while allowing repairs at the fi
   const generate=ai.generate.bind(ai);
   ai.generate=async request=>{if(request.imageGeneration)imageCalls++;return generate(request);};
   const job=await engine.waitForJob(await engine.runStage({seriesId:id}));
-  expect(job.error?.message).toContain("File capacity checked");
+  expect(job.error?.message).toContain("File boundaries checked");
   expect(imageCalls).toBe(0);
+  expect(await readFile(join(root,"overflow.js"),"utf8")).toBe("// new");
   expect(await readFile(join(root,"existing-0.js"),"utf8")).toBe("// repaired");
 },15_000);

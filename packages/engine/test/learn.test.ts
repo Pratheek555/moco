@@ -80,7 +80,7 @@ describe("the learning loop", () => {
     };
     const { engine, ai, dir } = await setup({ look_shots: director, retro }, projects);
     ai.seesImages = true;
-    const seriesId = await engine.createSeries({ idea: "Krishna and Arjuna", language: "en", episodes: 2 });
+    const seriesId = await engine.createSeries({ production: null, idea: "Krishna and Arjuna", language: "en", episodes: 2 });
 
     let noted = false;
     for (let round = 0; round < 20; round += 1) {

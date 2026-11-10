@@ -133,7 +133,7 @@ export interface MocoApi {
   };
   series: {
     list(): Promise<SeriesSummary[]>;
-    create(input: { idea: string; language: string; episodes: number; template?: string; production?: ArtistProduction }): Promise<string>; // creates and starts planning
+    create(input: { idea: string; language: string; episodes: number; template?: string; production?: ArtistProduction | null }): Promise<string>; // creates and starts planning
     extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
     status(id: string): Promise<SeriesStatus>;
     artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;

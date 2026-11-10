@@ -60,7 +60,7 @@ describe("growing canon", () => {
     };
     const { engine, ai, dir } = await setup(answers);
     ai.seesImages = true;
-    const seriesId = await engine.createSeries({ idea: "A sailor and a lighthouse", language: "en", episodes: 2 });
+    const seriesId = await engine.createSeries({ production: null, idea: "A sailor and a lighthouse", language: "en", episodes: 2 });
     const read = (file: string) => readFile(join(dir, seriesId, file), "utf8");
 
     let worldBefore = "";

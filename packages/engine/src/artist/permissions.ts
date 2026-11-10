@@ -7,7 +7,7 @@ export function imageGenerationCapability(series: Pick<SeriesInfo, "idea" | "pro
   // the model in their original brief, so preserve that request without a migration.
   const explicit = series.production?.imageGeneration;
   const text = series.idea.replace(/\b(?:no|without|do not|don't|never)\s+(?:use\s+)?(?:gpt[ -]*image[ -]*2|image generation|generated images)\b/gi, "");
-  const requested = Boolean(explicit || /\bgpt[ -]*image[ -]*2\b|\bimagegen\b|\bimage generation\b|\bgenerate\s+(?:raster\s+)?(?:images|illustrations)\b/i.test(text));
+  const requested = !series.production?.localOnly && Boolean(explicit || /\bgpt[ -]*image[ -]*2\b|\bimagegen\b|\bimage generation\b|\bgenerate\s+(?:raster\s+)?(?:images|illustrations)\b/i.test(text));
   const available = ai.supportsImageGeneration === true && !series.production?.localOnly;
   return { model: "gpt-image-2" as const, requested, available, enabled: requested && available,
     reason: series.production?.localOnly ? "This project uses local-only artwork. Remote image generation is disabled."

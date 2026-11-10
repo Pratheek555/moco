@@ -38,9 +38,10 @@ export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
     spec.canvas.cues.forEach((cue, index) => {
       if (cue.atFrame >= spec.durationFrames) issues.push({ path: `canvas.cues[${index}].atFrame`, problem: "cue is outside the shot" });
     });
-    if (spec.stage || spec.actors.length || spec.props.length || spec.captions.length || spec.camera.length || spec.fx.length || spec.atmosphere.length) {
-      issues.push({ path: "canvas", problem: "canvas owns the complete shot", fix: "Leave stage absent and actors, props, captions, camera, fx and atmosphere empty; draw all elements in canvas.source." });
+    if (spec.stage || spec.actors.length || spec.props.length || spec.camera.length || spec.fx.length || spec.atmosphere.length) {
+      issues.push({ path: "canvas", problem: "canvas owns the artwork", fix: "Leave stage absent and actors, props, camera, fx and atmosphere empty; draw artwork in canvas.source. Optional captions can use the moco overlay." });
     }
+    issues.push(...spec.captions.flatMap((caption, index) => checkFrameRange(caption, `captions[${index}]`, spec.durationFrames)), ...(spec.captions.length ? checkCaptionText(spec.captions, rules.brief) : []));
     return issues;
   }
   return [
