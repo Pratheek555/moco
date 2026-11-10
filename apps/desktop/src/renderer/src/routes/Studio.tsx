@@ -238,7 +238,7 @@ export function Studio() {
                 </Field>
               </div>
               <FieldDescription>
-                {template?.production ? "Your template brings its own artwork and animation direction." : productionMode === "artist" ? "Original artwork and movement, shaped around your brief." : "Bring your world to life with ready-made styles and 3D scenes."}
+                {template?.production ? "Your template brings its own artwork and animation direction." : productionMode === "artist" ? "Original artwork and movement, shaped around your brief." : settings.render.backend === "blender" ? "Native 3D sets, characters and animation, rendered locally in Blender." : "Bring your world to life with ready-made styles and 3D scenes."}
               </FieldDescription>
               {template && (
                 <Item variant="outline" size="sm">

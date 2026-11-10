@@ -1,3 +1,4 @@
+import { blenderSceneIssues } from "@moco/spec";
 // L2 semantic checks for a SceneSpec: everything the zod schema can't know on its own —
 // the kit catalog, the bible cast, the shot's timing and its voiceover words, and the cinematography rules
 // (something moves at least every 3 s, emphasis gets a camera move, no 3 same-looking shots in a row).
@@ -31,6 +32,14 @@ export interface SceneRules {
 const SAFE_AREA = { minX: 0.08, maxX: 0.92, minY: 0.12, maxY: 0.88 };
 
 export function validateScene(spec: SceneSpec, rules: SceneRules): Issue[] {
+  if (spec.blender) {
+    const issues = [...checkShotIdentity(spec, rules.brief), ...blenderSceneIssues(spec.blender, spec.durationFrames)];
+    const missing = rules.brief.shot.characters.filter(id => !spec.blender!.cast.includes(id) || !spec.blender!.objects.some(obj => obj.id === id));
+    if (missing.length) issues.push({ path: "blender.cast", problem: `Build and declare the required cast: ${missing.join(", ")}` });
+    if (spec.canvas || spec.stage || spec.actors.length || spec.props.length || spec.camera.length || spec.fx.length || spec.atmosphere.length) issues.push({ path: "blender", problem: "Blender owns the shot; remove Canvas, stage and kit elements" });
+    issues.push(...spec.captions.flatMap((caption, index) => checkFrameRange(caption, `captions[${index}]`, spec.durationFrames)), ...checkCaptionText(spec.captions, rules.brief));
+    return issues;
+  }
   if (spec.canvas) {
     const issues = checkShotIdentity(spec, rules.brief);
     const missing = rules.brief.shot.characters.filter((id) => !spec.canvas!.cast.includes(id));
@@ -222,7 +231,7 @@ const NO_SIZE = "";
 
 // The move that runs longest ("static" when the camera never moves), and the shot size.
 export function shotLook(spec: SceneSpec): { cameraPreset: string; shotSize: string } {
-  if (spec.canvas) return { cameraPreset: NO_SIZE, shotSize: NO_SIZE }; // custom camera is judged visually
+  if (spec.canvas || spec.blender) return { cameraPreset: NO_SIZE, shotSize: NO_SIZE }; // custom camera is judged visually
   if (spec.stage) return { cameraPreset: spec.stage.camera, shotSize: NO_SIZE };
   const moving = spec.camera.filter((move) => move.move !== "static" && move.move !== "shake");
   const longest = [...moving].sort((a, b) => b.endFrame - b.startFrame - (a.endFrame - a.startFrame))[0];

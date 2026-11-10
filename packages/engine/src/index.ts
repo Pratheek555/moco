@@ -98,7 +98,7 @@ export interface Engine {
   // Plan `episodes` more after the approved ones, steered by an optional note. The longer plan waits for approval.
   extendSeries(seriesId: SeriesId, input: { episodes: number; note?: string }): Promise<JobId>;
   repeatOffer(seriesId: SeriesId): Promise<RepeatOffer>;
-  nextEpisode(seriesId: SeriesId, input: { topic?: string }): Promise<JobId>;
+  nextEpisode(seriesId: SeriesId, input: { topic?: string; useCurrentVoice?: boolean }): Promise<JobId>;
   listSeries(): Promise<SeriesInfo[]>;
   runStage(ref: StageRef): Promise<JobId>;
   approve(ref: Required<StageRef>, contentHash: string): Promise<void>;
@@ -434,6 +434,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
         episodes,
         ...(input.template && { template: input.template }),
         ...(production && { production }),
+        ...(!production && options.render.sceneBackend === "blender" && { renderer: "blender" as const }),
         createdAt: new Date().toISOString(),
         engineVersion: ENGINE_VERSION,
         specVersion: SPEC_VERSION,
@@ -454,6 +455,7 @@ export function createEngine(options: CreateEngineOptions): Engine {
       if (series.activeJob) throw new EngineError("busy", "Wait for the current job to finish.");
       if (!options.ai.supportsArtist) throw new EngineError("stage_blocked", "The selected AI provider cannot use the artist workspace. Choose a supported provider explicitly before continuing.");
       if (input.topic !== undefined && (typeof input.topic !== "string" || !input.topic.trim() || input.topic.trim().length > 2000)) throw new EngineError("validation_failed", "Enter a topic of 1–2000 characters.");
+      if (input.useCurrentVoice !== undefined && typeof input.useCurrentVoice !== "boolean") throw new EngineError("validation_failed", "Choose whether to use the narrator from Settings.");
       const topic = input.topic?.trim();
       const offer = await repeatOffer(contextFor(series, new AbortController().signal));
       if (!offer.available) throw new EngineError("stage_blocked", offer.reason!);
@@ -463,6 +465,11 @@ export function createEngine(options: CreateEngineOptions): Engine {
       const episodeId = offer.nextEpisode?.id ?? `ep-${String(series.ledger.data.episodeIds.length + 1).padStart(2, "0")}`;
       return startJob(seriesId, "stage", `${episodeId}/script`, async (ctx, job) => {
         const repeat = await captureRepeat(ctx, episodeId, offer, topic);
+        if (input.useCurrentVoice) {
+          repeat.narrator = { ...ctx.config.voice };
+          repeat.reuse = { ...repeat.reuse, voices: [`Narrator: ${repeat.narrator.voiceId} (${repeat.narrator.backend})`, ...repeat.reuse.voices.slice(1)] };
+          ctx.ledger.decide("edit", `${episodeId}/narrator`, `Use the explicitly selected narrator ${repeat.narrator.voiceId} (${repeat.narrator.backend}) for this episode. Existing episodes retain their narration.`);
+        }
         (ctx.ledger.data.repeatEpisodes ??= {})[episodeId] = repeat;
         if (topic) {
           const keep = ctx.ledger.data.episodeIds.length;

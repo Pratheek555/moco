@@ -28,6 +28,7 @@ export interface RepeatEpisode {
   outlineHash?: string;
   memoryResultHash?: string;
   memoryScriptHash?: string;
+  narrator?: { voiceId: string; backend: string }; // explicitly selected for this episode, separate from the series bible
 }
 export interface RepeatOffer {
   available: boolean;
@@ -74,6 +75,7 @@ export async function repeatOffer(ctx: ReadContext): Promise<RepeatOffer> {
   const show = (await ctx.store.read(files.show, "ShowBible")).data;
   const savedBible = await ctx.store.read(files.bible, "SeriesBible");
   const bible = savedBible.data;
+  const narrator = ctx.ledger.data.repeatEpisodes?.[sourceEpisodeId]?.narrator ?? bible.narrator;
   if (ctx.ledger.stage("bible").artifactHash !== savedBible.meta.contentHash || !savedBible.meta.inputs.some(input => input.kind === "ShowBible" && input.contentHash === ctx.store.hashOf(files.show))) return unavailable("Review and approve the current cast and visual rules before reuse.");
   const plan = (await ctx.store.read(files.seriesPlan, "SeriesPlan")).data;
   // An older final on disk is insufficient if its acceptance has since become stale.
@@ -107,7 +109,7 @@ export async function repeatOffer(ctx: ReadContext): Promise<RepeatOffer> {
     nextEpisode: index < plan.episodes.length ? plan.episodes[index] : undefined,
     reuse: {
       cast: show.cast.map(member => member.name),
-      voices: [`Narrator: ${bible.narrator.voiceId} (${bible.narrator.backend})`, ...show.cast.map(member => `${member.name}: ${member.voiceId ?? bible.narrator.voiceId}`)],
+      voices: [`Narrator: ${narrator.voiceId} (${narrator.backend})`, ...show.cast.map(member => `${member.name}: ${member.voiceId ?? narrator.voiceId}`)],
       look: show.look.statement, rules: show.rules, format: ctx.series.production.format,
       designFiles: used.size,
     },
@@ -129,7 +131,8 @@ export async function captureRepeat(ctx: ReadContext, episodeId: string, offer: 
     Object.keys(scene.canvas?.designSources ?? {}).forEach(path => used.add(path));
   }
   const approved = Object.fromEntries(Object.entries(shared).filter(([path]) => !path.startsWith("shared/versions/") || used.has(path)));
-  return { episodeId, sourceEpisodeId, outlinePending: Boolean(topic), ...(topic && { topic }), reuse: offer.reuse!, basis, sharedFiles: approved };
+  const narrator = ctx.ledger.data.repeatEpisodes?.[sourceEpisodeId]?.narrator;
+  return { episodeId, sourceEpisodeId, outlinePending: Boolean(topic), ...(topic && { topic }), ...(narrator && { narrator: { ...narrator } }), reuse: offer.reuse!, basis, sharedFiles: approved };
 }
 
 // Idempotent after a stop/crash: check every file, finish the copy, then write the lock last.
@@ -171,5 +174,5 @@ export async function assertRepeatBasis(ctx: ReadContext, ep: string): Promise<v
 
 export function repeatScriptHash(ctx: Pick<ReadContext, "ledger">, ep: string, scriptHash: string): string {
   const repeat = ctx.ledger.data.repeatEpisodes?.[ep];
-  return repeat ? hashData({ scriptHash, outlineHash: repeat.outlineHash, basis: repeat.basis, sharedFiles: repeat.sharedFiles }) : scriptHash;
+  return repeat ? hashData({ scriptHash, outlineHash: repeat.outlineHash, basis: repeat.basis, sharedFiles: repeat.sharedFiles, ...(repeat.narrator && { narrator: repeat.narrator }) }) : scriptHash;
 }

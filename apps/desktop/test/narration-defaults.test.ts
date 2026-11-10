@@ -23,3 +23,9 @@ it("requires an installed local aligner for canvas narration instead of silently
     await expect(port.ttsMeasured([{id:"l01",text:"Hello"}],{voiceId:"default",backend:"system"},"en","missing")).rejects.toThrow("Canvas narration needs local word timing");
   } finally {vi.unstubAllEnvs();}
 });
+
+it("uses ElevenLabs measured timings for canvas narration without loading the local aligner", async () => {
+  const port = productionNarrationAudio({ backend: "elevenlabs", voice: "", rate: 1, elevenlabs: { voiceId: "test-voice" } }, voiceRuntimePaths("missing", "missing"));
+  expect(port.ttsMeasured).toBe(port.tts);
+  await expect(port.ttsMeasured([{ id: "a", text: "Hello." }], { voiceId: "test-voice", backend: "elevenlabs" }, "en", "missing")).rejects.toThrow(/ElevenLabs API key/);
+});

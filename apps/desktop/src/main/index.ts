@@ -1,5 +1,6 @@
 import { aiBackend, createCodexAccountManager } from "@moco/ai";
 import { systemVoices } from "@moco/audio";
+import { elevenLabsVoices } from "@moco/audio/elevenlabs";
 import { narrationAudio } from "./narration.ts";
 import { createVoiceModelManager, voiceRuntimePaths } from "./voice-models.ts";
 import type { Engine, EngineEvent, SeriesStatus } from "@moco/engine";
@@ -35,8 +36,9 @@ import type {
 import { assetUrl } from "../shared/api.ts";
 import { handleAssetProtocol, registerAssetScheme } from "./assets.ts";
 import type { EngineHostConfig } from "./engine-host.ts";
+import { blenderStatus } from "@moco/renderer/blender";
 import type { LearnHostInput, LearnHostMessage } from "./learn-host.ts";
-import { loadSettings, saveSettings } from "./settings.ts";
+import { elevenLabsApiKey, loadSettings, saveSettings } from "./settings.ts";
 
 const here = path.dirname(fileURLToPath(import.meta.url));
 // Isolated workspaces for desktop integration tests and portable launches.
@@ -142,6 +144,7 @@ let pendingJobStarts = 0;
 const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "characters.apply", "publish.rewrite", "publish.setThumbnail", "templates.learn", "templates.createSample"]);
 
 function startEngineHost(): Engine {
+  const voiceKey = settings.voice.backend === "elevenlabs" ? elevenLabsApiKey() : undefined;
   const entry = path.join(app.getAppPath(), "src", "main", "engine-host.ts");
   const child = utilityProcess.fork(entry, [], {
     serviceName: "moco-engine",
@@ -156,8 +159,10 @@ function startEngineHost(): Engine {
     projectsDir: settings.projectsDir,
     stylesDir: stylesDir(),
     voice: { ...settings.voice },
+    elevenLabsApiKey: voiceKey,
     voiceRuntime,
     concurrency: settings.render.concurrency || null,
+    render: settings.render,
   };
   child.postMessage(config, [port1]);
   port2.start();
@@ -403,6 +408,10 @@ app
     });
 
     handle("settings.get", () => settings);
+    handle("settings.blenderStatus", (path?: string) => {
+      if (path !== undefined && typeof path !== "string") throw new Error("Blender path must be text");
+      return blenderStatus(path);
+    });
     handle("settings.set", async (patch: DeepPartial<Settings>) => {
       // The engine is built with these, so changing them restarts it, which would cut a running job short.
       const engineInputs = (s: Settings) => JSON.stringify([s.projectsDir, s.voice, s.render, s.aiProvider]);
@@ -412,7 +421,7 @@ app
         throw new Error("Wait for the running jobs to finish before changing these settings");
       const before = engineInputs(settings);
       settings = await saveSettings(patch);
-      if (engineInputs(settings) !== before) {
+      if (engineInputs(settings) !== before || patch.voice?.elevenlabs?.apiKey !== undefined) {
         await mkdir(settings.projectsDir, { recursive: true });
         stopEngineHost(); // the next call starts a fresh one
         send("library", {});
@@ -437,6 +446,10 @@ app
     handle("ai.cancelSignIn", () => codexAccount.cancel());
 
     handle("voice.list", () => systemVoices().catch(() => []));
+    handle("voice.elevenLabsVoices", (apiKey?: string) => {
+      if (apiKey !== undefined && typeof apiKey !== "string") throw new Error("Enter a valid ElevenLabs API key.");
+      return elevenLabsVoices(apiKey ?? elevenLabsApiKey());
+    });
     handle("voice.models", () => voiceModels.list());
     handle("voice.download", (model) => {
       if (model !== "english" && model !== "multilingual") throw new Error("Unknown voice model");
@@ -446,9 +459,9 @@ app
     handle("voice.preview", async (text: string) => {
       try {
         const dir = path.join(previewsDir(), String(Date.now()));
-        const spoken = await narrationAudio(settings.voice, voiceRuntime).tts(
+        const spoken = await narrationAudio(settings.voice, voiceRuntime, settings.voice.backend === "elevenlabs" ? elevenLabsApiKey() : "").tts(
           [{ id: "preview", text: text.slice(0, 400), delivery: { emotion: "resolute", intensity: 0.6, pauseAfterMs: 300 } }],
-          { voiceId: settings.voice.voice, backend: settings.voice.backend ?? "system" },
+          { voiceId: settings.voice.backend === "elevenlabs" ? settings.voice.elevenlabs?.voiceId ?? "" : settings.voice.voice, backend: settings.voice.backend ?? "system" },
           settings.defaults.language,
           dir,
         );
@@ -521,7 +534,7 @@ app
     handle("series.extend", (id: string, input: { episodes: number; note?: string }) =>
       engine().extendSeries(id, input),
     );
-    handle("series.repeat", (id: string, input: { topic?: string }) => engine().nextEpisode(id, input));
+    handle("series.repeat", (id: string, input: { topic?: string; useCurrentVoice?: boolean }) => engine().nextEpisode(id, input));
     handle("series.repeatOffer", (id: string) => engine().repeatOffer(id));
     handle("series.status", (id: string) => engine().status(id));
     handle("series.artifact", (seriesId: string, file: string) =>

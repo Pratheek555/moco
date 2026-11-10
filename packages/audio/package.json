@@ -10,6 +10,8 @@
   },
   "main": "./src/index.ts",
   "exports": {
+    "./elevenlabs": "./src/elevenlabs.ts",
+    "./elevenlabs-config": "./src/elevenlabs-config.ts",
     "./kokoro": "./src/kokoro.ts",
     "./chatterbox": "./src/chatterbox.ts",
     ".": "./src/index.ts",

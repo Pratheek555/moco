@@ -17,8 +17,9 @@ export type VoiceoverOutcome = { kind: "done"; hash: string } | { kind: "sent_ba
 export async function runVoiceover(ctx: StageContext, episodeId: string): Promise<VoiceoverOutcome> {
   const script = await ctx.store.read(files.script(episodeId), "EpisodeScript");
   const bible = { data: await readBible(ctx) }; // with cast later episodes added
-  if (bible.data.narrator.backend !== ctx.config.voice.backend) {
-    throw new EngineError("stage_blocked", `The approved narrator requires ${bible.data.narrator.backend}, but this runner is configured for ${ctx.config.voice.backend}. Configure the selected narration backend before generating speech; no substitute voice was used.`);
+  const narrator = { ...bible.data.narrator, ...ctx.ledger.data.repeatEpisodes?.[episodeId]?.narrator };
+  if (narrator.backend !== ctx.config.voice.backend) {
+    throw new EngineError("stage_blocked", `The approved narrator requires ${narrator.backend}, but this runner is configured for ${ctx.config.voice.backend}. Configure the selected narration backend before generating speech; no substitute voice was used.`);
   }
   const show = await readShow(ctx);
   const available = await ctx.audio.voices?.(bible.data.narrator.language);
@@ -28,7 +29,6 @@ export async function runVoiceover(ctx: StageContext, episodeId: string): Promis
     if (voiceId && available && !available.some((voice) => voice.id === voiceId)) throw new Error(`Voice ${voiceId} for ${line.speaker} is no longer available`);
     return { id: line.id, text: line.text, delivery: line.delivery, voiceId, speaker: line.speaker };
   });
-  const { narrator } = bible.data;
   const activity = (message: string) => ctx.bus.emit(ctx.seriesId, "ai.activity", { key: stageKey("voiceover", episodeId), episodeId, phase: "working", message });
 
   await activity("Preparing the narration engine and script for speech.");

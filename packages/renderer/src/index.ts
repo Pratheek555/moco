@@ -50,7 +50,7 @@ export interface RemotionRenderOptions {
 
 // Same shape as the engine's RenderPort (structural typing: no import of the engine needed).
 export interface RemotionRenderPort {
-  check(spec: SceneSpec, opts: { frames: number[]; outDir: string }): Promise<
+  check(spec: SceneSpec, opts: { frames: number[]; outDir: string; signal?: AbortSignal }): Promise<
     { ok: true; stills: string[] } | { ok: false; errors: { shotId: string; frame?: number; message: string; path?: string }[] }
   >;
   thumbnail(spec: SceneSpec, opts: { frame: number; text: string; design?: ThumbnailDesign; out: string }): Promise<void>;
@@ -114,6 +114,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
 
   const port: Omit<RemotionRenderPort, "release"> = {
     async check(spec, { frames, outDir }) {
+      if (spec.blender) throw new Error("Use createMocoRenderPort or createBlenderRenderPort for Blender scenes");
       const inputProps = { scene: spec, strict: true }; // see Scene: a blocked camera is reported, not worked around
       await mkdir(outDir, { recursive: true });
       const stills: string[] = [];
@@ -146,6 +147,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
     },
 
     async thumbnail(spec, { frame, text, design, out }) {
+      if (spec.blender) throw new Error("Use createMocoRenderPort or createBlenderRenderPort for Blender scenes");
       const inputProps = { scene: spec, text, design };
       await mkdir(dirname(out), { recursive: true });
       try {
@@ -164,6 +166,7 @@ export function createRemotionRenderPort(options: RemotionRenderOptions = {}): R
     },
 
     async renderEpisode(episode, out, quality, onProgress, signal) {
+      if (episode.scenes.some(scene => scene.blender)) throw new Error("Use createMocoRenderPort or createBlenderRenderPort for Blender scenes");
       await mkdir(join(out, ".."), { recursive: true });
       const input = await serveEpisodeInput(episode);
       let audio: Awaited<ReturnType<typeof serveFile>>;

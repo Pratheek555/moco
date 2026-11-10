@@ -4,6 +4,8 @@
 // engine's semantic validator, fed by the kit catalog, so new packs need no spec release.
 import * as z from "zod";
 import { ThumbnailDesign, ThumbnailHeadline } from "./thumbnail.ts";
+import { BlenderScene } from "./blender.ts";
+export * from "./blender.ts";
 export * from "./thumbnail.ts";
 
 // Bump on any schema change; breaking changes also need a migration (see migrations below).
@@ -24,7 +26,9 @@ export * from "./thumbnail.ts";
 //   0.14.0: optional thumbnail design; existing kits parse without changes.
 //   0.15.0: approved series-local character rigs and optional Canvas version pins.
 //   0.16.0: optional renderer-owned bounded Canvas labels; old artwork stays unchanged.
-export const SPEC_VERSION = "0.16.0";
+//   0.17.0: optional declarative Blender scenes; existing scenes remain valid.
+//   0.18.0: native Blender illustration paths, pinned image assets and orthographic camera cuts.
+export const SPEC_VERSION = "0.18.0";
 
 // Renderer output is fixed: 1080Ã—1920 at 30 fps (see renderer README).
 export const FPS = 30;
@@ -506,6 +510,7 @@ export const SceneSpec = z.object({
   shotId: z.string(),
   durationFrames: z.number().int().positive(),
   canvas: CanvasScene.optional(),
+  blender: BlenderScene.optional(),
   format: VideoFormat.optional(), // absent on existing projects: 1080x1920 at 30 fps
   background: z.object({ id: z.string(), parallax: z.boolean().default(true) }),
   stage: SceneStage.optional(), // required on a 3D stage; actors, props and camera moves don't apply there

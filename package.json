@@ -4,6 +4,8 @@
   "type": "module",
   "packageManager": "pnpm@11.3.0",
   "scripts": {
+    "blender:setup": "tsx scripts/setup-blender.ts",
+    "blender:demo": "tsx scripts/blender-episode.ts",
     "voice:setup": "tsx scripts/setup-voice.ts",
     "voice:download": "tsx scripts/download-voice.ts",
     "voice:demo": "tsx scripts/voice-demo.ts",

@@ -28,6 +28,7 @@ import { selectCharacterRigs, type CharacterSelection } from "../artist/characte
 const sceneJsonSchema = toAiJsonSchema(AiSceneSpec);
 
 export interface SceneInputs {
+  blenderReference?: SceneSpec["blender"];
   characterRigs?: CharacterSelection;
   requireCharacterRigs?: boolean; // an explicit user-selected upgrade cannot be omitted
   episodeId: string;
@@ -53,6 +54,10 @@ export interface SceneOutcome {
 }
 
 export async function generateScene(ctx: StageContext, inputs: SceneInputs): Promise<SceneOutcome> {
+  if (ctx.series.renderer === "blender") {
+    const first = (await ctx.store.read(files.shotList(inputs.episodeId), "ShotList")).data.shots[0];
+    if (first?.id === inputs.shot.id) inputs = { ...inputs, blenderReference: undefined };
+  }
   if (ctx.series.production) inputs = { ...inputs, characterRigs: inputs.characterRigs ?? await selectCharacterRigs(ctx, inputs.episodeId, inputs.shot.id, inputs.shot.characters) };
   const { episodeId, shot } = inputs;
   const activity = { episodeId, shotId: shot.id, key: `${episodeId}/${ctx.ledger.stage(`${episodeId}/sample`).status === "running" ? "sample" : "scenes"}` };
@@ -78,7 +83,7 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     scope: episodeId,
     schema: SceneSpec,
     jsonSchema: sceneJsonSchema,
-    system: selectBlocks(loadPrompt("scene", ctx.series.template), stageKind(ctx, shot)),
+    system: ctx.series.renderer === "blender" ? loadPrompt("blender", ctx.series.template) : selectBlocks(loadPrompt("scene", ctx.series.template), stageKind(ctx, shot)),
     prompt: scenePrompt(ctx, inputs, brief, previous),
     maxAttempts: ctx.config.limits.maxAttemptsPerShot,
     signal: ctx.signal,
@@ -98,6 +103,8 @@ export async function generateScene(ctx: StageContext, inputs: SceneInputs): Pro
     return complete({ shotId: shot.id, fallback: false, attempts: result.attempts, contentHash: ctx.store.hashOf(specFile)! });
   }
 
+  // A failed Blender shot must remain a visible stage failure, never a silent switch to 2D artwork.
+  if (!result.ok && ctx.series.renderer === "blender") throw new EngineError("validation_failed", `Blender shot ${shot.id} failed after ${result.attempts} attempts: ${JSON.stringify(result.issues)}`);
   const spec = withEngineFields(result.ok ? result.data : fallbackScene(brief, ctx.catalog, inputs.bible), inputs);
   if (!result.ok) {
     // Never silent: recorded in the ledger and shown in the UI as "needs attention".
@@ -120,6 +127,8 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
   const key = hashData({
     creativeBrief: ctx.series.idea,
     production: ctx.series.production,
+    renderer: ctx.series.renderer,
+    blenderReference: inputs.blenderReference,
     repeatReuse: ctx.ledger.data.repeatEpisodes?.[inputs.episodeId] && {
       basis: ctx.ledger.data.repeatEpisodes[inputs.episodeId]!.basis,
       sharedFiles: ctx.ledger.data.repeatEpisodes[inputs.episodeId]!.sharedFiles,
@@ -137,7 +146,7 @@ function sceneInputRef(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief
     worldLayout: inputs.world,
     facts: relevantFacts(inputs.memory, brief.shot),
     show: inputs.show && scenePack(inputs.show, brief.shot),
-    prompt: promptRef(ctx.series.production ? "artist" : "scene", ctx.series.template).contentHash,
+    prompt: promptRef(ctx.series.production ? "artist" : ctx.series.renderer === "blender" ? "blender" : "scene", ctx.series.template).contentHash,
   });
   return { kind: "SceneInput", revision: 0, contentHash: key };
 }
@@ -154,7 +163,7 @@ async function upToDate(ctx: StageContext, specFile: string, sceneInput: InputRe
 // and the lip-sync track (from the audio).
 function withEngineFields(spec: SceneSpec, inputs: SceneInputs): SceneSpec {
   const visemes = shotVisemes(inputs.shot, inputs.voiceover);
-  return { ...withBibleVariants(spec, inputs.bible), visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: !spec.canvas && inputs.world ? worldForShot(inputs.world, spec) : undefined };
+  return { ...withBibleVariants(spec, inputs.bible), visemes, speech: shotSpeech(inputs.shot, inputs.voiceover), grade: inputs.bible.style.grade, world: !spec.canvas && !spec.blender && inputs.world ? worldForShot(inputs.world, spec) : undefined };
 }
 
 function withBibleVariants(spec: SceneSpec, bible: SeriesBible): SceneSpec {
@@ -174,6 +183,8 @@ async function refreshEngineFields(ctx: StageContext, specFile: string, inputs: 
 
 // L2, then L3 (render a few stills) only when L2 is clean: no point rendering a spec we already know is wrong.
 async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief, inputs: SceneInputs, shotDir: string): Promise<Issue[]> {
+  if (ctx.series.renderer === "blender" && !spec.blender) return [{ path: "blender", problem: "This project requires a Blender scene. Return the complete declarative blender field." }];
+  if (ctx.series.renderer !== "blender" && spec.blender) return [{ path: "blender", problem: "Use this project's existing Remotion scene format; Blender must be selected when creating the project." }];
   const compiled = compileScene(spec, inputs.vocabulary);
   if (compiled.issues.length) return compiled.issues;
   Object.assign(spec, compiled.spec);
@@ -187,7 +198,7 @@ async function checkScene(ctx: StageContext, spec: SceneSpec, brief: SceneBrief,
   const outDir = join(ctx.dir, shotDir, "stills");
   // Saved before rendering, so a spec that crashes or hangs the renderer can be inspected afterwards.
   await ctx.store.writeRaw(`${shotDir}/stills/spec.json`, spec);
-  const check = await ctx.renderSlots.run(() => ctx.render.check(withEngineFields(spec, inputs), { frames, outDir }));
+  const check = await ctx.renderSlots.run(() => ctx.render.check(withEngineFields(spec, inputs), { frames, outDir, signal: ctx.signal }));
   if (check.ok) return [];
   return check.errors.map((error) => ({
     path: error.path ?? "",
@@ -217,7 +228,8 @@ function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, 
         .map((span) => ({ speaker: span.speaker, startFrame: Math.max(0, Math.round((span.start - inputs.shot.start) * 30)), endFrame: Math.min(brief.durationFrames, Math.round((span.end - inputs.shot.start) * 30)) })),
       avoid: brief.avoid, // left out of the JSON when unset
     }),
-    jsonSection("Kit you can use", catalogSlice(ctx.catalog, inputs.bible, brief.shot)),
+    ctx.series.renderer === "blender" ? jsonSection("Recurring cast sheets", inputs.bible.cast) : jsonSection("Kit you can use", catalogSlice(ctx.catalog, inputs.bible, brief.shot)),
+    inputs.blenderReference ? jsonSection("Approved first-shot Blender design — reuse cast geometry, proportions, materials and set identity; author new acting and camera keys for this shot", inputs.blenderReference) : "",
     inputs.world ? jsonSection("World layout for timeline coordinates", {
       location: inputs.world.locations.find((location) => location.id === inputs.shot.location),
       setModels: inputs.world.models.filter((model) => inputs.world!.locations.find((location) => location.id === inputs.shot.location)?.set.some((item) => item.model === model.id)).map(({id,height,parts}) => ({id,height,parts})),
@@ -228,7 +240,7 @@ function scenePrompt(ctx: StageContext, inputs: SceneInputs, brief: SceneBrief, 
     jsonSection("Series style", inputs.bible.style),
     jsonSection("Continuity to respect", relevantFacts(inputs.memory, brief.shot)),
     // The example shows the kit's 2D layout, which a generated world doesn't use.
-    inputs.world ? "" : jsonSection("Example of a good SceneSpec (a different shot — copy the quality, not the content)", AiSceneSpec.parse(goldenScene())), // engine fields stripped
+    inputs.world || ctx.series.renderer === "blender" ? "" : jsonSection("Example of a good SceneSpec (a different shot — copy the quality, not the content)", AiSceneSpec.parse(goldenScene())), // engine fields stripped
     previous ? jsonSection("Your previous version — keep what the change below doesn't touch", previous) : "",
     feedbackSection(inputs.feedback),
   ]);
@@ -311,11 +323,16 @@ export async function neighbourAvoid(ctx: StageContext, episodeId: string, shots
 
 // Voiceover, bible and memory: the same for every shot in an episode.
 export async function sceneSharedInputs(ctx: StageContext, episodeId: string): Promise<Omit<SceneInputs, "shot">> {
+  let blenderReference: SceneSpec["blender"];
+  if (ctx.series.renderer === "blender") {
+    const first = (await ctx.store.read(files.shotList(episodeId), "ShotList")).data.shots[0];
+    if (first && ctx.store.has(files.shotSpec(episodeId, first.id))) blenderReference = (await ctx.store.read(files.shotSpec(episodeId, first.id), "SceneSpec")).data.blender;
+  }
   const voiceover = (await ctx.store.read(files.voiceover(episodeId), "VoiceoverTrack")).data;
   const bible = await readBible(ctx);
   const memory = ctx.store.has(files.memory) ? (await ctx.store.read(files.memory, "SeriesMemory")).data : undefined;
   const vocabulary = ctx.store.has("artifacts/vocabulary.json") ? (await ctx.store.read("artifacts/vocabulary.json", "Vocabulary")).data : undefined;
-  return { episodeId, voiceover, bible, memory, world: ctx.world, show: await readShow(ctx), playbook: await readPlaybook(ctx), vocabulary: vocabulary && { entries: vocabulary.entries.filter((entry) => !entry.source.startsWith(`${episodeId}/`)) } };
+  return { episodeId, voiceover, bible, memory, blenderReference, world: ctx.world, show: await readShow(ctx), playbook: await readPlaybook(ctx), vocabulary: vocabulary && { entries: vocabulary.entries.filter((entry) => !entry.source.startsWith(`${episodeId}/`)) } };
 }
 
 // Stage hash recomputed from the specs on disk (after a single shot was regenerated).

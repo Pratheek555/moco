@@ -4,12 +4,13 @@ import type { InputRef } from "@moco/spec";
 import { sha256 } from "../store/hash.ts";
 import { isTemplateStage, templateGuide } from "../templates/guide.ts";
 
-export type PromptName = "series" | "series_extend" | "show" | "bible" | "world" | "script" | "shots" | "scene" | "artist" | "artist_review" | "memory" | "publish" | "look_models" | "look_shots" | "fix_model" | "retro" | "canon" | "world_extend";
+export type PromptName = "series" | "series_extend" | "show" | "bible" | "world" | "script" | "shots" | "scene" | "blender" | "artist" | "artist_review" | "memory" | "publish" | "look_models" | "look_shots" | "fix_model" | "retro" | "canon" | "world_extend";
 
 // With a template, its guidance for this stage follows the base prompt, so it can override the general style advice.
 export function loadPrompt(name: PromptName, template?: string): string {
   const base = readFileSync(new URL(`./prompts/${name}.md`, import.meta.url), "utf8");
-  const guide = template && isTemplateStage(name) ? templateGuide(template, name) : "";
+  const stage = name === "blender" ? "scene" : name;
+  const guide = template && isTemplateStage(stage) ? templateGuide(template, stage) : "";
   return guide ? `${base.trimEnd()}\n\n${guide}\n` : base;
 }
 

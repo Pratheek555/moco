@@ -21,6 +21,7 @@ const api: MocoApi = {
   settings: {
     get: call("settings.get"),
     set: call("settings.set"),
+    blenderStatus: call("settings.blenderStatus"),
   } as MocoApi["settings"],
   ai: {
     status: call("ai.status"),
@@ -30,6 +31,7 @@ const api: MocoApi = {
   } as MocoApi["ai"],
   voice: {
     list: call("voice.list"),
+    elevenLabsVoices: call("voice.elevenLabsVoices"),
     models: call("voice.models"),
     download: call("voice.download"),
     cancelDownload: call("voice.cancelDownload"),

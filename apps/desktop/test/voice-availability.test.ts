@@ -23,3 +23,12 @@ it("checks the selected backend rather than the presence of any voice model", ()
   expect(voiceLanguageProblem("hi", { voice: "", rate: 1 }, voices, models)).toBe("no system voice installed");
   expect(voiceLanguageProblem("hi", system, [], null)).toBeUndefined();
 });
+
+it("checks ElevenLabs setup and model language support independently of OS voices and local models", () => {
+  const elevenlabs: Settings["voice"] = { backend: "elevenlabs", voice: "", rate: 1, elevenlabs: { hasApiKey: true, voiceId: "cloud-voice" } };
+  expect(voiceLanguageProblem("hi-IN", elevenlabs, voices, [])).toBeUndefined();
+  expect(voiceLanguageProblem("ta", elevenlabs, voices, null)).toBeUndefined();
+  expect(voiceLanguageProblem("te", elevenlabs, voices, models)).toBe("not supported by ElevenLabs Multilingual v2");
+  expect(voiceLanguageProblem("en", { ...elevenlabs, elevenlabs: { hasApiKey: false, voiceId: "cloud-voice" } }, voices, models)).toBe("add your ElevenLabs API key");
+  expect(voiceLanguageProblem("en", { ...elevenlabs, elevenlabs: { hasApiKey: true } }, voices, models)).toBe("choose an ElevenLabs voice");
+});

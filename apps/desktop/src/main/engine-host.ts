@@ -12,15 +12,17 @@ import type { VoiceRuntime } from "./voice-models.ts";
 import type { Settings } from "../shared/api.ts";
 import { createEngine } from "@moco/engine";
 import { serveEngine, type HostPort } from "@moco/engine/host";
-import { createRemotionRenderPort } from "@moco/renderer";
+import { createMocoRenderPort } from "@moco/renderer/backend";
 
 export interface EngineHostConfig {
   aiProvider: Settings["aiProvider"];
   projectsDir: string;
   stylesDir: string; // learned styles, each also a template
   voice: Settings["voice"];
+  elevenLabsApiKey?: string; // private bootstrap only; never persisted in engine artifacts
   voiceRuntime: VoiceRuntime;
   concurrency: number | null; // render tabs; null = the renderer's default
+  render?: Settings["render"];
   remotion?: {
     serveUrl?: string; // prebuilt bundle (packaged app)
     browserExecutable?: string; // packaged Chrome Headless Shell
@@ -44,9 +46,9 @@ parentPort.on("message", ({ data, ports }) => {
     projectsDir: data.projectsDir,
     stylesDir: data.stylesDir,
     ai: aiBackend(data.aiProvider),
-    render: createRemotionRenderPort({ ...data.remotion, concurrency: data.concurrency }),
-    audio: productionNarrationAudio(data.voice, data.voiceRuntime),
-    config: { voice: { voiceId: data.voice.backend === "chatterbox" ? "narrator" : data.voice.voice || "default", backend: data.voice.backend ?? "system" } },
+    render: createMocoRenderPort({ backend: data.render?.backend, blender: { executable: data.render?.blenderPath, samples: data.render?.blenderSamples, assetRoots:[data.projectsDir] }, remotion: { ...data.remotion, concurrency: data.concurrency } }),
+    audio: productionNarrationAudio(data.voice, data.voiceRuntime, data.elevenLabsApiKey),
+    config: { voice: { voiceId: data.voice.backend === "elevenlabs" ? data.voice.elevenlabs?.voiceId || "default" : data.voice.backend === "chatterbox" ? "narrator" : data.voice.voice || "default", backend: data.voice.backend ?? "system" } },
   });
   serveEngine(engine, port);
   port.start();

@@ -1,7 +1,7 @@
 import { mkdtemp, readFile, writeFile, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 import { createEngine, type Engine } from "../src/index.ts";
 import { FakeAi, FakeAudio, FakeRenderPort } from "../src/testing/fakes.ts";
 import { advance, approveNext, scriptData, section, validAnswer } from "./helpers.ts";
@@ -49,8 +49,40 @@ async function established(episodes = 1) {
   const id = await engine.createSeries({ idea: "Illustrated explainers with Krishna and Arjuna.", language: "en", episodes, production: { mode: "artist", format: { width: 960, height: 540, fps: 30 }, targetSeconds: 12 } });
   for (let gate = 0; gate < 5; gate++) { await advance(engine, id); await approveNext(engine, id); }
   await advance(engine, id);
-  return { dir, id, engine, ai, create, render, setFailReview: (value: boolean) => { failReview = value; }, setFailScript: (value: boolean) => { failScript = value; } };
+  return { dir, id, engine, ai, create, render, audio, setFailReview: (value: boolean) => { failReview = value; }, setFailScript: (value: boolean) => { failScript = value; } };
 }
+
+it("explicitly changes only the next episode's narrator, binds script review to it, and carries it into later episodes", async () => {
+  const { dir, id, ai, render, audio } = await established();
+  const bible = await readFile(join(dir, id, "artifacts/bible.json"), "utf8");
+  const originalAudio = await readFile(join(dir, id, "episodes/ep-01/artifacts/voiceover.json"), "utf8");
+  const selected = { voiceId: "daniel", backend: "elevenlabs" };
+  const engine = createEngine({ projectsDir: dir, ai, render, audio, config: { voice: selected } });
+  const speech = vi.spyOn(audio, "tts");
+  const job = await engine.waitForJob(await engine.nextEpisode(id, { topic: "Why do racing cars need downforce?", useCurrentVoice: true }));
+  expect(job.status).toBe("succeeded");
+  expect((await engine.status(id)).repeatEpisodes?.["ep-02"]?.narrator).toEqual(selected);
+  expect((await engine.status(id)).repeatEpisodes?.["ep-02"]?.reuse.voices[0]).toBe("Narrator: daniel (elevenlabs)");
+  expect(speech).not.toHaveBeenCalled();
+  await approveNext(engine, id);
+  await advance(engine, id);
+  expect(speech.mock.calls[0]?.[1]).toMatchObject(selected);
+  await approveNext(engine, id);
+  await advance(engine, id);
+  expect(await readFile(join(dir, id, "artifacts/bible.json"), "utf8")).toBe(bible);
+  expect(await readFile(join(dir, id, "episodes/ep-01/artifacts/voiceover.json"), "utf8")).toBe(originalAudio);
+  const restarted = createEngine({ projectsDir: dir, ai, render, audio, config: { voice: { voiceId: "different-settings-voice", backend: "elevenlabs" } } });
+  expect((await restarted.repeatOffer(id)).reuse?.voices[0]).toBe("Narrator: daniel (elevenlabs)");
+  await runNext(restarted, id, "Explain drag");
+  expect((await restarted.status(id)).repeatEpisodes?.["ep-03"]?.narrator).toEqual(selected);
+  const gate = (await restarted.status(id)).stages.find(stage => stage.key === "ep-03/script")!;
+  const ledgerPath = join(dir, id, "ledger.json");
+  const ledger = JSON.parse(await readFile(ledgerPath, "utf8"));
+  ledger.repeatEpisodes["ep-03"].narrator.voiceId = "unexpected-change";
+  await writeFile(ledgerPath, JSON.stringify(ledger));
+  const changed = createEngine({ projectsDir: dir, ai, render, audio, config: { voice: selected } });
+  await expect(changed.approve({ seriesId: id, key: gate.key }, gate.artifactHash!)).rejects.toMatchObject({ code: "gate_mismatch" });
+}, 30_000);
 
 const runNext = async (engine: Engine, id: string, topic?: string) => {
   const job = await engine.waitForJob(await engine.nextEpisode(id, { topic }));

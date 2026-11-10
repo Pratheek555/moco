@@ -1,5 +1,9 @@
 # @moco/renderer
 
+`createMocoRenderPort` from `@moco/renderer/backend` routes saved Blender scenes to native Blender
+and existing scenes to Remotion. `createBlenderRenderPort` from `@moco/renderer/blender` also works
+independently. See [Blender setup and production](../../docs/blender.md).
+
 Remotion project. Takes a validated spec and renders 1080×1920 @30fps: parallax background layers, actors from `kit`, camera moves, captions, fx, voiceover. No AI here, pure deterministic rendering.
 
 - `createRemotionRenderPort(options)` implements the engine's `RenderPort`: `check()` renders stills (L3) and maps kit errors back to spec paths; `renderEpisode()` renders preview (540×960) or final MP4.

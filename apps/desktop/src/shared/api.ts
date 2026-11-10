@@ -28,7 +28,12 @@ export interface Settings {
   theme: Theme;
   projectsDir: string;
   voice: {
-    backend?: "chatterbox" | "system";
+    backend?: "chatterbox" | "system" | "elevenlabs";
+    elevenlabs?: {
+      apiKey?: string; // write-only: undefined retains the key, "" removes it
+      hasApiKey?: boolean; // main-process status; the saved key is never returned
+      voiceId?: string;
+    };
     device?: "auto" | "cpu" | "gpu";
     reference?: string; // local performance reference WAV
     characterVoices?: { id: string; reference: string }[];
@@ -41,6 +46,9 @@ export interface Settings {
     language: string;
   };
   render: {
+    backend?: "remotion" | "blender"; // new standard series; existing projects retain their renderer
+    blenderPath?: string; // empty = portable install, system install, or PATH
+    blenderSamples?: number;
     concurrency: number; // browser tabs per render; 0 = the renderer's default (2)
   };
 }
@@ -109,6 +117,7 @@ export interface MocoApi {
   settings: {
     get(): Promise<Settings>;
     set(patch: DeepPartial<Settings>): Promise<Settings>;
+    blenderStatus(path?: string): Promise<{ ok: boolean; path: string; version?: string; reason?: string }>;
   };
   ai: {
     status(): Promise<AiStatus>;
@@ -118,6 +127,7 @@ export interface MocoApi {
   };
   voice: {
     list(): Promise<VoiceInfo[]>;
+    elevenLabsVoices(apiKey?: string): Promise<VoiceInfo[]>; // uses the saved key when omitted
     models(): Promise<VoiceModelStatus[]>;
     download(model: VoiceModelId): Promise<void>;
     cancelDownload(): Promise<void>;
@@ -148,7 +158,7 @@ export interface MocoApi {
     list(): Promise<SeriesSummary[]>;
     create(input: { idea: string; language: string; episodes: number; template?: string; production?: ArtistProduction }): Promise<string>; // creates and starts planning
     extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
-    repeat(id: string, input: { topic?: string }): Promise<string>;
+    repeat(id: string, input: { topic?: string; useCurrentVoice?: boolean }): Promise<string>;
     repeatOffer(id: string): Promise<RepeatOffer>;
     status(id: string): Promise<SeriesStatus>;
     artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;

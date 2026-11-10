@@ -124,7 +124,7 @@ export function StyleSampleDialog({ template, onOpenChange }: { template: Templa
           </div>
           <label className="text-sm" htmlFor="sample-pacing">Pacing<select id="sample-pacing" className={selectClass} value={pacing} onChange={(event) => setPacing(event.target.value as typeof pacing)}><option value="calm">Calm</option><option value="balanced">Balanced</option><option value="brisk">Brisk</option></select></label>
           <label className="text-sm" htmlFor="sample-feedback">Direction or changes<Textarea id="sample-feedback" value={feedback} onChange={(event) => setFeedback(event.target.value)} placeholder="Use a warmer palette and make the pointing gesture clearer." maxLength={2000} /></label>
-          <p className="text-xs text-muted-foreground">Duration is a target; local narration determines the measured timing. Choices guide the artist and are checked in the rendered sample.</p>
+          <p className="text-xs text-muted-foreground">Duration is a target; narration determines the measured timing. Choices guide the artist and are checked in the rendered sample.</p>
           <Button type="submit" disabled={busy || !topic.trim() || running}>{busy ? <Spinner /> : <SparklesIcon />} {selected ? "Generate new revision" : "Generate sample"}</Button>
         </form>
         <div className="flex min-w-0 flex-col gap-4">

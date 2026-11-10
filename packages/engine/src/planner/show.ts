@@ -28,13 +28,14 @@ export async function runShow(ctx: StageContext, plan: SeriesPlan, feedback?: st
       jsonSection("Idea", ctx.series.idea),
       jsonSection("Series plan", plan),
       jsonSection("Engine limits", limits),
+      ctx.series.renderer === "blender" ? "Blender timing: narration is measured after planning and cuts must land on word boundaries. Use a flexible shotSeconds range (such as 2–7 seconds), at least 2 seconds wide, around the desired approximate picture durations. Never make a 4–5 second range or promise exact cut frames before narration exists. Preserve the requested picture count and actions, retiming their cuts to measured words." : "",
       notebookSection(await provenLessons(ctx)),
       jsonSection("Available voices", voices),
       jsonSection("Ready-made kit characters (only worth using if a story character truly is one)", ctx.catalog.characters.map((character) => character.id)),
       await previousSection(ctx, files.show, "ShowBible", feedback),
       feedbackSection(feedback),
     ]),
-    check: (data) => [...checkShow(data, ctx.config), ...data.cast.flatMap((member, index) => member.voiceId && !voices.some((voice) => voice.id === member.voiceId)
+    check: (data) => [...checkShow(data, ctx.config), ...(ctx.series.renderer === "blender" && data.format.shotSeconds.max - data.format.shotSeconds.min < 2 ? [{ path: "format.shotSeconds", problem: "Allow a range at least 2 seconds wide for measured-word cuts; suggested 2–7 seconds" }] : []), ...data.cast.flatMap((member, index) => member.voiceId && !voices.some((voice) => voice.id === member.voiceId)
       ? [{ path: `cast[${index}].voiceId`, problem: "voice is not available", allowed: voices.map((voice) => voice.id), fix: "Choose an offered voice or omit voiceId." }] : [])],
   });
   await ctx.store.save(files.show, "ShowBible", show, {

@@ -1,5 +1,6 @@
 import { alignedAudio, systemAudio } from "@moco/audio";
 import { chatterboxAudio } from "@moco/audio/chatterbox";
+import { elevenLabsAudio } from "@moco/audio/elevenlabs";
 import type { Settings } from "../shared/api.ts";
 import { join } from "node:path";
 import { stat } from "node:fs/promises";
@@ -8,7 +9,8 @@ import { modelForLanguage, modelReady, type VoiceRuntime } from "./voice-models.
 import { voiceLanguageProblem } from "../shared/voice-availability.ts";
 
 // Preview and production must use exactly the same voice configuration.
-export function narrationAudio(voice: Settings["voice"], runtime: VoiceRuntime) {
+export function narrationAudio(voice: Settings["voice"], runtime: VoiceRuntime, elevenLabsKey = "") {
+  if (voice.backend === "elevenlabs") return elevenLabsAudio({ apiKey: elevenLabsKey, voiceId: voice.elevenlabs?.voiceId ?? "", rate: voice.rate });
   if (voice.backend !== "chatterbox") return systemAudio(voice);
   const voices = Object.fromEntries((voice.characterVoices ?? []).map(({ id, reference }) => [id, reference]));
   const base = chatterboxAudio({ voices });
@@ -25,8 +27,9 @@ export function narrationAudio(voice: Settings["voice"], runtime: VoiceRuntime) 
 
 // Template canvas cuts need real word boundaries. Keep previews and existing
 // productions on their current route, and load local ASR only when requested.
-export function productionNarrationAudio(voice: Settings["voice"], runtime: VoiceRuntime) {
-  const base = narrationAudio(voice,runtime);
+export function productionNarrationAudio(voice: Settings["voice"], runtime: VoiceRuntime, elevenLabsKey = "") {
+  const base = narrationAudio(voice,runtime,elevenLabsKey);
+  if (voice.backend === "elevenlabs") return { ...base, ttsMeasured: base.tts };
   const python = process.env.MOCO_ALIGN_PYTHON ?? fileURLToPath(new URL(
     process.platform === "win32" ? "../../../../.venv-learn/Scripts/python.exe" : "../../../../.venv-learn/bin/python",import.meta.url));
   const measured = alignedAudio(base,{python,worker:join(runtime.workerDir,"align.py"),model:process.env.MOCO_ALIGN_MODEL ?? "small"});

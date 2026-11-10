@@ -10,6 +10,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Field, FieldDescription, FieldLabel } from "@/components/ui/field";
 import { Spinner } from "@/components/ui/spinner";
 import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 const number = (episode: string) => Number(episode.replace(/\D/g, ""));
 
@@ -31,12 +32,14 @@ export function NextEpisode({ status }: { status: SeriesStatus }) {
   const { data: offer, error, reload } = useAsync(() => api.series.repeatOffer(status.series.id), [status.series.id, version]);
   const [topic, setTopic] = useState("");
   const [busy, setBusy] = useState(false);
+  const [useCurrentVoice, setUseCurrentVoice] = useState(false);
+  const voice = useApp(s => s.settings?.voice);
   const running = Boolean(status.activeJob);
   const launch = async () => {
     if (!offer?.available || busy || running || (!offer.nextEpisode && !topic.trim())) return;
     setBusy(true);
     try {
-      await api.series.repeat(status.series.id, offer.nextEpisode ? {} : { topic: topic.trim() });
+      await api.series.repeat(status.series.id, { ...(offer.nextEpisode ? {} : { topic: topic.trim() }), ...(useCurrentVoice && { useCurrentVoice: true }) });
       setTopic("");
     } catch (e) { report(e); } finally { setBusy(false); }
   };
@@ -50,6 +53,14 @@ export function NextEpisode({ status }: { status: SeriesStatus }) {
         : !offer ? <Spinner aria-label="Checking series setup" />
         : <>
           {offer.reuse && offer.sourceEpisodeId && <ReuseSummary reuse={offer.reuse} sourceEpisodeId={offer.sourceEpisodeId} />}
+          {offer.available && <Field>
+            <FieldLabel htmlFor={`repeat-narrator-${status.series.id}`}>Episode narrator</FieldLabel>
+            <Select value={useCurrentVoice ? "current" : "inherit"} onValueChange={value => setUseCurrentVoice(value === "current")} disabled={busy || running}>
+              <SelectTrigger id={`repeat-narrator-${status.series.id}`}><SelectValue /></SelectTrigger>
+              <SelectContent><SelectItem value="inherit">Keep the previous episode's narrator</SelectItem><SelectItem value="current">Use narrator from Settings ({voice?.backend ?? "system"})</SelectItem></SelectContent>
+            </Select>
+            <FieldDescription>The selected narrator is saved with this episode's script review. Earlier episodes keep their original audio; character voice assignments stay the same.</FieldDescription>
+          </Field>}
           {!offer.available ? <p role="status" className="text-sm text-muted-foreground">{offer.reason}</p>
             : offer.nextEpisode ? <div className="text-sm"><p className="font-medium">Episode {number(offer.nextEpisode.id)}: {offer.nextEpisode.title}</p><p>{offer.nextEpisode.synopsis}</p><p className="mt-2 text-muted-foreground">Finish your planned episodes before adding a new topic.</p></div>
               : <Field><FieldLabel htmlFor={`repeat-topic-${status.series.id}`}>What should the next episode explain?</FieldLabel><Textarea id={`repeat-topic-${status.series.id}`} value={topic} onChange={event => setTopic(event.target.value)} maxLength={2000} rows={3} disabled={busy || running} placeholder="e.g. Why do we get hiccups?" /><FieldDescription>The outline and script come back together for your approval.</FieldDescription></Field>}

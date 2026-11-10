@@ -186,7 +186,7 @@ export function TemplateSheet({ template, onOpenChange, onSample }: { template: 
               <div className="flex flex-col gap-1 text-xs text-muted-foreground">
                 <Separator className="mb-2" />
                 <span>
-                  {template.production ? "Creates custom canvas illustrations and animation from your prompt, using local narration." : template.world === "world"
+                  {template.production ? "Creates custom canvas illustrations and animation from your prompt, using your selected narration voice." : template.world === "world"
                     ? "Always builds the story its own 3D world: the AI designs the cast and places for each series."
                     : "Uses the creative kit when the story fits it, otherwise builds a 3D world for it."}
                 </span>

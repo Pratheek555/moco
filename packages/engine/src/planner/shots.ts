@@ -50,11 +50,11 @@ export async function runShotList(ctx: StageContext, episodeId: string, feedback
       jsonSection("Words", numberedWords),
       ctx.series.production ? "Every shot must include 1-3 actionChecks={id,description,fromWord,toWord}. Use whole-track word indices inside this shot. Describe visible contact, hand shape, gaze or body movement (e.g. hand cups opposite elbow, eyes turn toward sign), not vague feelings. These become acceptance checks." : "",
       jsonSection("Cast ids", bible.cast.map((member) => member.id)),
-      jsonSection("Locations", ctx.series.production ? show?.places : ctx.catalog.backgrounds.map(({ id, hint, stage }) => ({ id, hint, places: stage?.places, cameras: stage?.cameras }))),
+      jsonSection("Locations", (ctx.series.production || ctx.series.renderer === "blender") ? show?.places : ctx.catalog.backgrounds.map(({ id, hint, stage }) => ({ id, hint, places: stage?.places, cameras: stage?.cameras }))),
       previous ? jsonSection("Previous cut — keep shots whose words didn't change exactly as they were", previous) : "",
       feedbackSection(feedback),
     ]),
-    check: (data) => [...checkShotDrafts(data, voiceover, bible, ctx.catalog, shotSeconds, ctx.series.production ? show?.places.map((place) => place.id) : undefined), ...(ctx.series.styleSample && (data.shots.length < 2 || data.shots.length > 3) ? [{ path: "shots", problem: "A style sample must have exactly 2 or 3 shots to demonstrate cuts and recurring artwork" }] : []), ...(ctx.series.production ? data.shots.flatMap((shot, index) => !shot.actionChecks?.length ? [{path:`shots[${index}].actionChecks`,problem:"Declare observable actions with word indices"}] : []) : [])],
+    check: (data) => [...checkShotDrafts(data, voiceover, bible, ctx.catalog, shotSeconds, (ctx.series.production || ctx.series.renderer === "blender") ? show?.places.map((place) => place.id) : undefined), ...(ctx.series.styleSample && (data.shots.length < 2 || data.shots.length > 3) ? [{ path: "shots", problem: "A style sample must have exactly 2 or 3 shots to demonstrate cuts and recurring artwork" }] : []), ...(ctx.series.production ? data.shots.flatMap((shot, index) => !shot.actionChecks?.length ? [{path:`shots[${index}].actionChecks`,problem:"Declare observable actions with word indices"}] : []) : [])],
   });
 
   const shotList: ShotList = { shots: timeShots(draft, voiceover) };

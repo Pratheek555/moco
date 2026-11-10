@@ -157,6 +157,626 @@ exports[`SceneSpec > exports a stable AI-facing JSON Schema 1`] = `
       ],
       "type": "object",
     },
+    "blender": {
+      "properties": {
+        "ambient": {
+          "default": 0.25,
+          "maximum": 2,
+          "minimum": 0,
+          "type": "number",
+        },
+        "animationStep": {
+          "maximum": 4,
+          "minimum": 1,
+          "type": "integer",
+        },
+        "assets": {
+          "items": {
+            "properties": {
+              "id": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "sha256": {
+                "pattern": "^[a-f0-9]{64}$",
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "sha256",
+            ],
+            "type": "object",
+          },
+          "maxItems": 80,
+          "type": "array",
+        },
+        "background": {
+          "default": "#101827",
+          "pattern": "^#[0-9a-fA-F]{6}$",
+          "type": "string",
+        },
+        "camera": {
+          "properties": {
+            "keys": {
+              "items": {
+                "properties": {
+                  "atFrame": {
+                    "maximum": 9007199254740991,
+                    "minimum": 0,
+                    "type": "integer",
+                  },
+                  "easing": {
+                    "enum": [
+                      "smooth",
+                      "linear",
+                      "hold",
+                    ],
+                    "type": "string",
+                  },
+                  "eye": {
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "maximum": 1000,
+                        "minimum": -1000,
+                        "type": "number",
+                      },
+                      {
+                        "maximum": 1000,
+                        "minimum": -1000,
+                        "type": "number",
+                      },
+                      {
+                        "maximum": 1000,
+                        "minimum": -1000,
+                        "type": "number",
+                      },
+                    ],
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "type": "array",
+                  },
+                  "orthoScale": {
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000,
+                    "type": "number",
+                  },
+                  "target": {
+                    "additionalItems": false,
+                    "items": [
+                      {
+                        "maximum": 1000,
+                        "minimum": -1000,
+                        "type": "number",
+                      },
+                      {
+                        "maximum": 1000,
+                        "minimum": -1000,
+                        "type": "number",
+                      },
+                      {
+                        "maximum": 1000,
+                        "minimum": -1000,
+                        "type": "number",
+                      },
+                    ],
+                    "maxItems": 3,
+                    "minItems": 3,
+                    "type": "array",
+                  },
+                },
+                "required": [
+                  "atFrame",
+                  "eye",
+                  "target",
+                ],
+                "type": "object",
+              },
+              "maxItems": 32,
+              "minItems": 1,
+              "type": "array",
+            },
+            "lens": {
+              "default": 50,
+              "maximum": 150,
+              "minimum": 12,
+              "type": "number",
+            },
+            "orthoScale": {
+              "exclusiveMinimum": 0,
+              "maximum": 1000,
+              "type": "number",
+            },
+            "projection": {
+              "enum": [
+                "perspective",
+                "orthographic",
+              ],
+              "type": "string",
+            },
+          },
+          "required": [
+            "keys",
+          ],
+          "type": "object",
+        },
+        "cast": {
+          "default": [],
+          "items": {
+            "type": "string",
+          },
+          "maxItems": 20,
+          "type": "array",
+        },
+        "lights": {
+          "items": {
+            "properties": {
+              "color": {
+                "default": "#ffffff",
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "type": "string",
+              },
+              "energy": {
+                "maximum": 10000,
+                "minimum": 0,
+                "type": "number",
+              },
+              "id": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "position": {
+                "additionalItems": false,
+                "items": [
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "size": {
+                "default": 5,
+                "maximum": 100,
+                "minimum": 0.1,
+                "type": "number",
+              },
+              "target": {
+                "additionalItems": false,
+                "default": [
+                  0,
+                  0,
+                  0,
+                ],
+                "items": [
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "type": {
+                "default": "area",
+                "enum": [
+                  "area",
+                  "point",
+                  "sun",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "energy",
+              "position",
+            ],
+            "type": "object",
+          },
+          "maxItems": 12,
+          "minItems": 1,
+          "type": "array",
+        },
+        "materials": {
+          "items": {
+            "properties": {
+              "color": {
+                "pattern": "^#[0-9a-fA-F]{6}$",
+                "type": "string",
+              },
+              "emission": {
+                "default": 0,
+                "maximum": 20,
+                "minimum": 0,
+                "type": "number",
+              },
+              "id": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "metallic": {
+                "default": 0,
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number",
+              },
+              "roughness": {
+                "default": 0.45,
+                "maximum": 1,
+                "minimum": 0,
+                "type": "number",
+              },
+            },
+            "required": [
+              "id",
+              "color",
+            ],
+            "type": "object",
+          },
+          "maxItems": 40,
+          "minItems": 1,
+          "type": "array",
+        },
+        "objects": {
+          "items": {
+            "properties": {
+              "bevel": {
+                "default": 0,
+                "maximum": 0.2,
+                "minimum": 0,
+                "type": "number",
+              },
+              "font": {
+                "enum": [
+                  "default",
+                  "headline",
+                  "hand",
+                ],
+                "type": "string",
+              },
+              "id": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "image": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "keys": {
+                "default": [],
+                "items": {
+                  "properties": {
+                    "atFrame": {
+                      "maximum": 9007199254740991,
+                      "minimum": 0,
+                      "type": "integer",
+                    },
+                    "easing": {
+                      "default": "smooth",
+                      "enum": [
+                        "linear",
+                        "smooth",
+                        "hold",
+                      ],
+                      "type": "string",
+                    },
+                    "position": {
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                      ],
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "type": "array",
+                    },
+                    "rotation": {
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                      ],
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "type": "array",
+                    },
+                    "scale": {
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "exclusiveMinimum": 0,
+                          "maximum": 1000,
+                          "type": "number",
+                        },
+                        {
+                          "exclusiveMinimum": 0,
+                          "maximum": 1000,
+                          "type": "number",
+                        },
+                        {
+                          "exclusiveMinimum": 0,
+                          "maximum": 1000,
+                          "type": "number",
+                        },
+                      ],
+                      "maxItems": 3,
+                      "minItems": 3,
+                      "type": "array",
+                    },
+                  },
+                  "required": [
+                    "atFrame",
+                  ],
+                  "type": "object",
+                },
+                "maxItems": 64,
+                "type": "array",
+              },
+              "kind": {
+                "enum": [
+                  "empty",
+                  "cube",
+                  "sphere",
+                  "ico_sphere",
+                  "cylinder",
+                  "cone",
+                  "torus",
+                  "plane",
+                  "text",
+                  "path",
+                  "image",
+                ],
+                "type": "string",
+              },
+              "material": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "parent": {
+                "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                "type": "string",
+              },
+              "path": {
+                "properties": {
+                  "closed": {
+                    "default": true,
+                    "type": "boolean",
+                  },
+                  "fill": {
+                    "default": true,
+                    "type": "boolean",
+                  },
+                  "points": {
+                    "items": {
+                      "additionalItems": false,
+                      "items": [
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                        {
+                          "maximum": 1000,
+                          "minimum": -1000,
+                          "type": "number",
+                        },
+                      ],
+                      "maxItems": 2,
+                      "minItems": 2,
+                      "type": "array",
+                    },
+                    "maxItems": 2048,
+                    "minItems": 2,
+                    "type": "array",
+                  },
+                  "smooth": {
+                    "default": false,
+                    "type": "boolean",
+                  },
+                  "strokeMaterial": {
+                    "pattern": "^[A-Za-z0-9][A-Za-z0-9_-]{0,79}$",
+                    "type": "string",
+                  },
+                  "strokeWidth": {
+                    "default": 0.025,
+                    "exclusiveMinimum": 0,
+                    "maximum": 1,
+                    "type": "number",
+                  },
+                },
+                "required": [
+                  "points",
+                ],
+                "type": "object",
+              },
+              "position": {
+                "additionalItems": false,
+                "default": [
+                  0,
+                  0,
+                  0,
+                ],
+                "items": [
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "rotation": {
+                "additionalItems": false,
+                "default": [
+                  0,
+                  0,
+                  0,
+                ],
+                "items": [
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                  {
+                    "maximum": 1000,
+                    "minimum": -1000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "scale": {
+                "additionalItems": false,
+                "default": [
+                  1,
+                  1,
+                  1,
+                ],
+                "items": [
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000,
+                    "type": "number",
+                  },
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000,
+                    "type": "number",
+                  },
+                  {
+                    "exclusiveMinimum": 0,
+                    "maximum": 1000,
+                    "type": "number",
+                  },
+                ],
+                "maxItems": 3,
+                "minItems": 3,
+                "type": "array",
+              },
+              "text": {
+                "maxLength": 180,
+                "type": "string",
+              },
+              "textAlign": {
+                "enum": [
+                  "left",
+                  "center",
+                  "right",
+                ],
+                "type": "string",
+              },
+            },
+            "required": [
+              "id",
+              "kind",
+            ],
+            "type": "object",
+          },
+          "maxItems": 800,
+          "minItems": 1,
+          "type": "array",
+        },
+        "rasterizer": {
+          "enum": [
+            "eevee",
+            "workbench",
+          ],
+          "type": "string",
+        },
+        "renderStyle": {
+          "enum": [
+            "lit",
+            "illustration",
+          ],
+          "type": "string",
+        },
+        "version": {
+          "const": 1,
+          "type": "number",
+        },
+      },
+      "required": [
+        "version",
+        "materials",
+        "objects",
+        "lights",
+        "camera",
+      ],
+      "type": "object",
+    },
     "camera": {
       "default": [],
       "items": {

@@ -21,7 +21,7 @@ export async function runBible(ctx: StageContext, feedback?: string): Promise<st
   const kitCharacters = ctx.catalog.characters.map((character) => ({ id: character.id, variants: character.variants, packs: character.packs }));
   // Sent back with a note, the show bible is written again too: the note may be about the tone or the cast.
   const show = await runShow(ctx, plan.data, feedback);
-  if (ctx.series.production?.mode === "artist") {
+  if (ctx.series.production?.mode === "artist" || ctx.series.renderer === "blender") {
     const bible: SeriesBible = {
       cast: show.cast.map(({ id, appearance }) => ({ id, kitCharacterId: id, description: appearance })),
       style: { palette: show.look.palette.map((colour) => colour.hex), captionStyle: show.look.captions, mood: show.tone, grade: "none" },

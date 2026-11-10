@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import {
   CircleCheckIcon,
   FolderOpenIcon,
@@ -68,10 +68,29 @@ export function SettingsPage() {
     [saving, setSaving] = useState(false),
     [checking, setChecking] = useState(false),
     [voices, setVoices] = useState<VoiceInfo[]>([]),
+    [elevenVoices, setElevenVoices] = useState<VoiceInfo[]>([]),
+    [loadingElevenVoices, setLoadingElevenVoices] = useState(false),
+    [elevenVoiceError, setElevenVoiceError] = useState(""),
     [models, setModels] = useState<VoiceModelStatus[]>([]),
     [modelError, setModelError] = useState(""),
     [previewing, setPreviewing] = useState(false),
     [leaving, setLeaving] = useState<(() => void) | null>(null);
+  const voiceRequest = useRef(0);
+  const [blender, setBlender] = useState<{ ok: boolean; path: string; version?: string; reason?: string } | null>(null);
+  const [checkingBlender, setCheckingBlender] = useState(false);
+  const checkBlender = async () => {
+    setCheckingBlender(true);
+    try { setBlender(await api.settings.blenderStatus(draft.render.blenderPath)); }
+    catch (error) { report(error); }
+    finally { setCheckingBlender(false); }
+  };
+  useEffect(() => {
+    voiceRequest.current += 1;
+    setElevenVoices([]);
+    setElevenVoiceError("");
+    setLoadingElevenVoices(false);
+    return () => { voiceRequest.current += 1; };
+  }, [draft.voice.elevenlabs?.apiKey, draft.voice.backend]);
   // Appearance applies at once (like the switch in the top bar), so it isn't part of the draft.
   const dirty = JSON.stringify({ ...draft, theme: settings.theme }) !== JSON.stringify(settings);
 
@@ -139,6 +158,24 @@ export function SettingsPage() {
   };
   const setTheme = (theme: Theme) => void useApp.getState().updateSettings({ theme }).catch(report);
   const patch = <K extends keyof Settings>(key: K, value: Settings[K]) => setDraft((d) => ({ ...d, [key]: value }));
+  const patchElevenLabs = (value: NonNullable<Settings["voice"]["elevenlabs"]>) => patch("voice", { ...draft.voice, elevenlabs: { ...draft.voice.elevenlabs, ...value } });
+  const hasElevenLabsKey = draft.voice.elevenlabs?.apiKey !== undefined ? Boolean(draft.voice.elevenlabs.apiKey.trim()) : Boolean(draft.voice.elevenlabs?.hasApiKey);
+  const loadElevenVoices = async () => {
+    const request = ++voiceRequest.current;
+    setLoadingElevenVoices(true);
+    setElevenVoiceError("");
+    try {
+      const next = await api.voice.elevenLabsVoices(draft.voice.elevenlabs?.apiKey);
+      if (request === voiceRequest.current) {
+        setElevenVoices(next);
+        if (!next.length) setElevenVoiceError("No voices found. Add a voice to your ElevenLabs account, then load again.");
+      }
+    } catch (error) {
+      if (request === voiceRequest.current) { setElevenVoices([]); setElevenVoiceError(error instanceof Error ? error.message : String(error)); }
+    } finally {
+      if (request === voiceRequest.current) setLoadingElevenVoices(false);
+    }
+  };
 
   return (
     <Page>
@@ -207,20 +244,51 @@ export function SettingsPage() {
         <TabsContent value="voice" className="max-w-xl">
           <Section
             title="Narration"
-            description="Use your computer's voices right away, or download an optional expressive neural voice. Models are stored separately from the app."
+            description="Use your computer's voices, a local neural model, or ElevenLabs with your own API key."
           >
             <Field>
               <FieldLabel htmlFor="voice-backend">Voice engine</FieldLabel>
-              <Select value={draft.voice.backend ?? "system"} onValueChange={(backend) => patch("voice", { ...draft.voice, backend: backend as "chatterbox" | "system" })}>
+              <Select value={draft.voice.backend ?? "system"} onValueChange={(backend) => patch("voice", { ...draft.voice, backend: backend as Settings["voice"]["backend"], rate: backend === "elevenlabs" ? Math.min(draft.voice.rate, 1.2) : draft.voice.rate })}>
                 <SelectTrigger id="voice-backend" className="w-full"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="chatterbox" disabled={!neuralReady}>Chatterbox · {neuralReady ? "expressive neural voice" : "download a model below"}</SelectItem>
                   <SelectItem value="system">System speech · basic offline voice</SelectItem>
+                  <SelectItem value="elevenlabs">ElevenLabs · your API key</SelectItem>
                 </SelectContent>
               </Select>
-              <FieldDescription>System speech needs no downloads. Chatterbox becomes available after the model for your default story language is installed.</FieldDescription>
+              <FieldDescription>System speech works offline. Chatterbox needs a downloaded model. ElevenLabs uses your account and an internet connection.</FieldDescription>
             </Field>
-            <FieldSet>
+            {draft.voice.backend === "elevenlabs" && <FieldSet>
+              <FieldLegend>ElevenLabs account</FieldLegend>
+              <FieldDescription>Previews and episode narration send script text to ElevenLabs and use your account's credits. The model is Eleven Multilingual v2, including English, Hindi and Tamil.</FieldDescription>
+              <Field>
+                <FieldLabel htmlFor="elevenlabs-api-key">ElevenLabs API key</FieldLabel>
+                <InputGroup><InputGroupInput id="elevenlabs-api-key" type="password" autoComplete="off" spellCheck={false}
+                  value={draft.voice.elevenlabs?.apiKey ?? ""}
+                  placeholder={draft.voice.elevenlabs?.hasApiKey ? "Key saved · enter a new key to replace it" : "Paste your ElevenLabs API key"}
+                  onChange={(event) => patchElevenLabs({ apiKey: event.target.value || undefined })} /></InputGroup>
+                <FieldDescription>{draft.voice.elevenlabs?.hasApiKey ? "A key is saved. Leave this field empty to keep it. " : ""}Saved keys are encrypted using your OS credential protection. Allow Text to Speech and Voices read access.</FieldDescription>
+                <Button variant="link" className="self-start" onClick={() => void api.app.openExternal("https://elevenlabs.io/app/settings/api-keys")}>Get an ElevenLabs API key</Button>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="elevenlabs-voice-id">ElevenLabs voice ID</FieldLabel>
+                <InputGroup><InputGroupInput id="elevenlabs-voice-id" value={draft.voice.elevenlabs?.voiceId ?? ""} placeholder="Paste a voice ID or choose one below" onChange={(event) => patchElevenLabs({ voiceId: event.target.value })} /></InputGroup>
+                <Button variant="outline" className="self-start" disabled={!hasElevenLabsKey || loadingElevenVoices} onClick={() => void loadElevenVoices()}>
+                  {loadingElevenVoices ? <Spinner data-icon="inline-start" aria-hidden /> : <RefreshCwIcon data-icon="inline-start" />}Load my voices
+                </Button>
+                {elevenVoiceError && <p role="alert" className="text-sm text-destructive">{elevenVoiceError}</p>}
+                {elevenVoices.length > 0 && <>
+                  <FieldLabel htmlFor="elevenlabs-voice">Choose an account voice</FieldLabel>
+                  <Select value={draft.voice.elevenlabs?.voiceId || ""} onValueChange={(voiceId) => patchElevenLabs({ voiceId })}>
+                    <SelectTrigger id="elevenlabs-voice" className="w-full"><SelectValue placeholder="Choose a voice" /></SelectTrigger>
+                    <SelectContent>{elevenVoices.map((voice) => <SelectItem key={voice.id} value={voice.id}>{voice.name}</SelectItem>)}</SelectContent>
+                  </Select>
+                </>}
+                <FieldDescription>Load voices with the entered or saved key, then save your changes before previewing. Existing series keep their approved narrator and character voice IDs.</FieldDescription>
+              </Field>
+              {hasElevenLabsKey && <Button variant="outline" className="self-start" onClick={() => patch("voice", { ...draft.voice, backend: "system", elevenlabs: { ...draft.voice.elevenlabs, apiKey: "" } })}>Remove key and use system speech</Button>}
+            </FieldSet>}
+            {draft.voice.backend !== "elevenlabs" && <FieldSet>
               <FieldLegend>Optional voice models</FieldLegend>
               <FieldDescription>Nothing downloads until you choose Download. Each model needs about 3 GB, plus several GB for the shared voice runtime. Downloading does not change your selected voice.</FieldDescription>
               {modelError && <p role="alert" className="text-sm text-destructive">Could not check voice models: {modelError}</p>}
@@ -238,7 +306,7 @@ export function SettingsPage() {
                 {model.message && <p role={model.state === "error" ? "alert" : "status"} className="text-xs text-muted-foreground">{model.message}</p>}
               </div>)}
               {models.some((model) => model.state === "error" && model.message?.includes("Install uv")) && <Button variant="link" className="self-start" onClick={() => void api.app.openExternal("https://docs.astral.sh/uv/getting-started/installation/")}>Get the optional voice installer</Button>}
-            </FieldSet>
+            </FieldSet>}
             {draft.voice.backend === "chatterbox" && <>
               <Field>
                 <FieldLabel htmlFor="voice-device">Narration processing</FieldLabel>
@@ -275,7 +343,7 @@ export function SettingsPage() {
                 <FieldDescription>Subtle to dramatic. Each script line also carries its own emotional intensity and pause.</FieldDescription>
               </Field>
             </>}
-            {draft.voice.backend !== "chatterbox" && <Field>
+            {(draft.voice.backend ?? "system") === "system" && <Field>
               <FieldLabel htmlFor="voice">Voice</FieldLabel>
               <Select
                 value={draft.voice.voice || SYSTEM_VOICE}
@@ -306,18 +374,19 @@ export function SettingsPage() {
                 id="rate"
                 aria-label="Narration speed"
                 min={0.7}
-                max={1.4}
+                max={draft.voice.backend === "elevenlabs" ? 1.2 : 1.4}
                 step={0.05}
                 value={[draft.voice.rate]}
                 onValueChange={([rate]) => patch("voice", { ...draft.voice, rate: rate ?? 1 })}
               />
             </Field>
             <Field orientation="horizontal">
-              <Button variant="outline" disabled={dirty || previewing || (draft.voice.backend === "chatterbox" && !neuralReady)} onClick={() => void hearVoice()}>
+              <Button variant="outline" disabled={dirty || previewing || (draft.voice.backend === "chatterbox" && !neuralReady) || (draft.voice.backend === "elevenlabs" && Boolean(voiceLanguageProblem(draft.defaults.language, draft.voice, null, null)))} onClick={() => void hearVoice()}>
                 {previewing ? <Spinner data-icon="inline-start" aria-hidden /> : <PlayIcon data-icon="inline-start" />}
                 Hear it
               </Button>
               {dirty && <FieldDescription>Save your changes first to hear them.</FieldDescription>}
+              {!dirty && draft.voice.backend === "elevenlabs" && <FieldDescription>{voiceLanguageProblem(draft.defaults.language, draft.voice, null, null) ?? "This preview uses your ElevenLabs credits."}</FieldDescription>}
             </Field>
           </Section>
         </TabsContent>
@@ -325,10 +394,38 @@ export function SettingsPage() {
         <TabsContent value="render" className="max-w-xl">
           <Section title="Rendering" description="Videos render on this computer, never in the cloud.">
             <Field>
+              <FieldLabel htmlFor="render-backend">Renderer for new animations</FieldLabel>
+              <Select value={draft.render.backend ?? "remotion"} onValueChange={(value) => patch("render", { ...draft.render, backend: value as "remotion" | "blender" })}>
+                <SelectTrigger id="render-backend"><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="remotion">Remotion · kit and generated worlds</SelectItem>
+                  <SelectItem value="blender">Blender · native 3D animation</SelectItem>
+                </SelectContent>
+              </Select>
+              <FieldDescription>New standard animations use this renderer. Illustration templates and existing projects retain their renderer.</FieldDescription>
+            </Field>
+            {draft.render.backend === "blender" && <>
+              <Field>
+                <FieldLabel htmlFor="blender-path">Blender executable</FieldLabel>
+                <InputGroup><InputGroupInput id="blender-path" placeholder="Automatic detection" value={draft.render.blenderPath ?? ""} onChange={(event) => { patch("render", { ...draft.render, blenderPath: event.target.value }); setBlender(null); }} /></InputGroup>
+                <FieldDescription>Install Blender 4.5 LTS with <code>pnpm blender:setup</code>, or enter your installed Blender executable. FFmpeg must be installed too.</FieldDescription>
+              </Field>
+              <Field>
+                <FieldLabel htmlFor="blender-samples">Render quality</FieldLabel>
+                <Select value={String(draft.render.blenderSamples ?? 32)} onValueChange={value => patch("render", { ...draft.render, blenderSamples: Number(value) })}>
+                  <SelectTrigger id="blender-samples"><SelectValue /></SelectTrigger>
+                  <SelectContent>{[8,16,32,64,128].map(value => <SelectItem key={value} value={String(value)}>{value} samples{value === 32 ? " · balanced" : ""}</SelectItem>)}</SelectContent>
+                </Select>
+                <FieldDescription>Higher sample counts smooth shadows and take longer. Previews use up to 8 samples.</FieldDescription>
+              </Field>
+              <Button variant="outline" disabled={checkingBlender} onClick={() => void checkBlender()}>{checkingBlender && <Spinner />}Check Blender installation</Button>
+              {blender && <Alert variant={blender.ok ? "default" : "destructive"}><AlertTitle>{blender.ok ? `Blender ${blender.version} ready` : "Blender needs setup"}</AlertTitle><AlertDescription className="break-all">{blender.ok ? blender.path : blender.reason}</AlertDescription></Alert>}
+            </>}
+            <Field>
               <FieldLabel htmlFor="concurrency">Browser tabs per render</FieldLabel>
               <Select
                 value={String(draft.render.concurrency)}
-                onValueChange={(v) => patch("render", { concurrency: Number(v) })}
+                onValueChange={(v) => patch("render", { ...draft.render, concurrency: Number(v) })}
               >
                 <SelectTrigger id="concurrency" className="w-full">
                   <SelectValue />

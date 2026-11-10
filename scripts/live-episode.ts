@@ -8,14 +8,14 @@ import { aiBackend } from "@moco/ai";
 import { placeholderAudio } from "@moco/audio";
 import { supertonicAudio } from "@moco/audio/supertonic";
 import { createEngine } from "@moco/engine";
-import { createRemotionRenderPort } from "@moco/renderer";
+import { createMocoRenderPort } from "@moco/renderer/backend";
 
 const idea = process.argv[2] ?? "Krishna calms Arjuna before the battle of Kurukshetra";
 const projectsDir = process.argv[3] ?? join(process.cwd(), "projects");
 
 // MOCO_RENDER_CONCURRENCY=1 renders one frame at a time (lowest memory).
 const concurrency = process.env.MOCO_RENDER_CONCURRENCY ? Number(process.env.MOCO_RENDER_CONCURRENCY) : undefined;
-const render = createRemotionRenderPort({ concurrency });
+const render = createMocoRenderPort({ backend: process.env.MOCO_RENDER_BACKEND === "blender" ? "blender" : "remotion", remotion: { concurrency } });
 const modelDir = process.env.MOCO_SUPERTONIC_DIR;
 const audio = modelDir ? supertonicAudio({ modelDir, voice: process.env.MOCO_SUPERTONIC_VOICE, speed: 0.92 }) : placeholderAudio(); // 0.92 ≈ the engine's 150 wpm budget
 const engine = createEngine({ projectsDir, ai: aiBackend(), render, audio });

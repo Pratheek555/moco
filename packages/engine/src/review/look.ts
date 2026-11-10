@@ -199,7 +199,7 @@ async function shotItem(ctx: StageContext, episodeId: string, shot: Shot, shared
   const spec = (await ctx.store.read(files.shotSpec(episodeId, shot.id), "SceneSpec")).data;
   const frames = spec.canvas ? temporalFrames(spec) : critiqueFrames(spec.durationFrames);
   const words = shotBrief(shot, shared.voiceover).words.map((word) => word.text).join(" ");
-  const check = await ctx.renderSlots.run(() => ctx.render.check(spec, { frames, outDir: join(ctx.dir, "cache", "look", episodeId, shot.id, pass) }));
+  const check = await ctx.renderSlots.run(() => ctx.render.check(spec, { frames, outDir: join(ctx.dir, "cache", "look", episodeId, shot.id, pass), signal: ctx.signal }));
   const images = check.ok ? check.stills : frames.map((frame) => join(ctx.dir, files.shotDir(episodeId, shot.id), "stills", `${frame}.png`)).filter((file) => existsSync(file));
   if (images.length === 0) return undefined;
   const brief = { intent: shot.intent, spoken: words || undefined, camera: spec.stage?.camera, place: spec.stage?.place, subject: spec.stage?.subject, fallback: spec.fallback || undefined };
