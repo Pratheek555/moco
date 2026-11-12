@@ -1,39 +1,21 @@
-AI Animated Reels SaaS – Idea
-The idea
-A one-time-purchase desktop app that turns an idea (e.g. "a Mahabharat series") into animated Instagram reels. It uses the customer's own Claude or ChatGPT subscription, so there are no paid video APIs and no running costs for us. The goal is to replace tools like Higgsfield.
-How it works
-• The user types a story or series idea.
-• Claude/ChatGPT breaks it into episodes and scenes.
-• The AI writes scene specs (JSON, validated by @moco/spec) that the renderer turns into animation, using freeform authored drawing by default (shared series code/data, drawn in an isolated Canvas iframe). The kit and generated 3D worlds remain explicit options (World in @moco/spec, drawn by packages/kit/src/stages/world).
-• The app renders it locally to a 9:16 MP4 with voiceover, captions and music.
-• Rendering errors go back to the AI to fix automatically.
-Business model
-• Lifetime licence (pay once). The user brings their own AI subscription.
-• The selling point: everyone else (Mootion, InVideo, Predis, HeyGen, VEED) charges monthly and per video.
-Target customers (MVP)
-• Faceless channel operators running several pages, in any genre
-• Mythology, devotional and history Instagram pages were the first audience, but a story never has to fit the kit: the AI builds a cast and world for it
-The harness (core engine)
-1. Planner: turns the script into a shot list fitted to 30–60s
-2. Character kit / consistency: reusable layered SVG characters, poses and expressions
-3. Scene generator: the AI writes scene spec JSON to a strict schema
-4. Render + auto-fix loop: errors get fed back to the AI
-5. Audio sync: voiceover, music and SFX timed to shots
-6. Assembler: captions, stitching, vertical export
-7. Memory: characters, style and story carry across episodes
-Competitors to study
-• LTX Studio: script to storyboard, character consistency
-• Mootion: closest direct rival for animated stories
-• Higgsfield: camera presets and character tools
-• Revid.ai / AutoShorts.ai: faceless series and auto-posting
-• Krikey: cartoon character animation
-• InVideo, Predis, HeyGen, VEED: general AI reel makers
-Risks
-• Animation quality could look like cheap clip art. The character kit is critical.
-• Using consumer subscriptions this way may conflict with the AI providers' terms (see docs/reference.md §2). Current decision: Claude Code session only, no API keys.
-• A lifetime model needs a steady stream of new buyers.
-First step
-Hand-build one 10-second Remotion scene (Krishna on a chariot: blink, raise hand, caption). That sets the quality bar and the template. Then test whether Claude can reliably write the next scene in the same format.
+# Moco
 
-Engineering
-• Engine design and build plan: docs/reference.md. Tooling: pnpm workspaces, TypeScript strict, Vitest (`pnpm test`, `pnpm typecheck`). Desktop app: `pnpm dev` (apps/desktop, Electron; the engine runs from source in a utility process, so packages use erasable TypeScript only).
+## Product idea
+A one-time-purchase desktop app for making animated videos with the customer's own AI subscription. The user brings a skill: its instructions, code, assets and taste determine what the agent makes. Moco supplies a workspace, conversation, uploads and access to the resulting files. Projects can use Claude Code or Codex with a ChatGPT subscription.
+
+## Business model and audience
+- Lifetime licence, paid once. The user brings their AI subscription; Moco has no paid video API or per-video backend costs.
+- Faceless channel operators, animation creators, and people making history, mythology, devotional or other story videos.
+- Compete on creative freedom and a good desktop experience. Competitors include Higgsfield, Mootion, LTX Studio, Revid, AutoShorts, Krikey, InVideo, Predis, HeyGen and VEED.
+- Quality depends on the supplied skill and the agent. Subscription integration remains subject to provider terms. A lifetime business needs a continuing stream of buyers.
+
+## Engineering
+- `pnpm` workspaces, strict TypeScript, Vitest. Run `pnpm install`, `pnpm typecheck`, `pnpm test`, and `pnpm dev`.
+- `packages/agent` is the provider interface, Claude Agent SDK and Codex app-server adapters, skill library and project storage. Consumer Claude Code or ChatGPT login only; no API keys or API fallback.
+- `apps/desktop/src/main/index.ts` owns Electron, native dialogs, IPC and confined media serving. `agent-host.ts` runs the provider and `ProjectService` in a utility process. It runs from source: use erasable TypeScript (no enums, parameter properties or namespaces).
+- The preload exports one typed `MocoAPI`. The React renderer shows projects, skills, the conversation, questions, tasks and workspace files. Preserve context isolation, sandboxing and disabled Node integration.
+- Each project pins its provider and one imported skill in `.claude/skills/<name>/` (Claude) or `.agents/skills/<name>/` (Codex). Preserve the provider's ordinary toolset. No application-authored creative workflow, output schema, validation, render pipeline or repair loop.
+- JSON metadata and an append-only conversation live in app-data; workspaces default to Documents/moco. Persist the provider's session ID and resume it after restart.
+- Claude's `AskUserQuestion` is a pending SDK callback; Codex uses `moco_AskUserQuestion` and native user-input requests. The renderer's answers resolve them. Claude's `mcp__moco__SendUserFile` and Codex's `moco_SendUserFile` hand workspace files to the user. The file panel also discovers media independently.
+- Appearance settings remain; old voice, renderer, account-switching and production settings do not apply. There was no licence implementation to preserve.
+- See [docs/reference.md](docs/reference.md) for the contracts and checks. Do not commit or run live subscription tests unless the task authorizes them.

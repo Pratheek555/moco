@@ -1,150 +1,94 @@
-// End-to-end check of the real app: type an idea, approve every review, get a final MP4.
-// Uses the Claude Code on this computer (about 20–40 calls for one episode) and renders with Remotion.
-//   pnpm --filter @moco/desktop build && pnpm test:desktop
-// Screenshots of every review land in artifacts/desktop/. MOCO_SMOKE_IDEA picks the idea, MOCO_SMOKE_LANGUAGE the
-// language, and MOCO_SMOKE_NOTE is asked for once at the preview review (that rewrites every shot, so more calls).
-// To watch it make a real series instead: MOCO_SMOKE_PROFILE=real uses your own app profile (voice, projects folder),
-// MOCO_SMOKE_PAUSE=<seconds> holds each review on screen before approving it, and MOCO_SMOKE_KEEP_OPEN=1 leaves the
-// app open at the end until you close its window. MOCO_SMOKE_RESUME=<series id> carries on with a series already in
-// that projects folder instead of starting one. You can approve or redo a review yourself while it waits.
+// Actual Electron main/preload/renderer + source utility process. No AI messages sent.
 import { _electron as electron, expect } from "@playwright/test";
-import { getVideoMetadata } from "@remotion/renderer";
 import assert from "node:assert/strict";
-import { existsSync } from "node:fs";
-import { mkdtemp, mkdir, readdir, readFile, writeFile } from "node:fs/promises";
-import os from "node:os";
+import { mkdir, mkdtemp, readFile, rm, writeFile } from "node:fs/promises";
+import { tmpdir } from "node:os";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
+import { WorkspaceStore } from "../../../packages/agent/src/storage.ts";
 
 const desktop = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
 const root = path.resolve(desktop, "../..");
-const realProfile = process.env.MOCO_SMOKE_PROFILE === "real";
-const pause = Number(process.env.MOCO_SMOKE_PAUSE ?? 0) * 1000;
-const workspace = await mkdtemp(path.join(os.tmpdir(), "moco-desktop-"));
-const userData = path.join(workspace, "profile");
-let projects = path.join(workspace, "projects");
-const artifacts = path.join(root, "artifacts", "desktop");
-const idea = process.env.MOCO_SMOKE_IDEA ?? "Krishna tells a frightened Arjuna to stand up and do his duty on the battlefield of Kurukshetra";
-const language = process.env.MOCO_SMOKE_LANGUAGE ?? "English"; // the name at the end of the option, e.g. "Hindi"
-let note = process.env.MOCO_SMOKE_NOTE;
-const MINUTES = 60_000;
-await mkdir(userData, { recursive: true });
-await mkdir(artifacts, { recursive: true });
-if (!realProfile) await writeFile(path.join(userData, "settings.json"), JSON.stringify({ theme: "light", projectsDir: projects, onboarded: true }));
-
-const env = realProfile ? { ...process.env } : { ...process.env, MOCO_USER_DATA: userData };
-delete env.ELECTRON_RUN_AS_NODE;
-const debugPort = process.env.MOCO_SMOKE_DEBUG_PORT;
-const app = await electron.launch({ args: [desktop, ...(debugPort ? [`--remote-debugging-port=${debugPort}`] : [])], cwd: desktop, env, timeout: 60_000 });
+const temp = await mkdtemp(path.join(tmpdir(), "moco-electron-"));
+const data = path.join(temp, "profile"), projects = path.join(temp, "projects");
+const store = new WorkspaceStore(data, projects);
+const skill = await store.importSkill(path.join(root, "examples/skills/cartoon-audio-short"));
+const project = await store.createProject("Smoke project", skill.id, "claude-code");
+const png = Buffer.from("iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+aM0kAAAAASUVORK5CYII=", "base64");
+await writeFile(path.join(project.workspace, "outbox/contact sheet.png"), png);
+const upload = path.join(temp, "voice.wav"); await writeFile(upload, "upload fixture");
+const question = { question: "Where are you starting?", header: "Start", multiSelect: true, options: [{ label: "Voiceover ready", description: "Upload your audio" }, { label: "Need ideas", description: "Start fresh" }] };
+for (const event of [
+  { type: "user", text: "Make something original", files: [] },
+  { type: "text", messageId: "reply", text: "Let's make your video." },
+  { type: "tool_call", id: "tool", name: "Read", input: { file_path: "SKILL.md" } },
+  { type: "tool_result", id: "tool", content: "Skill loaded", isError: false },
+  { type: "tasks", tasks: [{ id: "1", subject: "Choose a starting point", status: "in_progress" }] },
+  { type: "file", path: "outbox/contact sheet.png", label: "Review the contact sheet" },
+  { type: "question", id: "q", questions: [question] },
+]) await store.record(project.id, event);
 const errors = [];
-const started = Date.now();
-const elapsed = () => `${Math.round((Date.now() - started) / 1000)}s`;
-try {
-  app.process().stdout.on("data", (d) => process.stdout.write(String(d)));
-  app.process().stderr.on("data", (d) => process.stderr.write(String(d)));
+const env = { ...process.env, MOCO_USER_DATA: data, MOCO_PROJECTS_DIR: projects };
+delete env.ELECTRON_RUN_AS_NODE;
+let app;
+async function launch() {
+  app = await electron.launch({ ...(process.env.MOCO_SMOKE_EXEC ? { executablePath: process.env.MOCO_SMOKE_EXEC } : {}), args: process.env.MOCO_SMOKE_EXEC ? [] : [desktop], cwd: desktop, env, timeout: 60_000 });
+  app.process().stderr.on("data", chunk => process.stderr.write(chunk));
   const page = await app.firstWindow();
-  page.on("pageerror", (e) => errors.push(e.message));
-  page.on("console", (m) => {
-    if (m.type() === "error") errors.push(m.text());
-  });
-
-  await expect(page.getByRole("heading", { name: /Small idea/ })).toBeVisible({ timeout: 30_000 });
-  await page.screenshot({ path: path.join(artifacts, "01-studio.png") });
-  console.log(`PASS studio opens (${elapsed()})`);
-
-  const info = await page.evaluate(() => window.moco.app.info());
-  if (realProfile) projects = path.resolve(info.projectsDir);
-  assert.equal(path.resolve(info.projectsDir), projects);
-  const before = new Set(existsSync(projects) ? await readdir(projects) : []);
-  const ai = await page.evaluate(() => window.moco.ai.status());
-  assert.ok(ai.ok, `AI CLI is not ready: ${ai.reason}`);
-  console.log(`PASS AI CLI ${ai.version} ready`);
-
-  const voices = await page.evaluate(() => window.moco.voice.list());
-  assert.equal(new Set(voices.map((voice) => voice.id)).size, voices.length, "a voice is listed twice");
-
-  const resume = process.env.MOCO_SMOKE_RESUME;
-  if (resume) {
-    // Open the series from its card on the studio page, and start whatever comes next.
-    const plan = JSON.parse(await readFile(path.join(projects, resume, "artifacts", "series_plan.json"), "utf8"));
-    before.delete(resume);
-    await page.getByRole("button", { name: plan.data.title, exact: true }).first().click();
-    await expect(page.getByText("The episode board")).toBeVisible({ timeout: 30_000 });
-    const carryOn = page.getByRole("button", { name: /^(Continue:|Try again)/ }).first();
-    if (await carryOn.isVisible({ timeout: 5_000 }).catch(() => false)) {
-      await carryOn.click();
-      // The old failure stays on screen until the new run starts; don't mistake it for a new one.
-      await expect(page.getByRole("alert").filter({ hasText: / failed/ })).toBeHidden({ timeout: 60_000 });
-    }
-    console.log(`PASS resumed ${resume} (${elapsed()})`);
-  } else {
-    // The prompt.
-    await page.getByLabel("What story will you tell?").fill(idea);
-    if (language !== "English") {
-      await page.getByLabel("Story language").click();
-      await page.getByRole("option", { name: new RegExp(`${language}$`) }).click();
-    }
-    await page.getByRole("button", { name: /Create series/ }).click();
-    await expect(page.getByText("The episode board")).toBeVisible({ timeout: 30_000 });
-    console.log(`PASS series created from the idea (${elapsed()})`);
-  }
-
-  // Approve each review as it comes up, until every episode is rendered.
-  const review = page.getByRole("region", { name: "Review" });
-  const finished = page.getByText("Every episode is rendered");
-  const failed = page.getByRole("alert").filter({ hasText: / failed/ });
-  for (let gate = 1; gate <= 9; gate += 1) {
-    await expect(review.or(finished).or(failed).first()).toBeVisible({ timeout: 25 * MINUTES });
-    if (await failed.isVisible()) throw new Error(`a stage failed: ${await failed.textContent()}`);
-    if (await finished.isVisible()) break;
-    const title = (await review.locator("[data-slot=card-title]").first().textContent())?.replace(/^Review (the )?/, "").trim();
-    await page.screenshot({ path: path.join(artifacts, `0${gate + 1}-review-${title?.replace(/\W+/g, "-").toLowerCase()}.png`), fullPage: true });
-    console.log(`PASS review ${gate}: ${title} (${elapsed()})`);
-    // A notification under the mouse stays hovered and can cover the approval controls.
-    // Move away before the review pause so the normal toast expiry can run.
-    await page.mouse.move(260, 72);
-    if (pause) await page.waitForTimeout(pause);
-    // Approved or sent back by hand while it waited: carry on from wherever that left it.
-    if (!(await review.isVisible())) continue;
-    if (note && title?.endsWith("preview")) {
-      await review.getByRole("button", { name: "Ask for changes" }).click();
-      await review.getByLabel("What should change").fill(note);
-      await review.getByRole("button", { name: "Redo with my note" }).click();
-      await expect(review).toBeHidden({ timeout: 60_000 });
-      note = undefined;
-      continue;
-    }
-    await review.getByRole("button", { name: "Approve", exact: true }).click({ timeout: 15_000 }).catch(async (error) => {
-      // The user may approve while the driver is moving to the button.
-      if (await review.isVisible()) throw error;
-    });
-    await expect(review).toBeHidden({ timeout: 60_000 });
-  }
-  await expect(finished).toBeVisible({ timeout: 25 * MINUTES });
-  console.log(`PASS every stage approved and rendered (${elapsed()})`);
-
-  // The episode page plays the final render.
-  await page.getByRole("list", { name: "Episodes" }).getByRole("button").first().click();
-  await expect(page.getByText("Final render", { exact: true })).toBeVisible({ timeout: 30_000 });
-  await page.waitForTimeout(1500);
-  await page.screenshot({ path: path.join(artifacts, "09-episode.png") });
-
-  const [seriesId] = (await readdir(projects)).filter((name) => !name.startsWith(".") && !before.has(name));
-  const final = path.join(projects, seriesId, "episodes", "ep-01", "renders", "final.mp4");
-  assert.ok(existsSync(final), `no final render at ${final}`);
-  const video = await getVideoMetadata(final);
-  assert.equal(video.width, 1080);
-  assert.equal(video.height, 1920);
-  assert.ok(video.durationInSeconds >= 10, `final is only ${video.durationInSeconds}s`);
-  console.log(`PASS final.mp4 ${video.width}×${video.height}, ${video.durationInSeconds.toFixed(1)} s (${elapsed()})`);
-  console.log(`FINAL ${final}`);
-
-  assert.deepEqual(errors, [], "the UI logged errors");
-  console.log("PASS no UI errors");
-  if (process.env.MOCO_SMOKE_KEEP_OPEN) {
-    console.log("The app stays open; close its window to finish.");
-    await app.waitForEvent("close", { timeout: 0 });
-  }
-} finally {
-  await app.close();
+  page.on("pageerror", error => errors.push(error.message));
+  page.on("console", event => { if (event.type() === "error") errors.push(event.text()); });
+  await expect(page.getByRole("heading", { name: "What will you create?" })).toBeVisible();
+  await expect(page.getByLabel("AI provider", { exact: true })).toHaveValue("codex");
+  return page;
 }
+try {
+  const page = await launch();
+  assert.equal((await page.evaluate(() => window.moco.info())).projectsDir, projects);
+  await expect(page.getByText("1 imported", { exact: true })).toBeVisible({ timeout: 30_000 });
+  // Exercise the native dialog → import → host storage boundary without an interactive dialog.
+  await app.evaluate(({ dialog }, folder) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [folder] }); }, path.join(root, "examples/skills/cartoon-audio-short"));
+  await page.getByRole("button", { name: "Import folder" }).click();
+  await expect(page.getByText("2 imported", { exact: true })).toBeVisible();
+  await page.getByLabel("Project name", { exact: true }).fill("Created in the UI");
+  await page.getByRole("button", { name: "Create project", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Created in the UI", exact: true })).toBeVisible();
+  await expect(page.locator(".project-header")).toContainText("Codex");
+  const created = await page.evaluate(async () => (await window.moco.projects()).find(project => project.name === "Created in the UI"));
+  assert.equal(created.provider, "codex");
+  assert.match(await readFile(path.join(created.workspace, ".agents/skills/cartoon-audio-short/SKILL.md"), "utf8"), /name: cartoon-audio-short/);
+  await app.evaluate(({ dialog }, file) => { dialog.showOpenDialog = async () => ({ canceled: false, filePaths: [file] }); }, upload);
+  await page.getByRole("button", { name: "Attach files" }).click();
+  await expect(page.getByRole("button", { name: /Remove .*voice.wav/ })).toBeVisible();
+  await page.getByRole("button", { name: /Smoke project/ }).click();
+  await expect(page.locator(".project-header")).toContainText("Claude Code");
+  await expect(page.getByText("Let's make your video.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("region", { name: "Agent tasks" })).toContainText("Choose a starting point");
+  const card = page.getByRole("form", { name: "Agent question" });
+  await card.getByLabel("Voiceover ready").check(); await card.getByLabel("Need ideas").check();
+  await card.getByLabel("Other: Where are you starting?").fill("Custom answer");
+  await expect(card.getByRole("button", { name: "Continue" })).toBeEnabled();
+  const image = page.getByAltText("contact sheet.png").first();
+  await expect(image).toBeVisible();
+  await expect.poll(() => image.evaluate(img => img.naturalWidth)).toBe(1);
+  assert.equal(await page.evaluate(async id => (await fetch(`moco-media://project/${id}/outbox/contact%20sheet.png`)).status, project.id), 200);
+  const checks = await app.evaluate(async ({ net }, { id }) => {
+    const safe = await net.fetch(`moco-media://project/${id}/outbox/contact%20sheet.png`);
+    const escape = await net.fetch(`moco-media://project/${id}/..%5C..%5Cprivate.png`);
+    const html = await net.fetch(`moco-media://project/${id}/outbox/page.html`);
+    return { safe: safe.status, escape: escape.status, html: html.status };
+  }, { id: project.id });
+  assert.deepEqual(checks, { safe: 200, escape: 404, html: 415 });
+  assert.equal(await page.evaluate(id => window.moco.openFile(id, "../private.png", false).then(() => false, () => true), project.id), true);
+  await page.getByLabel("Appearance").selectOption("dark");
+  await expect(page.locator("html")).toHaveClass("dark");
+  assert.equal(JSON.parse(await readFile(path.join(data, "appearance.json"), "utf8")).theme, "dark");
+  await app.close(); app = undefined;
+  const reopened = await launch();
+  await reopened.getByRole("button", { name: /Created in the UI/ }).click();
+  await expect(reopened.locator(".project-header")).toContainText("Codex");
+  await reopened.getByRole("button", { name: /Smoke project/ }).click();
+  await expect(reopened.getByText("Let's make your video.", { exact: true })).toBeVisible();
+  await expect(reopened.locator("html")).toHaveClass("dark");
+  assert.deepEqual(errors, []);
+  console.log("PASS Electron main/preload/utility host: home, skill import, Codex/Claude provider selection and restart, project creation, upload, transcript, tasks/questions, inline media and confinement; no renderer console errors.");
+} finally { await app?.close(); await rm(temp, { recursive: true, force: true }); }

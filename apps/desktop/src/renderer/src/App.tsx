@@ -1,547 +1,109 @@
-import { Component, Fragment, useEffect, useRef, useState, type ReactNode } from "react";
-import {
-  ArrowLeftIcon,
-  ArrowRightIcon,
-  ChartColumnIcon,
-  CircleHelpIcon,
-  ClapperboardIcon,
-  FilmIcon,
-  LayoutTemplateIcon,
-  LibraryIcon,
-  MoonIcon,
-  PlusIcon,
-  SearchIcon,
-  Settings2Icon,
-  ShapesIcon,
-  SparklesIcon,
-  SunIcon,
-} from "lucide-react";
-import { bootstrap, newSeries, report, runningSeries, useApp, type Route } from "@/lib/store.ts";
-import { MOD_KEY } from "@/lib/format.ts";
-import { cn } from "@/lib/utils";
-import {
-  Breadcrumb,
-  BreadcrumbItem,
-  BreadcrumbLink,
-  BreadcrumbList,
-  BreadcrumbPage,
-  BreadcrumbSeparator,
-} from "@/components/ui/breadcrumb";
-import { Button } from "@/components/ui/button";
-import {
-  CommandDialog,
-  CommandEmpty,
-  CommandGroup,
-  CommandInput,
-  CommandItem,
-  CommandList,
-  CommandSeparator,
-  CommandShortcut,
-} from "@/components/ui/command";
-import {
-  Dialog,
-  DialogClose,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Item, ItemContent, ItemDescription, ItemGroup, ItemMedia, ItemTitle } from "@/components/ui/item";
-import { Kbd, KbdGroup } from "@/components/ui/kbd";
-import { Separator } from "@/components/ui/separator";
-import {
-  Sidebar,
-  SidebarContent,
-  SidebarFooter,
-  SidebarGroup,
-  SidebarGroupContent,
-  SidebarGroupLabel,
-  SidebarHeader,
-  SidebarInset,
-  SidebarMenu,
-  SidebarMenuBadge,
-  SidebarMenuButton,
-  SidebarMenuItem,
-  SidebarProvider,
-  SidebarRail,
-  SidebarTrigger,
-} from "@/components/ui/sidebar";
-import { Spinner } from "@/components/ui/spinner";
-import { Toaster } from "@/components/ui/sonner";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
-import { PageError, PageLoading } from "./components/Page.tsx";
-import { RecentChats } from "./components/RecentChats.tsx";
-import { Studio, LibraryPage } from "./routes/Studio.tsx";
-import { SeriesPage } from "./routes/Series.tsx";
-import { EpisodePage } from "./routes/Episode.tsx";
-import { KitPage } from "./routes/Kit.tsx";
-import { TemplatesPage } from "./routes/Templates.tsx";
-import { QueuePage } from "./routes/Queue.tsx";
-import { SettingsPage } from "./routes/Settings.tsx";
-import { UsagePage } from "./routes/Usage.tsx";
+import { useCallback, useEffect, useRef, useState } from "react";
+import type { FormEvent } from "react";
+import { ArrowUp, FilePlus, Folder, FolderOpen, Plus, RefreshCw, X } from "lucide-react";
+import type { Project, ProjectEvent, ProjectView, ProviderId, ProviderStatus, Skill } from "../../shared/api.ts";
+import { providerLabels } from "../../shared/api.ts";
+import { Button } from "./components/ui/button.tsx";
+import { Input } from "./components/ui/input.tsx";
+import { ProjectScreen } from "./Project.tsx";
+import { api, type Run } from "./lib/api.ts";
 
-const NAV = [
-  { name: "studio", label: "Studio", icon: SparklesIcon },
-  { name: "library", label: "My series", icon: LibraryIcon },
-  { name: "templates", label: "Templates", icon: LayoutTemplateIcon },
-  { name: "kit", label: "Creative kit", icon: ShapesIcon },
-  { name: "renders", label: "Activity", icon: ClapperboardIcon },
-] as const;
-
-// Pages in the sidebar footer, below the workspace.
-const FOOTER_NAV = [
-  { name: "settings", label: "Settings", icon: Settings2Icon },
-  { name: "usage", label: "Usage", icon: ChartColumnIcon },
-] as const;
-
-let boot: Promise<void> | undefined;
-const SIDEBAR_KEY = "moco.sidebar";
-
-function toggleTheme() {
-  void useApp
-    .getState()
-    .updateSettings({ theme: useApp.getState().dark ? "light" : "dark" })
-    .catch(report);
-}
-
-class Boundary extends Component<{ children: ReactNode }, { error: string }> {
-  state = { error: "" };
-  static getDerivedStateFromError(e: Error) {
-    return { error: e.message };
-  }
-  render() {
-    return this.state.error ? (
-      <PageError
-        title="Something interrupted the studio"
-        detail={this.state.error}
-        action={{ label: "Reload studio", run: () => location.reload() }}
-      />
-    ) : (
-      this.props.children
-    );
-  }
-}
+const message = (error: unknown) => error instanceof Error ? error.message.replace(/^Error invoking remote method '[^']+': Error: /, "") : String(error);
 
 export function App() {
-  const route = useApp((s) => s.route),
-    settings = useApp((s) => s.settings),
-    library = useApp((s) => s.library);
-  const [error, setError] = useState(""),
-    [help, setHelp] = useState(false),
-    [sidebarOpen, setSidebarOpen] = useState(() => localStorage.getItem(SIDEBAR_KEY) !== "collapsed");
-  useEffect(() => {
-    boot ??= bootstrap();
-    boot.catch((e) => setError(e.message));
+  const [skills, setSkills] = useState<Skill[]>([]);
+  const [projects, setProjects] = useState<Project[]>([]);
+  const [provider, setProvider] = useState<ProviderId>("codex");
+  const [statuses, setStatuses] = useState<Partial<Record<ProviderId, ProviderStatus>>>({});
+  const [error, setError] = useState("");
+  const [view, setView] = useState<ProjectView>();
+  const [name, setName] = useState("");
+  const [skillId, setSkillId] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [folder, setFolder] = useState("");
+  const [theme, setTheme] = useState<"light" | "dark" | "system">("system");
+  const active = useRef("");
+  const buffered = useRef<ProjectEvent[]>([]);
+  const changedState = useRef<ProjectView["state"]>(undefined);
+  const run: Run = useCallback(async work => { try { setError(""); await work(); } catch (e) { setError(message(e)); } }, []);
+  const selectedProvider = view?.project.provider ?? provider;
+  const status = statuses[selectedProvider];
+  const providerLabel = providerLabels[selectedProvider];
+  const refresh = useCallback(async () => {
+    const [skills, projects] = await Promise.all([api.skills(), api.projects()]);
+    setSkills(skills); setProjects(projects); setSkillId(id => id || skills[0]?.id || "");
   }, []);
   useEffect(() => {
-    const handler = (e: KeyboardEvent) => {
-      if (!(e.metaKey || e.ctrlKey)) return;
-      const key = e.key.toLowerCase();
-      if (key === "k") {
-        e.preventDefault();
-        useApp.getState().setPalette(!useApp.getState().palette);
-      }
-      if (key === "n") {
-        e.preventDefault();
-        newSeries();
-      }
-    };
-    window.addEventListener("keydown", handler);
-    return () => window.removeEventListener("keydown", handler);
-  }, []);
-
-  return (
-    <TooltipProvider>
-      <SidebarProvider
-        open={sidebarOpen}
-        onOpenChange={(open) => {
-          setSidebarOpen(open);
-          localStorage.setItem(SIDEBAR_KEY, open ? "expanded" : "collapsed");
-        }}
-        className={cn("h-svh overflow-hidden pt-9", (route.name === "series" || route.name === "episode") && "dark")}
-        style={{ "--sidebar-width": "15rem" } as React.CSSProperties}
-      >
-        {/* The window's title bar is hidden: this strip drags the window and holds the OS window buttons. */}
-        <div aria-hidden className="app-region-drag fixed inset-x-0 top-0 z-20 h-11" />
-        <AppSidebar busy={runningSeries(library).length} />
-        <SidebarInset className="min-h-0 overflow-hidden border">
-          <Topbar onHelp={() => setHelp(true)} />
-          <div
-            className={cn(
-              "min-h-0 flex-1",
-              route.name === "studio" || route.name === "episode" || route.name === "series" ? "flex flex-col overflow-hidden" : "overflow-y-auto",
-            )}
-          >
-            {error ? (
-              <PageError
-                title="Couldn’t open your workspace"
-                detail={error}
-                action={{ label: "Try again", run: () => location.reload() }}
-              />
-            ) : !settings ? (
-              <PageLoading label="Opening your workspace…" />
-            ) : (
-              <Boundary key={route.name}>
-                {route.name === "studio" ? (
-                  <Studio />
-                ) : route.name === "library" ? (
-                  <LibraryPage />
-                ) : route.name === "series" ? (
-                  <SeriesPage key={route.id} id={route.id} />
-                ) : route.name === "episode" ? (
-                  <EpisodePage
-                    key={`${route.seriesId}-${route.episodeId}`}
-                    seriesId={route.seriesId}
-                    episodeId={route.episodeId}
-                  />
-                ) : route.name === "templates" ? (
-                  <TemplatesPage id={route.id} />
-                ) : route.name === "kit" ? (
-                  <KitPage />
-                ) : route.name === "renders" ? (
-                  <QueuePage />
-                ) : route.name === "usage" ? (
-                  <UsagePage />
-                ) : (
-                  <SettingsPage />
-                )}
-              </Boundary>
-            )}
-          </div>
-        </SidebarInset>
-        <Palette onHelp={() => setHelp(true)} />
-        <HelpDialog open={help} onOpenChange={setHelp} />
-        <Toaster position="bottom-right" />
-      </SidebarProvider>
-    </TooltipProvider>
-  );
-}
-
-function AppSidebar({ busy }: { busy: number }) {
-  const route = useApp((s) => s.route),
-    go = useApp((s) => s.go);
-  const active = (name: string) =>
-    route.name === name || (name === "library" && (route.name === "series" || route.name === "episode"));
-  return (
-    <Sidebar variant="inset" collapsible="icon" className="top-9 h-[calc(100svh-2.25rem)]">
-      <SidebarHeader>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton size="lg" tooltip="Moco studio" onClick={() => go({ name: "studio" })}>
-              <div className="flex aspect-square size-8 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground">
-                <BrandMark />
-              </div>
-              <div className="grid flex-1 text-left leading-tight">
-                <span className="truncate font-semibold">Moco</span>
-                <span className="truncate text-xs text-muted-foreground">Animation studio</span>
-              </div>
-            </SidebarMenuButton>
-          </SidebarMenuItem>
-        </SidebarMenu>
-      </SidebarHeader>
-      <SidebarContent>
-        <SidebarGroup>
-          <SidebarMenu>
-            <SidebarMenuItem>
-              <SidebarMenuButton variant="outline" tooltip="New series" onClick={newSeries}>
-                <PlusIcon />
-                <span>New series</span>
-              </SidebarMenuButton>
-              <SidebarMenuBadge>
-                <Shortcut keys={[MOD_KEY, "N"]} />
-              </SidebarMenuBadge>
-            </SidebarMenuItem>
-          </SidebarMenu>
-        </SidebarGroup>
-        <SidebarGroup>
-          <SidebarGroupLabel>Workspace</SidebarGroupLabel>
-          <SidebarGroupContent>
-            <SidebarMenu>
-              {NAV.map((item) => (
-                <SidebarMenuItem key={item.name}>
-                  <SidebarMenuButton
-                    isActive={active(item.name)}
-                    tooltip={item.label}
-                    onClick={() => go({ name: item.name } as Route)}
-                  >
-                    <item.icon />
-                    <span>{item.label}</span>
-                  </SidebarMenuButton>
-                  {item.name === "renders" && busy > 0 && (
-                    <SidebarMenuBadge aria-label={`${busy} in progress`}>{busy}</SidebarMenuBadge>
-                  )}
-                </SidebarMenuItem>
-              ))}
-            </SidebarMenu>
-          </SidebarGroupContent>
-        </SidebarGroup>
-        <RecentChats />
-      </SidebarContent>
-      <SidebarFooter>
-        <SidebarMenu>
-          <SidebarMenuItem>
-            <SidebarMenuButton tooltip="Search" onClick={() => useApp.getState().setPalette(true)}>
-              <SearchIcon />
-              <span>Search</span>
-            </SidebarMenuButton>
-            <SidebarMenuBadge>
-              <Shortcut keys={[MOD_KEY, "K"]} />
-            </SidebarMenuBadge>
-          </SidebarMenuItem>
-          {FOOTER_NAV.map((item) => (
-            <SidebarMenuItem key={item.name}>
-              <SidebarMenuButton
-                isActive={route.name === item.name}
-                tooltip={item.label}
-                onClick={() => go({ name: item.name })}
-              >
-                <item.icon />
-                <span>{item.label}</span>
-              </SidebarMenuButton>
-            </SidebarMenuItem>
-          ))}
-        </SidebarMenu>
-      </SidebarFooter>
-      <SidebarRail />
-    </Sidebar>
-  );
-}
-
-// Three bars of a clapper, tilted: the Moco mark.
-function BrandMark() {
-  return (
-    <svg viewBox="0 0 24 24" className="size-5 -rotate-12" fill="currentColor" aria-hidden="true">
-      <rect x="3.5" y="5" width="4.5" height="14" rx="2" />
-      <rect x="9.75" y="2" width="4.5" height="20" rx="2" />
-      <rect x="16" y="7" width="4.5" height="10" rx="2" />
-    </svg>
-  );
-}
-
-function Shortcut({ keys }: { keys: string[] }) {
-  return (
-    <KbdGroup>
-      {keys.map((key) => (
-        <Kbd key={key}>{key}</Kbd>
-      ))}
-    </KbdGroup>
-  );
-}
-
-function Topbar({ onHelp }: { onHelp(): void }) {
-  const canGoBack = useApp((s) => s.history.length > 0),
-    dark = useApp((s) => s.dark),
-    busy = runningSeries(useApp((s) => s.library)).length,
-    go = useApp((s) => s.go);
-  return (
-    <header className="flex h-14 shrink-0 items-center gap-2 border-b px-4">
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <SidebarTrigger className="-ml-1" />
-        </TooltipTrigger>
-        <TooltipContent>
-          Toggle sidebar <Shortcut keys={[MOD_KEY, "B"]} />
-        </TooltipContent>
-      </Tooltip>
-      <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
-      {canGoBack && (
-        <IconButton label="Back" onClick={() => useApp.getState().back()}>
-          <ArrowLeftIcon />
-        </IconButton>
-      )}
-      <Crumbs />
-      <div className="ml-auto flex shrink-0 items-center gap-1">
-        {busy > 0 && (
-          <Button variant="ghost" size="sm" onClick={() => go({ name: "renders" })}>
-            <Spinner data-icon="inline-start" aria-hidden />
-            {busy} in progress
-          </Button>
-        )}
-        <IconButton label={dark ? "Switch to light appearance" : "Switch to dark appearance"} onClick={toggleTheme}>
-          {dark ? <SunIcon /> : <MoonIcon />}
-        </IconButton>
-        <IconButton label="How Moco works" onClick={onHelp}>
-          <CircleHelpIcon />
-        </IconButton>
-      </div>
-    </header>
-  );
-}
-
-function IconButton({ label, onClick, children }: { label: string; onClick(): void; children: ReactNode }) {
-  return (
-    <Tooltip>
-      <TooltipTrigger asChild>
-        <Button variant="ghost" size="icon-sm" aria-label={label} onClick={onClick}>
-          {children}
-        </Button>
-      </TooltipTrigger>
-      <TooltipContent>{label}</TooltipContent>
-    </Tooltip>
-  );
-}
-
-// Where you are, as a trail you can climb back up: My series › Hanuman’s leap › Episode 2.
-function Crumbs() {
-  const route = useApp((s) => s.route),
-    library = useApp((s) => s.library),
-    go = useApp((s) => s.go);
-  const seriesTitle = (id: string) => library.find((s) => s.id === id)?.title ?? "Series";
-  const trail: { label: string; to?: Route }[] =
-    route.name === "series"
-      ? [{ label: "My series", to: { name: "library" } }, { label: seriesTitle(route.id) }]
-      : route.name === "episode"
-        ? [
-            { label: "My series", to: { name: "library" } },
-            { label: seriesTitle(route.seriesId), to: { name: "series", id: route.seriesId } },
-            { label: `Episode ${Number(route.episodeId.replace(/\D/g, ""))}` },
-          ]
-        : [{ label: [...NAV, ...FOOTER_NAV].find((n) => n.name === route.name)?.label ?? "Settings" }];
-  return (
-    <Breadcrumb className="min-w-0">
-      <BreadcrumbList className="flex-nowrap">
-        {trail.map((crumb, i) => (
-          <Fragment key={crumb.label + i}>
-            {i > 0 && <BreadcrumbSeparator />}
-            <BreadcrumbItem className="min-w-0">
-              {crumb.to ? (
-                <BreadcrumbLink asChild>
-                  <button className="max-w-56 truncate" onClick={() => go(crumb.to!)}>
-                    {crumb.label}
-                  </button>
-                </BreadcrumbLink>
-              ) : (
-                <BreadcrumbPage className="truncate font-medium">{crumb.label}</BreadcrumbPage>
-              )}
-            </BreadcrumbItem>
-          </Fragment>
-        ))}
-      </BreadcrumbList>
-    </Breadcrumb>
-  );
-}
-
-function Palette({ onHelp }: { onHelp(): void }) {
-  const open = useApp((s) => s.palette),
-    library = useApp((s) => s.library),
-    dark = useApp((s) => s.dark),
-    go = useApp((s) => s.go);
-  const ran = useRef(false);
-  const setOpen = (value: boolean) => useApp.getState().setPalette(value);
-  const run = (action: () => void) => {
-    ran.current = true;
-    setOpen(false);
-    action();
-  };
-  return (
-    <CommandDialog
-      open={open}
-      onOpenChange={setOpen}
-      title="Search Moco"
-      description="Jump to a page or a series, or run an action."
-      onCloseAutoFocus={(event) => {
-        // After an action the old focus belongs to the page we left; keep where the action put it.
-        if (ran.current) event.preventDefault();
-        ran.current = false;
-      }}
-    >
-      <CommandInput placeholder="Search series, pages and actions…" />
-      <CommandList>
-        <CommandEmpty>Nothing matches that.</CommandEmpty>
-        <CommandGroup heading="Actions">
-          <CommandItem onSelect={() => run(newSeries)}>
-            <PlusIcon />
-            New series
-            <CommandShortcut>{MOD_KEY} N</CommandShortcut>
-          </CommandItem>
-          <CommandItem onSelect={() => run(toggleTheme)}>
-            {dark ? <SunIcon /> : <MoonIcon />}
-            Switch to {dark ? "light" : "dark"} appearance
-          </CommandItem>
-          <CommandItem onSelect={() => run(onHelp)}>
-            <CircleHelpIcon />
-            How Moco works
-          </CommandItem>
-        </CommandGroup>
-        <CommandSeparator />
-        <CommandGroup heading="Go to">
-          {[...NAV, ...FOOTER_NAV].map((item) => (
-            <CommandItem key={item.name} onSelect={() => run(() => go({ name: item.name } as Route))}>
-              <item.icon />
-              {item.label}
-            </CommandItem>
-          ))}
-        </CommandGroup>
-        {library.length > 0 && (
-          <>
-            <CommandSeparator />
-            <CommandGroup heading="Series">
-              {library.map((series) => (
-                <CommandItem
-                  key={series.id}
-                  value={`${series.title} ${series.id}`}
-                  keywords={[series.premise]}
-                  onSelect={() => run(() => go({ name: "series", id: series.id }))}
-                >
-                  <FilmIcon />
-                  <span className="truncate">{series.title}</span>
-                </CommandItem>
-              ))}
-            </CommandGroup>
-          </>
-        )}
-      </CommandList>
-    </CommandDialog>
-  );
-}
-
-const HOW_IT_WORKS = [
-  ["Start with a story", "Describe an idea. Moco plans a series, a cast and an episode arc, then stops for your review."],
-  ["Make it your own", "Approve each step or ask for changes: the plan, the cast, the script, a sample shot, the preview."],
-  ["Bring it to life", "Moco voices it, animates every shot with the kit, and renders a vertical MP4 on this computer."],
-] as const;
-
-function HelpDialog({ open, onOpenChange }: { open: boolean; onOpenChange(open: boolean): void }) {
-  const go = useApp((s) => s.go);
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-lg">
-        <DialogHeader>
-          <DialogTitle>Your idea-to-reel studio</DialogTitle>
-          <DialogDescription>Three steps from a story idea to a finished vertical video.</DialogDescription>
-        </DialogHeader>
-        <ItemGroup className="gap-2">
-          {HOW_IT_WORKS.map(([title, detail], i) => (
-            <Item key={title} role="listitem" variant="muted">
-              <ItemMedia variant="icon" className="text-xs font-semibold tabular-nums">
-                {i + 1}
-              </ItemMedia>
-              <ItemContent>
-                <ItemTitle>{title}</ItemTitle>
-                <ItemDescription className="line-clamp-none">{detail}</ItemDescription>
-              </ItemContent>
-            </Item>
-          ))}
-        </ItemGroup>
-        <p className="text-sm text-muted-foreground">
-          Moco writes with your selected Claude Code or Codex connection on this computer.
-        </p>
-        <DialogFooter>
-          <DialogClose asChild>
-            <Button variant="outline">Close</Button>
-          </DialogClose>
-          <Button
-            onClick={() => {
-              onOpenChange(false);
-              go({ name: "settings", section: "ai" });
-            }}
-          >
-            Check my AI connection
-            <ArrowRightIcon data-icon="inline-end" />
-          </Button>
-        </DialogFooter>
-      </DialogContent>
-    </Dialog>
-  );
+    const off = api.onUpdate(update => {
+      if ("error" in update) { setError(update.error); setView(old => old ? { ...old, state: "error" } : old); return; }
+      if (update.projectId !== active.current) return;
+      if (update.record) buffered.current.push(update.record);
+      if (update.state) changedState.current = update.state;
+      setView(old => {
+        if (!old || old.project.id !== update.projectId) return old;
+        const record = update.record;
+        return { ...old, state: update.state ?? old.state, events: record && !old.events.some(e => e.id === record.id) ? [...old.events, record] : old.events };
+      });
+    });
+    void run(async () => { await refresh(); const info = await api.info(); setFolder(info.projectsDir); setTheme(info.theme); });
+    return off;
+  }, [run, refresh]);
+  useEffect(() => {
+    let closed = false;
+    void run(async () => {
+      const status = await api.status(selectedProvider);
+      if (!closed) setStatuses(old => ({ ...old, [selectedProvider]: status }));
+    });
+    return () => { closed = true; };
+  }, [selectedProvider, run]);
+  useEffect(() => {
+    const system = matchMedia("(prefers-color-scheme: dark)");
+    const update = () => document.documentElement.classList.toggle("dark", theme === "dark" || (theme === "system" && system.matches));
+    update(); system.addEventListener("change", update);
+    return () => system.removeEventListener("change", update);
+  }, [theme]);
+  async function open(project: Project) {
+    active.current = project.id; buffered.current = []; changedState.current = undefined;
+    const result = await api.project(project.id);
+    if (active.current !== project.id) return;
+    const ids = new Set(result.events.map(e => e.id));
+    setView({ ...result, state: changedState.current ?? result.state, events: [...result.events, ...buffered.current.filter(e => !ids.has(e.id))] });
+    buffered.current = [];
+  }
+  async function importSkill(kind: "file" | "folder") {
+    const skill = await api.importSkill(kind);
+    if (skill) { await refresh(); setSkillId(skill.id); }
+  }
+  async function create(event: FormEvent) {
+    event.preventDefault(); setBusy(true);
+    await run(async () => { const project = await api.create(name, skillId, provider); await refresh(); await open(project); setName(""); });
+    setBusy(false);
+  }
+  function home() { active.current = ""; setView(undefined); void run(refresh); }
+  return <div className="app-shell">
+    <aside className="navigation">
+      <button className="brand" onClick={home}><span className="brand-mark">m</span> moco</button>
+      <Button variant="outline" className="w-full justify-start" onClick={home}><Plus /> New project</Button>
+      <div className="eyebrow">Your projects</div>
+      <nav aria-label="Projects">{projects.map(project => <button key={project.id} className={`project-link ${view?.project.id === project.id ? "selected" : ""}`} onClick={() => void run(() => open(project))}><Folder size={15} /><span>{project.name}<small>{project.skill.name} · {providerLabels[project.provider]}</small></span></button>)}</nav>
+      <div className="navigation-footer"><label htmlFor="theme" className="hint">Appearance</label><select id="theme" value={theme} onChange={e => { const next = e.target.value as typeof theme; void run(async () => { await api.setTheme(next); setTheme(next); }); }}><option value="system">System</option><option value="light">Light</option><option value="dark">Dark</option></select><span className={`status-dot ${status?.ok ? "ready" : ""}`} /> {providerLabel}<small>{status ? "Your subscription. Your workspace." : "Checking connection…"}</small></div>
+    </aside>
+    <main className="main-panel">
+      {error && <div role="alert" className="error-banner"><span>{error}</span><Button variant="ghost" size="icon-sm" aria-label="Dismiss error" onClick={() => setError("")}><X /></Button></div>}
+      {status && !status.ok && <div className="setup-banner"><strong>Connect {providerLabel} to get started</strong><p>{status.reason}</p><Button size="sm" variant="outline" onClick={() => void run(async () => { const status = await api.status(selectedProvider); setStatuses(old => ({ ...old, [selectedProvider]: status })); })}><RefreshCw /> Check again</Button></div>}
+      {view ? <ProjectScreen key={view.project.id} view={view} ready={status?.ok === true} run={run} onBack={home} /> : <div className="home">
+        <div className="eyebrow">A little idea. Anything you can make.</div><h1>What will you create?</h1><p className="intro">Bring a skill. Give your agent a workspace. Make it yours.</p>
+        <form className="new-project" onSubmit={event => void create(event)}>
+          <h2>New project</h2>
+          <label htmlFor="project-name">Project name</label><Input id="project-name" value={name} onChange={e => setName(e.target.value)} placeholder="My next video" maxLength={120} required />
+          <label htmlFor="project-provider">AI provider</label><select id="project-provider" value={provider} onChange={e => setProvider(e.target.value as ProviderId)}>{Object.entries(providerLabels).map(([id, label]) => <option key={id} value={id}>{label}</option>)}</select>
+          <label htmlFor="project-skill">Skill</label><select id="project-skill" value={skillId} onChange={e => setSkillId(e.target.value)} required><option value="" disabled>Choose an imported skill</option>{skills.map(skill => <option key={skill.id} value={skill.id}>{skill.name} · {new Date(skill.importedAt).toLocaleDateString()}</option>)}</select>
+          <div className="row"><Button type="button" variant="ghost" size="sm" onClick={() => void run(() => importSkill("file"))}><FilePlus /> Import SKILL.md</Button><Button type="button" variant="ghost" size="sm" onClick={() => void run(() => importSkill("folder"))}><FolderOpen /> Import folder</Button></div>
+          <Button type="submit" disabled={busy || !name.trim() || !skillId}>{busy ? "Creating…" : "Create project"}<ArrowUp /></Button>
+          <p className="hint">Workspaces are saved in {folder || "Documents/moco"}.</p>
+        </form>
+        <section className="skill-library" aria-label="Skill library"><div className="section-heading"><h2>Skill library</h2><span>{skills.length} imported</span></div>{!skills.length && <p className="muted">Import a SKILL.md, or a whole folder to include scripts, assets, and other supporting files.</p>}{skills.map(skill => <article key={skill.id}><div className="row"><strong>{skill.name}</strong><span className="hint">{new Date(skill.importedAt).toLocaleDateString()}</span></div><p>{skill.description}</p></article>)}</section>
+      </div>}
+    </main>
+  </div>;
 }

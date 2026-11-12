@@ -1,81 +1,20 @@
 import { contextBridge, ipcRenderer } from "electron";
-import type { MocoApi } from "../shared/api.ts";
-
-const call =
-  (name: string) =>
-  (...args: unknown[]) =>
-    ipcRenderer.invoke(`moco:${name}`, ...args);
-
-const api: MocoApi = {
-  platform: process.platform,
-  app: {
-    info: call("app.info"),
-    openPath: call("app.openPath"),
-    showItem: call("app.showItem"),
-    openExternal: call("app.openExternal"),
-    chooseFolder: call("app.chooseFolder"),
-    copy: call("app.copy"),
-    // A drag has to start synchronously from the dragstart event, so this is a send, not an invoke.
-    startDrag: (file: string) => ipcRenderer.send("moco:app.startDrag", file),
-  } as MocoApi["app"],
-  settings: {
-    get: call("settings.get"),
-    set: call("settings.set"),
-  } as MocoApi["settings"],
-  ai: {
-    status: call("ai.status"),
-    accountStatus: call("ai.accountStatus"),
-    switchAccount: call("ai.switchAccount"),
-    cancelSignIn: call("ai.cancelSignIn"),
-  } as MocoApi["ai"],
-  voice: {
-    list: call("voice.list"),
-    models: call("voice.models"),
-    download: call("voice.download"),
-    cancelDownload: call("voice.cancelDownload"),
-    preview: call("voice.preview"),
-  } as MocoApi["voice"],
-  kit: { catalog: call("kit.catalog") } as MocoApi["kit"],
-  templates: {
-    importPrompt: call("templates.importPrompt"),
-    list: call("templates.list"),
-    learn: call("templates.learn"),
-    jobs: call("templates.jobs"),
-    cancelLearn: call("templates.cancelLearn"),
-    openFolder: call("templates.openFolder"),
-    remove: call("templates.remove"),
-  } as MocoApi["templates"],
-  series: {
-    list: call("series.list"),
-    create: call("series.create"),
-    extend: call("series.extend"),
-    status: call("series.status"),
-    artifact: call("series.artifact"),
-    remove: call("series.remove"),
-  } as MocoApi["series"],
-  stages: {
-    run: call("stages.run"),
-    approve: call("stages.approve"),
-    reject: call("stages.reject"),
-    cancel: call("stages.cancel"),
-  } as MocoApi["stages"],
-  episode: {
-    media: call("episode.media"),
-    regenerateShot: call("episode.regenerateShot"),
-  } as MocoApi["episode"],
-  publish: {
-    save: call("publish.save"),
-    rewrite: call("publish.rewrite"),
-    setThumbnail: call("publish.setThumbnail"),
-    setDefaults: call("publish.setDefaults"),
-    openStudio: call("publish.openStudio"),
-  } as MocoApi["publish"],
-  on(channel, cb) {
-    const listener = (_e: Electron.IpcRendererEvent, payload: unknown) =>
-      cb(payload);
-    ipcRenderer.on(`moco:${channel}`, listener);
-    return () => ipcRenderer.removeListener(`moco:${channel}`, listener);
+import type { MocoAPI, Update } from "../shared/api.ts";
+const invoke = (channel: string, ...args: unknown[]) => ipcRenderer.invoke(`moco:${channel}`, ...args);
+const api: MocoAPI = {
+  setTheme: theme => invoke("set-theme", theme),
+  info: () => invoke("info"), status: provider => invoke("status", provider), skills: () => invoke("skills"),
+  importSkill: kind => invoke("import-skill", kind), projects: () => invoke("projects"),
+  create: (name, skill, provider) => invoke("create", name, skill, provider), project: id => invoke("project", id),
+  send: (id, text, files) => invoke("send", id, text, files),
+  answer: (id, question, answers) => invoke("answer", id, question, answers),
+  stop: id => invoke("stop", id), attach: id => invoke("attach", id), files: id => invoke("files", id),
+  openFile: (id, relative, reveal) => invoke("open-file", id, relative, reveal),
+  openWorkspace: id => invoke("open-workspace", id),
+  onUpdate(listener) {
+    const handler = (_: Electron.IpcRendererEvent, update: Update) => listener(update);
+    ipcRenderer.on("moco:update", handler);
+    return () => { ipcRenderer.removeListener("moco:update", handler); };
   },
 };
-
 contextBridge.exposeInMainWorld("moco", api);

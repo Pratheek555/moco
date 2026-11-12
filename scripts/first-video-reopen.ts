@@ -1,0 +1,13 @@
+import { WorkspaceStore } from '../packages/agent/src/storage.ts';
+import { readFile, writeFile } from 'node:fs/promises';
+import path from 'node:path';
+import { homedir } from 'node:os';
+const control = path.resolve('scripts/first-video-control');
+const { id } = JSON.parse(await readFile(path.join(control, 'project.json'), 'utf8'));
+const store = new WorkspaceStore(path.join(process.env.APPDATA!, 'Moco'), path.join(homedir(), 'Documents', 'moco'));
+const project = await store.project(id);
+const events = await store.conversation(id);
+const files = await store.files(id);
+const result = { project, records: events.length, turns: events.filter(r => r.event.type === 'turn_end'), users: events.filter(r => r.event.type === 'user').length, deliveries: events.filter(r => r.event.type === 'file'), videos: files.filter(f => f.kind === 'video'), errors: events.filter(r => r.event.type === 'error') };
+await writeFile(path.join(control, 'reopen-verification.json'), JSON.stringify(result, null, 2));
+console.log(JSON.stringify(result, null, 2));

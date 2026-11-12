@@ -1,0 +1,89 @@
+{
+  "project": {
+    "id": "3851a641-0dea-4c5c-85e9-c0399de409b5",
+    "name": "First test short",
+    "workspace": "C:\\Users\\prath\\Documents\\moco\\first-test-short-3851a641",
+    "skill": {
+      "id": "4d00077b-2ab2-496f-b3fa-2d5fcbbdc486",
+      "name": "cartoon-audio-short",
+      "description": "Make a vertical animated cartoon short. Offers 10 ideas, writes the script, then turns the user's voiceover into a finished MP4 with music and SFX at half the voice level. Use for any cartoon short or animated story video request.",
+      "importedAt": "2026-11-10T16:03:15.137Z"
+    },
+    "createdAt": "2026-11-10T16:03:15.164Z",
+    "updatedAt": "2026-11-10T16:29:25.335Z",
+    "sessionId": "a5b8bc76-ba6f-4b72-ad8a-a39f7fc32af3"
+  },
+  "records": 1506,
+  "turns": [
+    {
+      "id": "a2d8f5f9-97c4-4386-a319-feaaebfb6c9f",
+      "at": "2026-11-10T16:05:33.220Z",
+      "event": {
+        "type": "turn_end",
+        "status": "completed"
+      }
+    },
+    {
+      "id": "344a5927-86cd-43f3-9a69-db1307de8a76",
+      "at": "2026-11-10T16:06:28.040Z",
+      "event": {
+        "type": "turn_end",
+        "status": "completed"
+      }
+    },
+    {
+      "id": "ddacb129-fdc7-4302-a3c8-50f7c251cb98",
+      "at": "2026-11-10T16:29:06.196Z",
+      "event": {
+        "type": "turn_end",
+        "status": "completed"
+      }
+    },
+    {
+      "id": "8171d387-604a-4e62-8c53-d31be0847ae6",
+      "at": "2026-11-10T16:29:25.335Z",
+      "event": {
+        "type": "turn_end",
+        "status": "interrupted"
+      }
+    }
+  ],
+  "users": 5,
+  "deliveries": [
+    {
+      "id": "ee512e6b-8728-4af9-9a3f-290905c5e4de",
+      "at": "2026-11-10T16:25:38.138Z",
+      "event": {
+        "type": "file",
+        "path": "pisa/stills/sheet_c.jpg",
+        "label": "Look-check contact sheet (28 stills before the full render)"
+      }
+    },
+    {
+      "id": "7be51f2c-f330-495a-b42d-a696e6f7d53a",
+      "at": "2026-11-10T16:28:52.332Z",
+      "event": {
+        "type": "file",
+        "path": "outbox/the_tower_saved_by_a_war.mp4",
+        "label": "The Tower Saved by a War — final 1080x1920 MP4 (25.3 s, no captions)"
+      }
+    }
+  ],
+  "videos": [
+    {
+      "path": "outbox/the_tower_saved_by_a_war.mp4",
+      "name": "the_tower_saved_by_a_war.mp4",
+      "size": 32610746,
+      "modifiedAt": "2026-11-10T16:28:48.130Z",
+      "kind": "video"
+    },
+    {
+      "path": "pisa/out/the_tower_saved_by_a_war.mp4",
+      "name": "the_tower_saved_by_a_war.mp4",
+      "size": 32610746,
+      "modifiedAt": "2026-11-10T16:28:30.582Z",
+      "kind": "video"
+    }
+  ],
+  "errors": []
+}
