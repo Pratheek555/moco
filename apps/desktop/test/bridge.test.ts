@@ -52,7 +52,7 @@ beforeEach(async () => {
   native.dialog.showSaveDialog.mockResolvedValue({ canceled: true }); native.icon.resize.mockReturnValue(native.icon);
   const settings = { theme: "system" as "system" | "dark" | "light", notifications: true };
   removed = vi.fn();
-  narration = new GeminiSettings(temp, { isEncryptionAvailable: () => true, encryptString: () => Buffer.from("opaque"), decryptString: () => "test-key-123" });
+  narration = new GeminiSettings(temp, { isEncryptionAvailable: () => true, getSelectedStorageBackend: () => "gnome_libsecret", encryptString: () => Buffer.from("opaque"), decryptString: () => "test-key-123" });
   registerBridge({ window: () => window, call: host as HostCall, store: () => store, projectsDir: () => store.projectsDir,
     settings: () => settings, narration, narrationChanged: () => {}, setTheme: async theme => { settings.theme = theme; }, setNotifications: async enabled => { settings.notifications = enabled; }, iconPath: "icon.png", removed,
   });
