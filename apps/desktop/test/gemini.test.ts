@@ -10,29 +10,30 @@ let temp: string;
 const secrets = new Map<string, string>();
 const storage: SecretStorage = {
   isEncryptionAvailable: () => true,
+  getSelectedStorageBackend: () => "gnome_libsecret",
   encryptString: key => { secrets.set("opaque-ciphertext", key); return Buffer.from("opaque-ciphertext"); },
   decryptString: bytes => { const key = secrets.get(bytes.toString()); if (!key) throw new Error("Cannot decrypt"); return key; },
 };
 beforeEach(async () => { temp = await mkdtemp(path.join(tmpdir(), "moco-gemini-")); secrets.clear(); });
 afterEach(async () => { await rm(temp, { recursive: true, force: true }); });
 describe("encrypted narration settings", () => {
-  it("saves, reloads, selects a voice and clears without plaintext in the file or status", async () => {
-    const settings = new GeminiSettings(temp, storage); await settings.load();
-    expect(settings.status()).toMatchObject({ keySet: false, voice: "Charon", unreadable: false });
+  it.each(["linux", "win32", "darwin"])("saves, reloads, selects a voice and clears without plaintext in the file or status on %s", async platform => {
+    const settings = new GeminiSettings(temp, storage, platform); await settings.load();
+    expect(settings.status()).toMatchObject({ keySet: false, voice: "Charon", encryptionAvailable: true, unreadable: false });
     await settings.setKey(" test-key-123 "); await settings.setVoice("Kore");
     const file = await readFile(path.join(temp, "narration.json"), "utf8");
     expect(file).not.toContain("test-key-123"); expect(file).not.toContain("opaque-ciphertext");
     expect(JSON.stringify(settings.status())).not.toContain("test-key");
-    const reopened = new GeminiSettings(temp, storage); await reopened.load();
+    const reopened = new GeminiSettings(temp, storage, platform); await reopened.load();
     expect(reopened.credentials()).toEqual({ key: "test-key-123", voice: "Kore" });
     await reopened.clear(); expect(reopened.credentials()).toBeUndefined();
-    const cleared = new GeminiSettings(temp, storage); await cleared.load();
+    const cleared = new GeminiSettings(temp, storage, platform); await cleared.load();
     expect(cleared.status()).toMatchObject({ keySet: false, voice: "Kore" });
     expect(await readFile(path.join(temp, "narration.json"), "utf8")).not.toContain("encryptedKey");
   });
-  it.each(["unavailable", "basic_text"])("refuses %s encryption without fallback", async backend => {
+  it.each(["unavailable", "basic_text", "missing backend method"])("refuses %s encryption without fallback", async backend => {
     const encryptString = vi.fn(storage.encryptString);
-    const settings = new GeminiSettings(temp, { ...storage, encryptString, isEncryptionAvailable: () => backend !== "unavailable", getSelectedStorageBackend: () => backend }, "linux");
+    const settings = new GeminiSettings(temp, { ...storage, encryptString, isEncryptionAvailable: () => backend !== "unavailable", getSelectedStorageBackend: backend === "missing backend method" ? undefined : () => backend }, "linux");
     expect(settings.status().encryptionAvailable).toBe(false);
     await expect(settings.setKey("test-key-123")).rejects.toThrow(/keychain|keyring/);
     expect(encryptString).not.toHaveBeenCalled();
