@@ -7,7 +7,7 @@
 //   { id, kind:'scene'|'board'|'map'|'insert'|'title', say:'…' | ['clause', 'clause'], pause, hold,
 //     light, tint, key,                      // lighting for this shot (overrides the story's)
 //     set(c, s),                             // the painted background, drawn once and cached
-//     camera(t, s) -> {x, y, zoom, tilt},    // optional; default is a slow push-in
+//     camera(t, s) -> {x, y, zoom, tilt},    // optional; seeded pan/push/pull, bounded while reading
 //     draw(c, t, s),                         // everything that acts: figures, props, labels, effects
 //     overlay(c, t, s),                      // optional, drawn after the camera (fixed to the screen)
 //     wide: true,                            // declares a deliberate wide shot with small figures
@@ -16,7 +16,7 @@
 // s.voiceAt(t) (loudness 0..1), s.index, s.id.
 import { pathToFileURL } from 'node:url';
 import { createCanvas, W, H, S, REG, resetReg, withStyle, rad, clamp, initFont } from './ink.mjs';
-import { drift } from './motion.mjs';
+import { defaultCamera, living, alive, onCue, cue, atTime, eventSchedule, easeOut, ease, span } from './motion.mjs';
 
 export const MARGIN = 200;          // sets are painted this far beyond the frame on every side
 export const SET_SCALE = 1.25;      // and a little oversampled, so snap zooms stay crisp
@@ -51,8 +51,11 @@ export function draftTimeline(story) {
 }
 export function context(story, tl, i) {
   const m = tl.shots[i], env = tl.envelope ?? [], rate = tl.envRate ?? 60, dur = m.end - m.start;
-  const s = { index: i, id: story.shots[i].id, dur, start: m.start, cues: m.cues ?? [0], ends: m.ends ?? [dur], fps: tl.fps ?? 30,
-    cue: k => (m.cues ?? [0])[k] ?? dur, end: k => (m.ends ?? [dur])[k] ?? dur,
+  const s = { index: i, id: story.shots[i].id, kind: story.shots[i].kind ?? 'scene', dur, start: m.start, cues: m.cues ?? [0], ends: m.ends ?? [dur], fps: tl.fps ?? 30, clauses:story.shots[i].say??[],
+    cue: k => {
+      if(typeof k==='string') {const alias=story.shots[i].cueNames?.[k];k=alias??(story.shots[i].say??[]).findIndex(q=>q.toLowerCase().includes(k.toLowerCase()));if(k<0)throw new Error(`Shot ${story.shots[i].id}: no clause cue matches that text.`);}
+      return (m.cues??[0])[k]??dur;
+    }, end: k => (m.ends ?? [dur])[k] ?? dur,
     voiceAt: t => { if (t < 0 || t > dur) return 0; if (!env.length) { const k = (m.cues ?? []).findLastIndex(q => q <= t); return k >= 0 && t < (m.ends?.[k] ?? dur) ? 0.35 + 0.65 * Math.abs(Math.sin(t * 17) * Math.sin(t * 5.3)) : 0; } return env[Math.min(env.length - 1, Math.floor((m.start + t) * rate))] ?? 0; } };
   return s;
 }
@@ -64,57 +67,179 @@ function styleOf(story, shot) {
   const back = shot.backlit ?? story.backlit; st.backlit = back === true ? 0.17 : (back || 0);
   return st;
 }
-export function cameraOf(shot, t, s) {
+export function cameraOf(shot, t, s, bounds=shot.setBounds??[-MARGIN,-MARGIN,W+MARGIN,H+MARGIN]) {
   const base = { x: W / 2, y: H / 2, zoom: 1, tilt: 0 };
-  const cam = shot.camera ? shot.camera(t, s) : drift(t, s.dur, { zoom: 1.0 }, { zoom: 1.035 });
-  return { ...base, ...cam };
+  let cam = typeof shot.camera === 'function' ? shot.camera(t, s) : shot.camera === false || shot.still || shot.life === false || S.clock?.life === false ? base : defaultCamera(t, s, shot);
+  // Integrate a speed-limited authored path from a fixed origin, never from the previous frame.
+  // A reading shot therefore has the same camera in a still, a cold range worker and a full render.
+  if (typeof shot.camera === 'function' && shot.textMotion !== false && S.clock?.life !== false && (shot.textMotion === true || ['board','map','insert','title'].includes(shot.kind))) {
+    let prev={...base,...shot.camera(0,s)}, result={...prev};
+    for(let u=0;u<t-1e-8;) {
+      const end=Math.min(t,u+0.1), dt=end-u, next={...base,...shot.camera(end,s)};
+      const dx=next.x-prev.x, dy=next.y-prev.y, distance=Math.hypot(dx,dy), factor=Math.min(1,22*dt/(distance||1));
+      result.x+=dx*factor;result.y+=dy*factor;
+      result.zoom+=clamp(next.zoom-prev.zoom,-result.zoom*.018*dt,result.zoom*.018*dt);
+      result.tilt+=clamp(next.tilt-prev.tilt,-.3*dt,.3*dt);
+      prev=next;u=end;
+    }
+    cam=result;
+  }
+  cam={...base,...cam};
+  if(shot.cameraGuard!==false) {
+    const a=rad(cam.tilt), co=Math.abs(Math.cos(a)), si=Math.abs(Math.sin(a));
+    const [left,top,right,bottom]=shot.setBounds??bounds;
+    const width=W*co+H*si,height=H*co+W*si;
+    cam.zoom=Math.max(cam.zoom,width/(right-left),height/(bottom-top));
+    const rx=width/(2*cam.zoom),ry=height/(2*cam.zoom);
+    cam.x=clamp(cam.x,left+rx,right-rx);cam.y=clamp(cam.y,top+ry,bottom-ry);
+  }
+  return cam;
 }
 const setCache = new Map();
+// Capture in paint order, including the static ink BETWEEN moving pieces. This preserves occlusion:
+// clouds stay behind roofs, a lamp behind its desk, and a cached wall in front of the cast. Cropping
+// transparent margins keeps these layers inexpensive to composite. Caches never contain time.
+function recordPainting(fn, style) {
+  const k = SET_SCALE, width = Math.round((W + 2 * MARGIN) * k), height = Math.round((H + 2 * MARGIN) * k);
+  const cv = createCanvas(width, height), c = cv.getContext('2d'), parts = [], coverage=new Uint8Array(width*height);
+  c.setTransform(k, 0, 0, k, MARGIN * k, MARGIN * k);
+  const flush = (motion = null) => {
+    const pixels = c.getImageData(0, 0, width, height).data;
+    let x0 = width, y0 = height, x1 = -1, y1 = -1;
+    for (let y = 0; y < height; y++) for (let x = 0, j = (y * width) * 4 + 3; x < width; x++, j += 4) if (pixels[j]) {
+      if(pixels[j]>=254)coverage[y*width+x]=1;
+      if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y;
+    }
+    if (x1 >= x0) {
+      x0 = Math.max(0, x0 - 2); y0 = Math.max(0, y0 - 2); x1 = Math.min(width - 1, x1 + 2); y1 = Math.min(height - 1, y1 + 2);
+      const tile = createCanvas(x1 - x0 + 1, y1 - y0 + 1);
+      tile.getContext('2d').drawImage(cv, x0, y0, tile.width, tile.height, 0, 0, tile.width, tile.height);
+      parts.push({ cv: tile, x: x0 / k - MARGIN, y: y0 / k - MARGIN, w: tile.width / k, h: tile.height / k, motion });
+    }
+    c.save(); c.resetTransform(); c.clearRect(0, 0, width, height); c.restore();
+  };
+  const capture = (lc, draw, o) => {
+    if (lc !== c) return withStyle({ capture: null }, () => draw(lc));
+    flush();
+    const m = lc.getTransform(), matrix = [m.a / k, m.b / k, m.c / k, m.d / k, m.e / k - MARGIN, m.f / k - MARGIN];
+    const p = o.pivot ?? [960, 480], pivot = [matrix[0] * p[0] + matrix[2] * p[1] + matrix[4], matrix[1] * p[0] + matrix[3] * p[1] + matrix[5]];
+    if (o.cached) {
+      withStyle({ capture: null, clock: null }, () => draw(lc));
+      flush({ ...o, pivot });
+    } else {
+      // The saved transform is relative to scene space, not the oversampled cache canvas.
+      const localStyle = { ...S, capture: null, clock: null };
+      parts.push({ draw, matrix, style: localStyle, motion: o, alpha:lc.globalAlpha, blend:lc.globalCompositeOperation });
+    }
+  };
+  withStyle({ ...style, dpx: k, view: k, mode: 'full', capture }, () => fn(c));
+  flush();
+  // Find the genuinely opaque, painted rectangle, not just the overscan canvas dimensions.
+  // Background planes often stop at +/-60 although the cache itself extends +/-200.
+  const cx=Math.round((MARGIN+W/2)*k),cy=Math.round((MARGIN+H/2)*k);
+  let left=0,right=width-1,top=0,bottom=height-1,valid=true;
+  for(let j=0;j<=32;j++) {
+    const y=Math.round((MARGIN+H*j/32)*k);if(!coverage[y*width+cx]){valid=false;break;}
+    let a=cx,b=cx;while(a>0&&coverage[y*width+a-1])a--;while(b<width-1&&coverage[y*width+b+1])b++;
+    left=Math.max(left,a);right=Math.min(right,b);
+  }
+  for(let j=0;valid&&j<=48;j++) {
+    const x=Math.round((MARGIN+W*j/48)*k);if(!coverage[cy*width+x]){valid=false;break;}
+    let a=cy,b=cy;while(a>0&&coverage[(a-1)*width+x])a--;while(b<height-1&&coverage[(b+1)*width+x])b++;
+    top=Math.max(top,a);bottom=Math.min(bottom,b);
+  }
+  const bounds=valid?[left/k-MARGIN+2,top/k-MARGIN+2,right/k-MARGIN-2,bottom/k-MARGIN-2]:[-MARGIN,-MARGIN,W+MARGIN,H+MARGIN];
+  return { parts, bounds };
+}
+function drawPainting(c, entry) {
+  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high';
+  for (const p of entry.parts) {
+    if (p.draw) {
+      c.save(); c.transform(...p.matrix); c.globalAlpha*=p.alpha; c.globalCompositeOperation=p.blend;
+      const { clock, dpx, view } = S;
+      withStyle({ ...p.style, clock, dpx, view }, () => living(c, p.draw, p.motion));
+      c.restore();
+    } else {
+      living(c, cc => { cc.save(); if (p.motion?.blend) cc.globalCompositeOperation = p.motion.blend;
+        cc.drawImage(p.cv, p.x, p.y, p.w, p.h); cc.restore(); }, p.motion ?? { float: false });
+    }
+  }
+  c.restore();
+}
 function paintSet(story, shot, s) {
   if (!shot.set) return null;
-  const key = shot.setKey ?? shot.set, style = styleOf(story, shot), sub = JSON.stringify(style);
+  const key = shot.setKey ?? shot.set, style = styleOf(story, shot), sub = JSON.stringify([style, s.id, S.clock?.life]);
   let per = setCache.get(key); if (!per) { per = new Map(); setCache.set(key, per); }
   if (per.has(sub)) return per.get(sub);
-  const k = SET_SCALE, cv = createCanvas(Math.round((W + 2 * MARGIN) * k), Math.round((H + 2 * MARGIN) * k)), c = cv.getContext('2d');
-  c.setTransform(k, 0, 0, k, MARGIN * k, MARGIN * k);
   resetReg();
-  withStyle({ ...style, dpx: k, view: k, mode: 'full' }, () => shot.set(c, s));
+  const painting = recordPainting(c => shot.set(c, s), style);
   // lettering and figures painted into the set are remembered in scene coordinates, so the gates can
   // measure them through the moving camera on every frame
-  const entry = { cv, labels: REG.labels.map(l => ({ ...l, box: l.box.map(v => v - MARGIN) })), faces: REG.faces.map(f => ({ ...f, x: f.x - MARGIN, y: f.y - MARGIN, extra: true })) };
+  const entry = { ...painting, labels: REG.labels.map(l => ({ ...l, box: l.box.map(v => v - MARGIN) })), faces: REG.faces.map(f => ({ ...f, x: f.x - MARGIN, y: f.y - MARGIN, extra: true })) };
   per.set(sub, entry); return entry;
 }
-export function clearSets() { setCache.clear(); layerCache.clear(); }
+export function clearSets() { setCache.clear(); layerCache.clear(); speakerCache = new WeakMap(); eventDeclarations=new WeakMap(); }
 // painted(c, key, fn): paint a static piece once and reuse it on every frame. Call it from `draw`, in
 // whatever order you need, for scenery that must sit IN FRONT of the cast: a wall they stand behind, a
 // desk, a doorway, a cropped foreground figure. fn(c) paints in scene coordinates like a set.
-// (Lettering and figures inside a painted piece are not seen by the gates; keep lettering in `draw`.)
+// Kit text/figure helpers replay live and remain measured; raw lettering baked into a raster cannot
+// be measured. Keep important lettering in `draw` or use label() inside this callback.
 const layerCache = new Map();
-export function painted(c, key, fn) {
+export function painted(c, key, fn, o = {}) {
+  if (S.clock?.probe) return fn(c);
   if (S.mode !== 'full') { fn(c); return; }
-  const sub = key + '|' + JSON.stringify([S.light, S.shadowTint, S.key, S.backlit, S.form]);
-  let cv = layerCache.get(sub);
-  if (!cv) {
-    const k = SET_SCALE; cv = createCanvas(Math.round((W + 2 * MARGIN) * k), Math.round((H + 2 * MARGIN) * k));
-    const lc = cv.getContext('2d'); lc.setTransform(k, 0, 0, k, MARGIN * k, MARGIN * k);
+  const sub = key + '|' + JSON.stringify([S.light, S.shadowTint, S.key, S.backlit, S.form, S.clock?.id, S.clock?.life, o.life, o.still]);
+  let entry = layerCache.get(sub);
+  if (!entry) {
     const keep = [REG.faces.slice(), REG.labels.slice()];
-    withStyle({ dpx: k, view: k, mode: 'full' }, () => fn(lc));
+    entry = withStyle({ clock: S.clock ? { ...S.clock, life: S.clock.life && o.life !== false && !o.still, t: 0, counts: {} } : null }, () => recordPainting(fn, {}));
     REG.faces.length = 0; REG.faces.push(...keep[0]); REG.labels.length = 0; REG.labels.push(...keep[1]);
-    layerCache.set(sub, cv);
+    layerCache.set(sub, entry);
   }
-  c.save(); c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(cv, -MARGIN, -MARGIN, W + 2 * MARGIN, H + 2 * MARGIN); c.restore();
+  living(c, cc => drawPainting(cc, entry), { ...o, kind: 'background', seed: `${S.clock?.id}:${key}`, float:o.float===true, amount:o.amount??(o.float===true?.35:0) });
 }
 // Draw one frame of shot i at local time t into context c (device scale dp). Returns what was registered.
+let speakerCache = new WeakMap();
+function subjectOf(shot, s) {
+  if (speakerCache.has(shot)) return speakerCache.get(shot);
+  const cv=createCanvas(2,2), c=cv.getContext('2d'), candidates=[];
+  c.scale(.001,.001);
+  // Inspect authored geometry at fixed times, never at whichever frame a worker happened to start on.
+  // This chooses the visual focus only. Narration never selects a speaker implicitly.
+  for (const t of [0.05, s.dur*.5]) withStyle({capture:null,clock:{t,id:s.id,s,life:false,probe:true,candidates,counts:{}},dpx:.001,view:.001},()=>shot.draw?.(c,t,s));
+  const main=candidates.filter(q=>!q.extra).sort((a,b)=>b.R-a.R)[0];
+  const id=main?.id??false;speakerCache.set(shot,id);return id;
+}
+let eventDeclarations=new WeakMap();
 export function drawFrame(c, story, tl, i, t, dp = 1) {
+  const shot = story.shots[i], s = context(story, tl, i);
+  initFont();
+  let declared=eventDeclarations.get(shot);if(!declared){declared=new Map();eventDeclarations.set(shot,declared);}
+  const clock = { t, declared, id: s.id, s, life: story.life !== false && !story.still && shot.life !== false && !shot.still,
+    speaker: shot.speaker ?? story.speaker ?? false, focus:shot.subject??subjectOf(shot,s), counts: {}, subject: false };
+  return withStyle({ clock }, () => renderFrame(c, story, tl, i, t, dp));
+}
+function renderFrame(c, story, tl, i, t, dp) {
   const shot = story.shots[i], s = context(story, tl, i), style = styleOf(story, shot);
   initFont();
-  const cam = cameraOf(shot, t, s), bg = paintSet(story, shot, s);
+  const bg = withStyle({ clock: { ...S.clock, t: 0, counts: {}, painting: true } }, () => paintSet(story, shot, s));
+  const cam=cameraOf(shot,t,s,bg?.bounds);S.clock.cam=cam;
   resetReg();
   c.setTransform(dp, 0, 0, dp, 0, 0); c.fillStyle = shot.backdrop ?? '#120a0e'; c.fillRect(0, 0, W, H);
   c.save(); c.translate(W / 2, H / 2); c.rotate(rad(cam.tilt)); c.scale(cam.zoom, cam.zoom); c.translate(-cam.x, -cam.y);
   withStyle({ ...style, dpx: dp, view: dp * cam.zoom, mode: 'full' }, () => {
-    if (bg) { c.imageSmoothingEnabled = true; c.imageSmoothingQuality = 'high'; c.drawImage(bg.cv, -MARGIN, -MARGIN, W + 2 * MARGIN, H + 2 * MARGIN); }
-    shot.draw?.(c, t, s);
+    if(bg)drawPainting(c,bg);
+    if(shot.draw) {
+      if(['insert','title'].includes(shot.kind)&&shot.graphic!==false) {
+        const enter=shot.kind==='title'?1:.55, exit=.35, incoming=1-easeOut(t/enter), outgoing=ease(span(t,s.dur-exit,s.dur));
+        c.save();
+        if(S.clock.life){c.translate(shot.kind==='title'?-(W+160)*incoming:0,shot.kind==='insert'?(H+120)*incoming:0);c.translate(-(W+240)*outgoing,0);}
+        withStyle({rigid:true,transient:S.transient||(S.clock.life&&(t<enter||outgoing>0))},()=>shot.draw(c,t,s));c.restore();
+      } else shot.draw(c,t,s);
+    }
+    const groups=shot.groups??[],times=groups.length<=s.cues.length?s.cues:eventSchedule(groups.length);
+    for(const [n,group] of groups.entries())onCue(c,group.at??times[n],cc=>group.draw(cc,t,s),group);
+
   });
   c.restore();
   if (shot.overlay) withStyle({ ...style, dpx: dp, view: dp, mode: 'full' }, () => shot.overlay(c, t, s));
@@ -143,6 +268,13 @@ const CLASS = r => r >= 200 ? 'close' : r >= 110 ? 'medium' : r >= 55 ? 'full' :
 export function audit(story, shots) {
   const film = [];
   for (const sh of shots) {
+    const authored=story.shots.find(q=>q.id===sh.id), declarations=[...(eventDeclarations.get(authored)?.values()??[]),...(authored?.events??[])];
+    sh.events=declarations;sh.warnings=[];
+    if(['insert','map','board'].includes(sh.kind)&&sh.dur>3&&!declarations.length) {
+      const warning=`${sh.id}: ${sh.kind} lasts ${sh.dur.toFixed(1)}s with no declared timed content events. Add cue()/onCue(), timed groups, or shot.events; entrance/exit and float do not tell the story.`;
+      sh.warnings.push(warning);if(sh.stats)sh.stats.warnings=sh.warnings;
+      process.stderr.write(`WARNING ${warning}\n`);
+    }
     const issues = sh.issues = [], all = sh.samples.flatMap(q => q.faces.filter(f => !f.extra)), big = all.reduce((m, f) => Math.max(m, f.r), 0);
     sh.headPx = Math.round(big * 2); sh.framing = big ? CLASS(big) : 'none';
     if (sh.kind === 'scene') {
@@ -189,5 +321,5 @@ export function audit(story, shots) {
   if (shots.length >= 6 && sets < Math.ceil(shots.length / 3)) film.push(`Only ${sets} different sets for ${shots.length} shots. Paint a new place, time of day or angle at least every third shot.`);
   const total = shots.reduce((n, q) => n + q.dur, 0);
   if (total >= 40 && !shots.some(q => q.kind === 'board' || q.kind === 'map' || q.kind === 'insert')) film.push('No explanation insert. Films of this format cut to a blueprint board, a map or a document close-up at least once.');
-  return { film: [...new Set(film)], shots };
+  return { film: [...new Set(film)], warnings:shots.flatMap(q=>q.warnings??[]), shots };
 }

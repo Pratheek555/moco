@@ -23,4 +23,9 @@ Kokoro-ONNX (MIT), Kokoro-82M voice model (Apache-2.0), numpy (BSD-3-Clause),
 Pillow (HPND), SoundFile (BSD-3-Clause), ONNX Runtime (MIT), phonemizer (GPL-3.0),
 eSpeak NG (GPL-3.0), FFmpeg (LGPL/GPL depending on the installed build).
 This kit downloads tooling and models; it does not relicense them.
+Optional Zonos inference code, transformer/speaker weights and the official
+Transformers Dia implementation/Dia weights are Apache-2.0. Both use Descript
+Audio Codec weights (MIT); torch/torchaudio use BSD-style licenses. See
+references/local-voices.md in the skill for exact revisions, license sources,
+system dependencies and redistribution notices; tts-models.json locks hashes.
 No reference video artwork, script, footage, music or voice is included.

@@ -1,0 +1,8 @@
+Pack: Pencil Sounds
+Author: NachtmahrTV (pencil_write); edited/packaged by AntumDeluge
+Primary source: https://opengameart.org/content/pencil-sounds
+Retrieved: 2026-11-14
+Original page SHA-256: d9dddcb13b54c11fb19c9c018754b596c7c754125f22c630995ad77974d2922a
+
+Exact primary-page license field excerpt (inert HTML):
+field-name-field-art-licenses field-type-taxonomy-term-reference field-label-above"><div class="field-label">License(s):&nbsp;</div><div class="field-items"><div class="field-item even"><div class='license-icon'><a href='http://creativecommons.org/publicdomain/zero/1.0/' target='_blank'><img src='https://opengameart.org/sites/default/files/license_images/cc0.png' alt='' title=''><div class='license-name'>CC0</div></a></div></div></div></div><div class="field 

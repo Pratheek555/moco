@@ -1,4 +1,7 @@
 export type ProviderId = "claude-code" | "codex";
+export type NarrationEngine = "kokoro" | "zonos" | "gemini";
+/** Ephemeral session configuration. Never serialize into project metadata or messages. */
+export interface GeminiNarration { key: string; voice: string }
 
 export interface Question {
   question: string;
@@ -37,12 +40,15 @@ export interface ProviderStatus {
   ok: boolean;
   reason?: string;
   version?: string;
+  /** Why the provider is unavailable, so the app can show the right setup step. */
+  issue?: "not-installed" | "signed-out" | "unavailable";
 }
 export interface SessionOptions {
   cwd: string;
   skill: string;
   sessionId?: string;
   tasks?: Task[];
+  narration?: GeminiNarration;
   onEvent(event: AgentEvent): void;
 }
 export interface AgentProvider {
@@ -63,6 +69,8 @@ export interface Project {
   workspace: string;
   provider: ProviderId;
   skill: Skill;
+  /** Optional narration override for ink-history; omitted keeps the story's own voice. */
+  narrationEngine?: NarrationEngine;
   createdAt: string;
   updatedAt: string;
   sessionId?: string;

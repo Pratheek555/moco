@@ -10,12 +10,18 @@ files:
   - package.json
   - from: src/main
     to: runtime/apps/desktop/src/main
-    filter: [agent-host.ts, service.ts]
+    filter: [agent-host.ts, service.ts, narration.ts]
   - from: ../../packages/agent/src
     to: runtime/packages/agent/src
 extraResources:
   - from: resources/icon.png
     to: icon.png
+  - from: ../../examples/skills/ink-history
+    to: skills/ink-history
+    filter:
+      - "**/*"
+      - "!**/{__pycache__,node_modules,.venv,venv}{,/**}"
+      - "!**/*.pyc"
 win:
   target: nsis
   icon: resources/icon.ico

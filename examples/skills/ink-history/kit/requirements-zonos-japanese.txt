@@ -1,0 +1,2 @@
+# Optional only for Japanese Zonos text; English narration does not need this large dictionary.
+SudachiDict-full==20241021

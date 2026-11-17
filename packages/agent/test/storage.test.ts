@@ -1,8 +1,9 @@
 import { afterEach, beforeEach, describe, expect, it } from "vitest";
-import { mkdtemp, mkdir, readFile, rm, symlink, writeFile } from "node:fs/promises";
+import { mkdtemp, mkdir, readFile, readdir, rm, symlink, writeFile } from "node:fs/promises";
 import { tmpdir } from "node:os";
 import path from "node:path";
-import { WorkspaceStore, parseSkill, confinedFile, mediaType } from "../src/storage.ts";
+import { WorkspaceStore, parseSkill, confinedFile, mediaType, MAX_UPLOAD_BYTES } from "../src/storage.ts";
+import { randomUUID } from "node:crypto";
 
 let temp: string;
 let store: WorkspaceStore;
@@ -12,6 +13,26 @@ afterEach(async () => { await rm(temp, { recursive: true, force: true }); });
 async function skillFile() { const file = path.join(temp, "SKILL.md"); await writeFile(file, skillText); return file; }
 
 describe("skills", () => {
+  it("skips broken or unreadable skill metadata and lists the newest version first", async () => {
+    const first = await store.importSkill(await skillFile()), second = await store.importSkill(await skillFile());
+    first.importedAt = "2025-01-01T00:00:00.000Z"; second.importedAt = "2026-01-01T00:00:00.000Z";
+    for (const skill of [first, second]) await writeFile(path.join(store.dataDir, "skills", skill.id, "skill.json"), JSON.stringify(skill));
+    for (const content of ["broken json", "{}", "null"]) {
+      const dir = path.join(store.dataDir, "skills", randomUUID()); await mkdir(dir); await writeFile(path.join(dir, "skill.json"), content);
+    }
+    await mkdir(path.join(store.dataDir, "skills", randomUUID(), "skill.json"), { recursive: true });
+    expect(await store.skills()).toEqual([second, first]);
+  });
+  it("removes only the library copy and preserves a project's pinned skill", async () => {
+    const skill = await store.importSkill(await skillFile());
+    const project = await store.createProject("Keep my skill", skill.id);
+    await store.deleteSkill(skill.id);
+    expect(await store.skills()).toEqual([]);
+    await expect(readFile(path.join(store.dataDir, "skills", skill.id, "skill.json"))).rejects.toThrow();
+    expect(await readFile(path.join(project.workspace, ".agents/skills/my-video/SKILL.md"), "utf8")).toBe(skillText);
+    expect((await store.project(project.id)).skill).toEqual(skill);
+    await expect(store.deleteSkill("../outside")).rejects.toThrow("Invalid");
+  });
   it("parses YAML frontmatter, including BOM, CRLF and multiline descriptions", () => {
     expect(parseSkill("\uFEFF" + skillText.replaceAll("\n", "\r\n"))).toEqual({ name: "my-video", description: "Make a video. Any way you like." });
   });
@@ -46,6 +67,60 @@ describe("skills", () => {
   });
 });
 describe("projects and workspace files", () => {
+  it("renames atomically alongside conversation writes without renaming the project folder or losing its session", async () => {
+    const project = await store.createProject("Original", (await store.importSkill(await skillFile())).id);
+    await Promise.all([
+      store.record(project.id, { type: "session", sessionId: "persistent-session", skills: [project.skill.name] }),
+      store.renameProject(project.id, "  New name  "),
+      store.record(project.id, { type: "turn_end", status: "completed" }),
+    ]);
+    expect(await new WorkspaceStore(store.dataDir, store.projectsDir).project(project.id)).toMatchObject({ name: "New name", workspace: project.workspace, sessionId: "persistent-session" });
+    expect((await readdir(path.join(store.dataDir, "projects", project.id))).some(file => file.endsWith(".tmp"))).toBe(false);
+    for (const invalid of ["", "   ", "x".repeat(121)]) await expect(store.renameProject(project.id, invalid)).rejects.toThrow("1–120");
+    expect((await store.renameProject(project.id, "x".repeat(120))).name).toHaveLength(120);
+  });
+  it("serializes deletion after existing writes and never touches workspace files", async () => {
+    const project = await store.createProject("Delete me", (await store.importSkill(await skillFile())).id);
+    await writeFile(path.join(project.workspace, "outbox/keep.txt"), "keep me");
+    const writing = store.record(project.id, { type: "user", text: "Saved before deletion", files: [] });
+    const rename = store.renameProject(project.id, "Final name");
+    const deleted = store.deleteProject(project.id);
+    await Promise.all([writing, rename]);
+    expect(await deleted).toMatchObject({ id: project.id, name: "Final name", workspace: project.workspace });
+    expect(await readFile(path.join(project.workspace, "outbox/keep.txt"), "utf8")).toBe("keep me");
+    expect(await store.projects()).toEqual([]);
+    expect(await readdir(path.join(store.dataDir, "projects"))).toEqual([]);
+    await expect(store.renameProject(project.id, "Cannot resurrect")).rejects.toThrow();
+    await expect(store.deleteProject("../outside")).rejects.toThrow("Invalid");
+  });
+  it("skips unreadable and corrupt project records without hiding valid projects", async () => {
+    const project = await store.createProject("Healthy", (await store.importSkill(await skillFile())).id);
+    for (const content of ["not json", "{}", "null", JSON.stringify({ ...project, updatedAt: 1 })]) {
+      const dir = path.join(store.dataDir, "projects", randomUUID()); await mkdir(dir); await writeFile(path.join(dir, "project.json"), content);
+    }
+    await mkdir(path.join(store.dataDir, "projects", randomUUID(), "project.json"), { recursive: true });
+    expect(await store.projects()).toEqual([project]);
+  });
+  it("writes pasted bytes under unique safe basenames, preserving typed array views", async () => {
+    const project = await store.createProject("Paste", (await store.importSkill(await skillFile())).id);
+    const bytes = new Uint8Array([0, 10, 20, 30]).subarray(1, 3);
+    const [first] = await store.attachData(project.id, "../../escape\\image.png:stream", bytes);
+    const [second] = await store.attachData(project.id, "image.png:stream", bytes);
+    expect(first).toMatch(/^uploads\/[a-f0-9-]+-image.png_stream$/); expect(first).not.toBe(second);
+    expect(await readFile(await confinedFile(project.workspace, first!))).toEqual(Buffer.from([10, 20]));
+    for (const invalid of [new Uint8Array(), new Uint8Array(MAX_UPLOAD_BYTES + 1), "not bytes" as unknown as Uint8Array])
+      await expect(store.attachData(project.id, "image.png", invalid)).rejects.toThrow("100 MB");
+  });
+  it("blocks both pasted and copied uploads through a replaced uploads junction", async () => {
+    const project = await store.createProject("Unsafe uploads", (await store.importSkill(await skillFile())).id);
+    const outside = path.join(temp, "outside"); await mkdir(outside);
+    await rm(path.join(project.workspace, "uploads"), { recursive: true });
+    await symlink(outside, path.join(project.workspace, "uploads"), process.platform === "win32" ? "junction" : "dir");
+    const source = path.join(temp, "voice.wav"); await writeFile(source, "audio");
+    await expect(store.attachData(project.id, "../../escape.png", new Uint8Array([1]))).rejects.toThrow("outside");
+    await expect(store.attach(project.id, [source])).rejects.toThrow("outside");
+    expect(await readdir(outside)).toEqual([]);
+  });
   it("defaults new projects to Codex and installs the complete skill in Codex's native directory", async () => {
     const source = path.join(temp, "codex-skill"); await mkdir(path.join(source, "kit"), { recursive: true });
     await writeFile(path.join(source, "SKILL.md"), skillText); await writeFile(path.join(source, "kit/tool.py"), "supporting code");

@@ -30,6 +30,7 @@ Images, audio and videos appear inline. Every file has **Open** and **Show in fo
 
 - `packages/agent`: provider-neutral session/events, Claude SDK and Codex app-server providers, filesystem storage.
 - `apps/desktop`: Electron main, source utility process, typed preload, React UI and existing UI components.
+- [Living Enamel](examples/skills/living-enamel/SKILL.md): import the whole skill folder for story-led gold-and-enamel films. Its kit supports explicit `feed` (15–20s) and `story` (45–65s) Short profiles; story cards, draft publishing notes, analytics instructions and creative checks live in the skill.
 - `examples/skills/cartoon-audio-short/SKILL.md`: unmodified reference fixture. **The supplied example did not include its `kit/`**; intake works, but full production requires the complete skill folder and its listed tools. Moco does not install skill-specific dependencies.
 - `pnpm agent:check`: checks Claude Code and its subscription login. `pnpm agent:check --codex` checks Codex and its ChatGPT login without inference. Add `--live` to either command to make one short real intake turn with the reference skill, then stop (uses your subscription).
 - `pnpm --filter @moco/desktop build` and `pnpm test:desktop`: build and smoke-test the actual Electron UI, without AI calls.

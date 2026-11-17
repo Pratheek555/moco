@@ -4,74 +4,91 @@
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* shadcn/ui tokens on a zinc base with the Moco blue as primary. --sidebar is
-   also the window chrome colour: keep it equal to the titlebar overlay colour
-   set in src/main/index.ts (#f7f7f8 light, #0f0f11 dark). */
+/* Design tokens. See docs/design.md.
+   shadcn/ui tokens on a cool-neutral base with the Moco blue as the only accent.
+   --sidebar is also the window chrome colour: keep it equal to the window
+   background colour set in src/main/index.ts (#f7f7f8 light, #0f0f11 dark). */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.21 0.006 285.9);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.21 0.006 285.9);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
+  --popover-foreground: oklch(0.21 0.006 285.9);
   --primary: oklch(0.56 0.219 262.9);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
+  --secondary: oklch(0.962 0.002 286.4);
+  --secondary-foreground: oklch(0.21 0.006 285.9);
+  --muted: oklch(0.967 0.001 286.4);
+  --muted-foreground: oklch(0.5 0.014 285.9);
+  --accent: oklch(0.955 0.003 286.4);
+  --accent-foreground: oklch(0.21 0.006 285.9);
+  --destructive: oklch(0.577 0.245 27.3);
+  --success: oklch(0.6 0.15 155);
+  --warning: oklch(0.7 0.16 70);
+  --border: oklch(0.92 0.004 286.3);
+  --input: oklch(0.9 0.004 286.3);
   --ring: oklch(0.597 0.217 262.3);
   --sidebar: oklch(0.976 0.001 286.4);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-foreground: oklch(0.21 0.006 285.9);
   --sidebar-primary: oklch(0.56 0.219 262.9);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.94 0.003 286);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.9);
+  --sidebar-border: oklch(0.92 0.004 286.3);
   --sidebar-ring: oklch(0.597 0.217 262.3);
+  /* Media always sits on a dark stage, in both themes. */
+  --stage: oklch(0.16 0.004 286);
+  --stage-foreground: oklch(0.96 0 0);
+
+  /* Window chrome. The top bar drags the window; the platform decides which corner the system buttons use. */
+  --window-controls-width: 0px;
+  --traffic-lights-width: 0px;
 
   color-scheme: light;
 }
 
 .dark {
   --background: oklch(0.201 0.004 286);
-  --foreground: oklch(0.985 0 0);
+  --foreground: oklch(0.96 0.002 286);
   --card: oklch(0.228 0.006 286);
-  --card-foreground: oklch(0.985 0 0);
+  --card-foreground: oklch(0.96 0.002 286);
   --popover: oklch(0.228 0.006 286);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.56 0.219 262.9);
+  --popover-foreground: oklch(0.96 0.002 286);
+  --primary: oklch(0.6 0.2 262.9);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --secondary: oklch(0.262 0.006 286);
+  --secondary-foreground: oklch(0.96 0.002 286);
+  --muted: oklch(0.262 0.006 286);
+  --muted-foreground: oklch(0.72 0.012 286);
+  --accent: oklch(0.274 0.006 286);
+  --accent-foreground: oklch(0.96 0.002 286);
+  --destructive: oklch(0.68 0.19 22.2);
+  --success: oklch(0.72 0.16 155);
+  --warning: oklch(0.8 0.15 75);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.597 0.217 262.3);
+  --ring: oklch(0.62 0.2 262.3);
   --sidebar: oklch(0.169 0.004 286);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.56 0.219 262.9);
+  --sidebar-foreground: oklch(0.96 0.002 286);
+  --sidebar-primary: oklch(0.6 0.2 262.9);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.25 0.006 286);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-accent-foreground: oklch(0.96 0.002 286);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.597 0.217 262.3);
+  --sidebar-ring: oklch(0.62 0.2 262.3);
+  --stage: oklch(0.13 0.004 286);
 
   color-scheme: dark;
 }
 
+html[data-platform="win32"] { --window-controls-width: 140px; }
+html[data-platform="darwin"] { --traffic-lights-width: 76px; }
+
 @theme inline {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -87,6 +104,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -98,10 +117,24 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-stage: var(--stage);
+  --color-stage-foreground: var(--stage-foreground);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @layer base {
@@ -109,7 +142,13 @@
     @apply border-border outline-ring/50;
     /* Slim scrollbars instead of the classic Windows ones with arrows. */
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 40%, transparent) transparent;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
   }
   html {
     -webkit-font-smoothing: antialiased;
@@ -117,7 +156,9 @@
     overscroll-behavior: none;
   }
   body {
-    @apply bg-sidebar font-sans text-foreground;
+    @apply bg-sidebar font-sans text-sm text-foreground;
+    font-feature-settings: "cv11", "ss03";
+    overflow: hidden;
     /* A desktop app: UI text isn't selectable; content opts back in with select-text. */
     user-select: none;
   }
@@ -133,108 +174,54 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* Keyboard focus is always visible, including on elements without a component style. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  img,
+  video {
+    -webkit-user-drag: none;
+  }
 }
 
-/* The hidden title bar: the strip above the sidebar and main panel drags the window. */
-.app-region-drag {
+/* The hidden title bar: the strip across the top of the window drags it.
+   Anything interactive inside a drag region needs app-region-no-drag. */
+@utility app-region-drag {
   -webkit-app-region: drag;
   app-region: drag;
 }
+@utility app-region-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+/* Controls inside a drag region stay clickable without each one opting out. */
+.app-region-drag :is(button, a, input, textarea, select, [role="button"], [role="tab"], [data-no-drag]) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
 
-html, body, #root { height: 100%; margin: 0; }
-button, input, textarea, select { font: inherit; }
-button { cursor: pointer; }
-.app-shell { height: 100%; display: flex; font-size: 14px; }
-.navigation { width: 230px; flex-shrink: 0; display: flex; flex-direction: column; gap: 20px; padding: 26px 18px 20px; border-right: 1px solid var(--border); }
-.brand { display: flex; align-items: center; gap: 10px; font-size: 24px; font-weight: 650; letter-spacing: -1px; padding: 0 5px 16px; text-align: left; }
-.brand-mark { display: inline-flex; align-items: center; justify-content: center; width: 32px; height: 32px; border-radius: 10px; background: var(--primary); color: white; font-size: 24px; font-weight: 600; }
-.eyebrow { font-size: 11px; letter-spacing: .09em; text-transform: uppercase; color: var(--muted-foreground); font-weight: 600; }
-.navigation .eyebrow { margin: 10px 10px -10px; }
-.navigation nav { overflow: auto; flex: 1; }
-.project-link { display: flex; align-items: center; width: 100%; padding: 10px; gap: 10px; border-radius: 8px; text-align: left; color: var(--muted-foreground); }
-.project-link span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.project-link small { display: block; font-size: 10px; opacity: .8; margin-top: 2px; }
-.project-link:hover, .project-link.selected { background: var(--sidebar-accent); color: var(--foreground); }
-.navigation-footer { font-size: 12px; }
-.navigation-footer small { display: block; font-size: 10px; color: var(--muted-foreground); margin-top: 5px; }
-.navigation-footer select { display: block; width: 100%; font-size: 11px; margin: 4px 0 18px; }
-.status-dot { display: inline-block; width: 6px; height: 6px; background: #a1a1aa; border-radius: 50%; margin-right: 7px; flex-shrink: 0; }
-.status-dot.ready, .run-state.running .status-dot { background: #38a778; }
-.run-state.waiting .status-dot { background: #d49935; }
-.run-state.error .status-dot { background: #e85a55; }
-.main-panel { min-width: 0; flex: 1; background: var(--background); display: flex; flex-direction: column; overflow: hidden; }
-.home { padding: 64px clamp(24px, 7vw, 110px); overflow-y: auto; }
-.home h1 { font-size: 36px; font-weight: 600; letter-spacing: -1.4px; margin: 12px 0; }
-.intro { color: var(--muted-foreground); margin-bottom: 34px; }
-h2 { font-size: 15px; font-weight: 600; margin: 0 0 16px; }
-.new-project { max-width: 560px; border: 1px solid var(--border); border-radius: 14px; padding: 24px; display: flex; flex-direction: column; gap: 12px; box-shadow: 0 5px 20px #00000004; }
-.new-project h2 { margin-bottom: 2px; }
-.new-project label { font-size: 12px; font-weight: 500; margin-top: 5px; }
-select { height: 38px; border: 1px solid var(--input); border-radius: 6px; padding: 0 10px; background: var(--background); }
-.row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.hint, .muted { color: var(--muted-foreground); font-size: 11px; line-height: 1.7; }
-.muted { font-size: 13px; }
-.skill-library { max-width: 560px; margin-top: 38px; }
-.section-heading { display: flex; justify-content: space-between; align-items: center; }
-.section-heading h2 { margin: 0; }
-.section-heading > span { color: var(--muted-foreground); font-size: 11px; }
-.skill-library article { border-bottom: 1px solid var(--border); padding: 16px 0; }
-.skill-library article p { color: var(--muted-foreground); font-size: 12px; margin: 6px 0 0; line-height: 1.7; }
-.error-banner, .setup-banner { margin: 12px 18px 0; padding: 12px 16px; border-radius: 8px; border: 1px solid #e5cfc9; background: #fff8f6; font-size: 12px; }
-.error-banner { display: flex; justify-content: space-between; align-items: center; color: #ab3434; }
-.setup-banner p { margin: 6px 0 12px; }
-.project-screen { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.project-header { display: flex; align-items: center; gap: 14px; padding: 20px 24px; border-bottom: 1px solid var(--border); }
-.project-header h1 { font-size: 16px; font-weight: 600; margin: 0; }
-.project-header small { color: var(--muted-foreground); font-size: 11px; }
-.run-state { margin-left: auto; font-size: 11px; white-space: nowrap; color: var(--muted-foreground); }
-.project-body { display: flex; flex: 1; min-height: 0; }
-.chat-column { flex: 1; min-width: 0; display: flex; flex-direction: column; }
-.transcript { flex: 1; overflow-y: auto; padding: 28px clamp(20px, 4vw, 58px); }
-.empty-chat { text-align: center; padding-top: 14vh; color: var(--muted-foreground); }
-.empty-chat h2 { color: var(--foreground); font-size: 21px; margin: 20px 0 10px; }
-.empty-chat p { font-size: 13px; line-height: 1.8; }
-.chat-message { margin: 0 0 24px; user-select: text; }
-.chat-message > small, .delivered-file > small { font-size: 10px; color: var(--muted-foreground); display: block; margin-bottom: 8px; }
-.chat-message.user { background: var(--secondary); padding: 16px 20px; border-radius: 12px; }
-.prose { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 13px; line-height: 1.85; user-select: text; }
-.tool-group, .thinking { margin: 10px 0 20px; font-size: 11px; color: var(--muted-foreground); }
-summary { cursor: pointer; padding: 6px 0; }
-.tool-group > details { margin-left: 14px; padding: 4px 0; }
-pre { white-space: pre-wrap; overflow-wrap: anywhere; font-size: 10px; line-height: 1.6; padding: 12px; border-radius: 6px; background: var(--secondary); max-height: 260px; overflow: auto; user-select: text; }
-.tool-error, .chat-error { color: #bd4040; }
-.chat-error { padding: 14px; background: #fff5f5; border-radius: 8px; margin-bottom: 16px; overflow-wrap: anywhere; }
-.activity { font-size: 11px; color: var(--muted-foreground); margin: 10px 0; }
-.activity small { opacity: .7; }
-.composer { margin: 0 20px 20px; padding: 12px; border: 1px solid var(--border); border-radius: 14px; box-shadow: 0 3px 12px #00000005; }
-.composer textarea { border: 0; box-shadow: none; resize: none; min-height: 65px; max-height: 180px; }
-.composer-actions { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
-.composer-actions > .hint { flex: 1; text-align: right; font-size: 10px; }
-.attachment-chips { display: flex; flex-wrap: wrap; gap: 6px; }
-.attachment-chips > span, .attachment-note { display: flex; align-items: center; gap: 6px; font-size: 10px; background: var(--secondary); border-radius: 5px; padding: 5px 8px; }
-.attachment-note { width: fit-content; margin-top: 8px; border: 1px solid var(--border); }
-.question-card { border: 1px solid color-mix(in oklab, var(--primary) 25%, var(--border)); border-radius: 12px; background: color-mix(in oklab, var(--primary) 2%, var(--background)); padding: 20px; margin: 16px 0 24px; }
-.question-card > small { font-size: 10px; color: var(--primary); }
-.question-card fieldset { margin: 15px 0; min-width: 0; }
-.question-card legend { font-size: 14px; font-weight: 550; margin-bottom: 10px; }
-.question-option { display: flex; align-items: flex-start; gap: 10px; padding: 10px; border: 1px solid var(--border); border-radius: 7px; margin-bottom: 8px; cursor: pointer; font-size: 12px; background: var(--background); }
-.question-option input { margin-top: 3px; accent-color: var(--primary); }
-.question-option small { display: block; margin-top: 4px; color: var(--muted-foreground); font-size: 11px; }
-.workspace-panel { width: 300px; flex-shrink: 0; padding: 20px; overflow-y: auto; border-left: 1px solid var(--border); background: var(--sidebar); }
-.file-tabs { display: flex; gap: 16px; border-bottom: 1px solid var(--border); margin: 12px 0; }
-.file-tabs button { font-size: 11px; color: var(--muted-foreground); padding: 8px 0; }
-.file-tabs button[aria-pressed=true] { border-bottom: 2px solid var(--primary); color: var(--foreground); }
-.workspace-files { margin-top: 20px; }
-.file-card { border: 1px solid var(--border); border-radius: 8px; padding: 10px; background: var(--background); margin: 0 0 14px; min-width: 0; }
-.file-card img, .file-card video { max-height: 300px; width: 100%; object-fit: contain; background: #f2f2f3; border-radius: 4px; margin-bottom: 10px; }
-.file-card audio { width: 100%; height: 36px; margin-bottom: 10px; }
-.file-card strong { font-size: 11px; font-weight: 500; display: block; overflow-wrap: anywhere; }
-.file-card > small { display: block; font-size: 9px; color: var(--muted-foreground); margin: 4px 0 10px; overflow-wrap: anywhere; }
-.task-list { border-bottom: 1px solid var(--border); padding-bottom: 20px; margin-bottom: 20px; }
-.task-list > div { display: flex; gap: 8px; margin-top: 12px; font-size: 11px; line-height: 1.6; }
-.task-list > div > span { padding-top: 2px; flex-shrink: 0; }
-.task-list .completed { color: var(--muted-foreground); }
-.task-list .completed > span { color: #38a778; }
-.task-list .in_progress > span { color: var(--primary); }
-.delivered-file { margin: 18px 0; }
-@media (max-width: 1100px) { .navigation { width: 185px; } .workspace-panel { width: 250px; padding: 14px; } .composer-actions > .hint { display: none; } .composer-actions > button:last-child { margin-left: auto; } .project-header { padding: 16px; gap: 8px; } }
+/* "Working…" text: a soft highlight travels across muted text. */
+@utility text-shimmer {
+  background: linear-gradient(90deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
+  background-size: 200% 100%;
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  animation: var(--animate-shimmer);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+  .text-shimmer {
+    background: none;
+    color: var(--muted-foreground);
+  }
+}

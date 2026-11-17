@@ -1,0 +1,8 @@
+Pack: 75 CC0 breaking / falling / hit sfx
+Author: rubberduck
+Primary source: https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx
+Retrieved: 2026-11-14
+Original page SHA-256: 6523554e162b521a96dfd19acf700f557bc14a39a967d13feff4d4bb2c2262e5
+
+Exact primary-page license field excerpt (inert HTML):
+field-name-field-art-licenses field-type-taxonomy-term-reference field-label-above"><div class="field-label">License(s):&nbsp;</div><div class="field-items"><div class="field-item even"><div class='license-icon'><a href='http://creativecommons.org/publicdomain/zero/1.0/' target='_blank'><img src='https://opengameart.org/sites/default/files/license_images/cc0.png' alt='' title=''><div class='license-name'>CC0</div></a></div></div></div></div><div class="field 

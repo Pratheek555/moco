@@ -3,10 +3,10 @@
 import { claudeProvider, codexProvider } from "../../../../packages/agent/src/index.ts";
 import { WorkspaceStore } from "../../../../packages/agent/src/storage.ts";
 import { ProjectService } from "./service.ts";
-import type { HostRequest, Method, ServiceMethods } from "../shared/api.ts";
+import type { HostRequest, HostNarrationUpdate, Method, ServiceMethods } from "../shared/api.ts";
 
 interface Port {
-  on(event: "message", listener: (event: { data: HostRequest }) => void): void;
+  on(event: "message", listener: (event: { data: HostRequest | HostNarrationUpdate }) => void): void;
   postMessage(message: unknown): void;
   start(): void;
 }
@@ -18,6 +18,7 @@ parent.on("message", ({ data, ports }) => {
   if (!port) return;
   const service = new ProjectService(new WorkspaceStore(data.dataDir, data.projectsDir), [claudeProvider(), codexProvider()], update => port.postMessage({ update }));
   port.on("message", ({ data: request }) => {
+    if ("narration" in request) { service.updateNarration(request.narration); return; }
     void service.call(request.method, request.args as ServiceMethods[Method]["args"]).then(
       result => port.postMessage({ id: request.id, result }),
       error => port.postMessage({ id: request.id, error: error instanceof Error ? error.message : String(error) }),

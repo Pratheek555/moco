@@ -13,9 +13,10 @@
 //   5. a dark, cropped foreground piece (optional, but it is what gives depth) and a vignette
 import {
   W, H, S, TAU, rng, lerp, clamp, rad, cel, stroke, brush, paint, wash, glow, linear, blob, curve, poly, circle, oval,
-  shadeOf, lightOf, mix, alpha, layer, label, Path2D, lineFor,
+  shadeOf, lightOf, mix, alpha, layer, label, Path2D, lineFor, withStyle,
 } from './ink.mjs';
 import * as st from './sets.mjs';
+import { living, elementMotion, motionTime, lifeEnabled, unit } from './motion.mjs';
 
 // ------------------------------------------------------------------ time of day
 // A time of day is a sky, the colour of its light, and the colour of its air. Pass `time` to any place,
@@ -32,10 +33,15 @@ export const timeOf = o => ({ ...(TIME[o?.time ?? 'dusk'] ?? TIME.dusk), ...(o?.
 
 // heavens(): sky gradient, the glow of the sun or moon, clouds. Returns the palette it used.
 //   horizon (y of the horizon), sun [x, y], disc (radius of a visible sun/moon), clouds (count), stars
-export function heavens(c, o = {}) {
+function draw_heavens(c, o = {}) {
   const p = timeOf(o), hz = o.horizon ?? 600, sun = o.sun ?? [1380, hz - 200], r = rng((o.seed ?? 5) + 1);
   st.sky(c, p.sky, { y0: -200, y1: hz + 60, sun: { x: sun[0], y: sun[1], r: o.sunR ?? 820, color: p.glow, strength: p.glowAmt, disc: o.disc, discColor: o.discColor ?? lightOf(p.glow, 0.5, '#ffffff') } });
-  if (o.stars) { c.fillStyle = '#ffffff'; for (let i = 0; i < 110; i++) { const x = -200 + r() * (W + 400), y = -200 + r() * (hz + 100), k = r(); c.globalAlpha = 0.35 + k * 0.6; c.beginPath(); c.arc(x, y, 1.6 + k * 2.6, 0, TAU); c.fill(); } c.globalAlpha = 1; }
+  if (o.stars) {
+    const stars = Array.from({length:110}, () => [-200+r()*(W+400), -200+r()*(hz+100), r()]);
+    living(c, cc => { cc.save(); cc.fillStyle='#ffffff'; const t=motionTime(o);
+      stars.forEach(([x,y,k],i) => { cc.globalAlpha=(0.35+k*0.6)*(lifeEnabled(o) ? 0.84+0.16*Math.sin(t*(1.1+k)+i) : 1); cc.beginPath(); cc.arc(x,y,1.6+k*2.6,0,TAU); cc.fill(); }); cc.restore();
+    }, {...o,float:false,seed:`stars:${o.seed??5}`});
+  }
   const n = o.clouds ?? 4;
   for (let i = 0; i < n; i++) {
     const x = (i + 0.15 + r() * 0.7) / n * (W + 300) - 150, y = 70 + r() * Math.max(60, hz - 360), w = 380 + r() * 420, near = clamp(1 - Math.abs(x - sun[0]) / 1100);
@@ -57,10 +63,16 @@ export function town(c, x, y, s = 1, o = {}) {
   }
   cel(c, crenel(-300, -52, 600, 60, 17), { fill: lightOf(f, 0.12, '#ffffff'), shade: shadeOf(f, 0.4), depth: 0.2, line: lineFor(4, s), ink });
   for (let i = 0; i < 4; i++) { const hx = -230 + i * 130 + r() * 40; cel(c, poly([[hx, -52], [hx + 30, -84 - r() * 20], [hx + 66, -52]]), { fill: mix('#a8452e', o.haze ?? '#eab676', (o.far ?? 0.5) * 0.8), flat: true, line: lineFor(3, s), ink }); }
+  if (o.smoke !== false && lifeEnabled(o)) living(c,cc=>{
+    const t=motionTime(o);for(let i=0;i<3;i++){
+      const a=(t*.4+i/3)%1;cc.save();cc.globalAlpha=.18*Math.sin(a*Math.PI);
+      paint(cc,oval(38+Math.sin(t+i)*6,-145-a*80,9+a*13,14+a*15),mix(f,'#ffffff',.6));cc.restore();
+    }
+  },{...o,float:false,seed:`chimney:${x}:${y}`});
   c.restore();
 }
 // A cypress: the exclamation mark of an Italian hillside. Works for any tall dark conifer.
-export function cypress(c, x, y, s = 1, o = {}) {
+function draw_cypress(c, x, y, s = 1, o = {}) {
   const col = o.color ?? '#3f5a2a';
   c.save(); c.translate(x, y); c.scale(s, s);
   cel(c, blob([[0, -300, 1], [26, -200], [34, -90], [22, -8], [-22, -8], [-34, -90], [-26, -200]]), { fill: col, shade: shadeOf(col, 0.8), depth: 0.16, shrink: 0.9, rim: lineFor(5, s), rimColor: o.rim ?? lightOf(col, 0.45, '#f4f08a'), line: (o.line ?? 5) / s, ink: o.ink });
@@ -95,7 +107,7 @@ export function well(c, x, y, s = 1, o = {}) {
 // hills(): open country. A hazy far ridge (with a town if you like), a middle ridge with trees, and the
 // ground the cast stands on. The acting ground is around y 780-900.
 //   time, horizon, sun, ground (colour), town:{x, scale}|false, trees:'cypress'|'round'|false, path:true
-export function hills(c, o = {}) {
+function draw_hills(c, o = {}) {
   const hz = o.horizon ?? 600, p = heavens(c, { ...o, horizon: hz }), g = mix(o.ground ?? '#93a03a', p.land, p.dim), sd = o.seed ?? 3, r = rng(sd + 40);
   const inkFar = mix(S.ink, p.haze, 0.55);
   st.ridge(c, roll(hz - 36, 44, 7, sd + 11), mix(g, p.haze, 0.66), { flat: true, line: 4, ink: inkFar });
@@ -119,13 +131,18 @@ export function hills(c, o = {}) {
 }
 // street(): a street running away to a vanishing point between two rows of houses, with a road or canal.
 //   time, vp [x, y], colors (near row), farColors, water:true for a canal, towerAtEnd:true
-export function street(c, o = {}) {
+function draw_street(c, o = {}) {
   const vp = o.vp ?? [1160, 600], p = heavens(c, { ...o, horizon: vp[1] + 20, sun: o.sun ?? [vp[0] + 220, vp[1] - 200] });
   if (o.towerAtEnd !== false) town(c, vp[0] + 10, vp[1] + 6, 0.5, { haze: p.haze, far: 0.4, towers: [[-40, 50, 250], [50, 40, 160]] });
   st.terrace(c, { vp, near: W + 580, base: vp[1] + 160, n: 4, height: 700, reach: 0.8, colors: o.farColors ?? ['#7a4a34', '#8b5a3c', '#6d4030'], haze: p.haze, hazeAmount: 0.5, seed: (o.seed ?? 0) + 12, line: 5, edge: 4, edgeColor: p.rim });
   st.terrace(c, { vp, near: -420, base: vp[1] + 200, n: 5, height: 900, reach: 0.9, colors: o.colors ?? ['#4d2f2a', '#643c30', '#75493a', '#573430'], haze: mix(p.haze, '#8a5a3a', 0.4), hazeAmount: 0.3, seed: (o.seed ?? 0) + 7, line: 6, edge: 5, edgeColor: mix(p.rim, '#e07a3a', 0.4), doors: true });
   const way = poly([[380, H + 240], vp, [1500, H + 240]]);
-  if (o.water) { c.fillStyle = linear(c, 0, vp[1], 0, H, '#5f8f84', '#27504f'); c.fill(way); for (let i = 0; i < 6; i++) { const y = vp[1] + 60 + i * i * 9; brush(c, [[vp[0] - 180 - i * 50, y], [vp[0] - 20, y + 3], [vp[0] + 140 + i * 40, y]], [0, 4, 0], '#bfe0c4'); } }
+  if (o.water) {
+    c.fillStyle=linear(c,0,vp[1],0,H,'#5f8f84','#27504f');c.fill(way);
+    // Keep the original six painted perspective ripples. Shimmer supplements, never replaces them.
+    for(let i=0;i<6;i++){const y=vp[1]+60+i*i*9;brush(c,[[vp[0]-180-i*50,y],[vp[0]-20,y+3],[vp[0]+140+i*40,y]],[0,4,0],'#bfe0c4');}
+    st.water(c,way,{...o,vp,y0:vp[1],color:'#bfe0c4',n:9,alpha:.35});
+  }
   else { c.fillStyle = linear(c, 0, vp[1], 0, H, mix(o.road ?? '#8f7a62', p.haze, 0.4), o.road ?? '#6b5a4a'); c.fill(way); for (let i = 1; i < 6; i++) { const y = lerp(vp[1], H + 240, (i / 6) ** 2); stroke(c, poly([[lerp(vp[0], 380, (i / 6) ** 2), y], [lerp(vp[0], 1500, (i / 6) ** 2), y]], false), 3, '#00000030'); } }
   cel(c, poly([[-260, vp[1] + 220], [vp[0] - 150, vp[1] - 4], [vp[0] - 10, vp[1]], [380, H + 240], [-260, H + 240]]), { fill: o.quay ?? '#6d5a50', fill2: shadeOf(o.quay ?? '#6d5a50', 0.6), depth: 0.02, line: 6 });
   cel(c, poly([[W + 260, vp[1] + 160], [vp[0] + 170, vp[1] - 10], [vp[0], vp[1]], [1500, H + 240], [W + 260, H + 240]]), { fill: shadeOf(o.quay ?? '#6d5a50', 0.3), fill2: shadeOf(o.quay ?? '#6d5a50', 0.9), depth: 0.02, line: 6 });
@@ -143,7 +160,7 @@ export function street(c, o = {}) {
 // wallSide(): the cast stands in front of a long wall seen square-on, like a stage flat: big dressed
 // stones, a strip of ground, and a hard diagonal of light and shadow across the wall.
 //   ground (y where wall meets floor), stone, floorColor, courses, gate:{x, scale, open}|false, lightFrom: -1|1
-export function wallSide(c, o = {}) {
+function draw_wallSide(c, o = {}) {
   const base = o.ground ?? 660, stone = o.stone ?? '#b49a78', L = -260, R = W + 260, dir = o.lightFrom ?? 1;
   const q = st.rectQuad(L, -260, R - L, base + 260);
   st.wall(c, q, { fill: lightOf(stone, 0.1, '#ffffff'), fill2: shadeOf(stone, 0.35), line: 0, straight: true });
@@ -163,7 +180,7 @@ export function wallSide(c, o = {}) {
 // ramparts(): looking up at a town wall from outside. Battlements cut the sky; the ground is a dark strip.
 //   time, top (y of the battlements), stone, ground (y), tower:false, sky:false (wall only: use it with
 //   painted() when somebody has to stand BEHIND the battlements)
-export function ramparts(c, o = {}) {
+function draw_ramparts(c, o = {}) {
   const top = o.top ?? 330, base = o.ground ?? 820, stone = o.stone ?? '#8f8478';
   const p = o.sky === false ? timeOf(o) : heavens(c, { ...o, horizon: base, sun: o.sun ?? [1500, 160] });
   const pts = [[-260, base + 300], [-260, top]], t = 96; for (let x = -260, i = 0; x < W + 260; x += t, i++) { const yy = i % 2 ? top + 62 : top; pts.push([x, yy], [x + t, yy]); } pts.push([W + 260, base + 300]);
@@ -175,7 +192,7 @@ export function ramparts(c, o = {}) {
   return p;
 }
 // nightField(): open ground under a night sky: moon, stars, dark ridges, optional beams of light.
-export function nightField(c, o = {}) {
+function draw_nightField(c, o = {}) {
   const hz = o.horizon ?? 560, p = heavens(c, { time: 'night', stars: true, disc: o.moon === false ? 0 : 46, clouds: 5, ...o, horizon: hz, sun: o.sun ?? [1480, 150], sunR: 560 });
   if (o.beams) st.rays(c, o.beams.x ?? 900, hz + 40, { n: o.beams.n ?? 5, from: 230, to: 310, len: 900, color: '#c9d2ff', alpha: 0.3 });
   st.ridge(c, roll(hz - 20, 50, 6, (o.seed ?? 3) + 11), '#1d2147', { flat: true, line: 5 });
@@ -188,7 +205,7 @@ export function nightField(c, o = {}) {
 // ------------------------------------------------------------------ indoors
 // plankRoom(): a timber room: boarded walls with flowing grain, a board floor, one hanging lamp.
 //   back [x0, y0, x1, y1] (the far wall on screen), wood, floorColor, lamp:{x, y}|false, picture:(c,x,y,w,h)=>…
-export function plankRoom(c, o = {}) {
+function draw_plankRoom(c, o = {}) {
   const wood = o.wood ?? '#b08a52', back = o.back ?? [380, 150, 1540, 640];
   const q = st.room(c, back, { wall: wood, floor: o.floorColor ?? '#7a5236' });
   st.planks(c, q.back, { n: 6, fill: wood, grain: 6, knots: 0.65, gap: 6, line: 0, seed: 3 });
@@ -206,7 +223,7 @@ export function plankRoom(c, o = {}) {
 }
 // hall(): a stone hall: tall arched windows throwing shafts of light across a tiled floor.
 //   time (what is outside the windows), stone, floorColor, windows (count), banner:[colours]|false
-export function hall(c, o = {}) {
+function draw_hall(c, o = {}) {
   const stone = o.stone ?? '#9d8f84', base = o.ground ?? 640, p = timeOf({ time: o.time ?? 'day' }), n = o.windows ?? 3;
   const q = st.rectQuad(-260, -260, W + 520, base + 260);
   st.wall(c, q, { fill: stone, fill2: shadeOf(stone, 0.4), line: 0, straight: true });
@@ -218,7 +235,15 @@ export function hall(c, o = {}) {
     stroke(c, win, 14, shadeOf(stone, 0.6)); stroke(c, win, 6);
     cel(c, poly([[x - 110, base - 190], [x + 110, base - 190], [x + 100, base - 166], [x - 100, base - 166]]), { fill: lightOf(stone, 0.2, '#ffffff'), flat: true, line: 5 });
   }
-  if (o.banner !== false) for (const [i, x] of xs.slice(0, -1).entries()) { const bx = x + (o.windowGap ?? 520) / 2, cols = o.banner ?? ['#f2c230', '#2f4aa0']; cel(c, poly([[bx - 62, base - 600], [bx + 62, base - 600], [bx + 62, base - 330], [bx, base - 280], [bx - 62, base - 330]]), { fill: cols[i % cols.length], depth: 0.05, rim: 5, line: 6, inner: cc => paint(cc, poly([[bx, base - 600], [bx + 70, base - 600], [bx + 70, base - 250], [bx, base - 250]]), cols[(i + 1) % cols.length]) }); stroke(c, poly([[bx - 80, base - 602], [bx + 80, base - 602]], false), 9, '#5a3d2a'); }
+  if (o.banner !== false) for (const [i, x] of xs.slice(0, -1).entries()) {
+    const bx=x+(o.windowGap??520)/2, cols=o.banner??['#f2c230','#2f4aa0'];
+    living(c,cc=>{
+      const dx=lifeEnabled(o)?Math.sin(motionTime(o)*TAU*.7+bx)*4:0;
+      cel(cc,blob([[bx-62,base-600,1],[bx+62,base-600,1],[bx+62+dx,base-330,1],[bx+dx,base-280,1],[bx-62+dx,base-330,1]]),{fill:cols[i%cols.length],depth:.05,rim:5,line:6,
+        inner:dd=>paint(dd,poly([[bx,base-600],[bx+70,base-600],[bx+70+dx,base-250],[bx+dx,base-250]]),cols[(i+1)%cols.length])});
+    },{...o,float:false,seed:`banner:${bx}`});
+    stroke(c,poly([[bx-80,base-602],[bx+80,base-602]],false),9,'#5a3d2a');
+  }
   const fl = st.quad([-260, base], [W + 260, base], [W + 760, H + 260], [-760, H + 260]);
   st.floor(c, fl, { fill: o.floorColor ?? '#6a4f44', far: lightOf(o.floorColor ?? '#6a4f44', 0.2, '#ffffff'), rows: 4, cols: 11, bias: 1.5, joint: '#00000040', line: 0 });
   cel(c, poly([[-260, base - 14], [W + 260, base - 14], [W + 260, base + 16], [-260, base + 16]]), { fill: shadeOf(stone, 0.6), flat: true, line: 5 });
@@ -228,17 +253,17 @@ export function hall(c, o = {}) {
 }
 // burst(): a backdrop for a reaction close-up: rays fanning out from behind the head.
 //   x, y (centre), color (ray), dark (between rays), rays (count)
-export function burst(c, o = {}) {
+function draw_burst(c, o = {}) {
   const x = o.x ?? W / 2, y = o.y ?? H * 0.45, a = o.color ?? '#f2a51e', b = o.dark ?? '#1b1830', n = o.rays ?? 13, R = 1700;
   c.fillStyle = b; c.fillRect(-260, -260, W + 520, H + 520);
   const g = c.createRadialGradient(x, y, 0, x, y, 1100); g.addColorStop(0, lightOf(a, 0.5, '#fff6c0')); g.addColorStop(0.45, a); g.addColorStop(1, mix(a, b, 0.85));
   c.fillStyle = g;
-  for (let i = 0; i < n; i++) { const a0 = (i / n) * TAU + (o.turn ?? 0.1), a1 = a0 + TAU / n * 0.5; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a0) * R, y + Math.sin(a0) * R); c.lineTo(x + Math.cos(a1) * R, y + Math.sin(a1) * R); c.closePath(); c.fill(); }
+  for (let i = 0; i < n; i++) { const a0 = (i / n) * TAU + (o.turn ?? 0.1) + (lifeEnabled(o) ? motionTime(o)*Math.PI/90 : 0), a1 = a0 + TAU / n * 0.5; c.beginPath(); c.moveTo(x, y); c.lineTo(x + Math.cos(a0) * R, y + Math.sin(a0) * R); c.lineTo(x + Math.cos(a1) * R, y + Math.sin(a1) * R); c.closePath(); c.fill(); }
   glow(c, x, y, 620, lightOf(a, 0.6, '#ffffff'), 0.6);
   st.vignette(c, { strength: 0.5, color: b });
 }
 // gloom(): a dark, brushy nowhere for a menacing or private close-up; the face is lit by its own rim.
-export function gloom(c, o = {}) {
+function draw_gloom(c, o = {}) {
   const col = o.color ?? '#2a2a30', r = rng(o.seed ?? 4);
   c.fillStyle = linear(c, 0, -200, 0, H + 200, lightOf(col, 0.16, '#ffffff'), shadeOf(col, 0.7)); c.fillRect(-260, -260, W + 520, H + 520);
   for (let i = 0; i < 14; i++) { const y = -200 + r() * (H + 400), x = -260 + r() * W; brush(c, [[x, y], [x + 500 + r() * 500, y + (r() - 0.5) * 60], [x + 1100 + r() * 600, y + (r() - 0.5) * 90]], [0, 26 + r() * 30, 0], alpha(r() < 0.5 ? '#000000' : '#ffffff', 0.05)); }
@@ -246,10 +271,38 @@ export function gloom(c, o = {}) {
   st.vignette(c, { strength: 0.55, color: '#050308' });
 }
 // tabletop(): looking down at a table or the ground for an object close-up (a document, a coin, a bucket).
-export function tabletop(c, o = {}) {
+function draw_tabletop(c, o = {}) {
   const wood = o.wood ?? '#8a6238';
   st.planks(c, st.rectQuad(-260, -260, W + 520, H + 520), { n: o.boards ?? 5, fill: wood, grain: 3, knots: 0.5, gap: 7, line: 0, seed: o.seed ?? 21 });
   st.castShadow(c, [[-260, -260], [700, -260], [200, H + 260], [-260, H + 260]], { alpha: 0.4 });
   if (o.pool !== false) glow(c, o.x ?? W / 2, o.y ?? H / 2, 760, '#fff0c0', 0.42);
   st.vignette(c, { strength: 0.46 });
 }
+
+function place(c, kind, o, draw) {
+  if ((o.still || o.life === false) && S.clock?.life) return withStyle({clock:{...S.clock,life:false}},()=>draw(c));
+  const m = elementMotion('place', kind, o);
+  const result = draw(c);
+  if (o.ambient !== false && lifeEnabled(o)) {
+    const indoor = ['plankRoom','hall','tabletop','gloom','wallSide'].includes(kind);
+    if (!['burst','cypress'].includes(kind)) st.atmosphere(c, { ...o, seed:m.seed, indoor,
+      birds: !indoor && kind !== 'nightField', crowd: kind === 'street' && o.crowd === true, crowdX:o.crowdX??o.vp?.[0]??960,
+      horizon:o.horizon ?? o.vp?.[1] ?? 600, leaves:kind==='hills' });
+  }
+  return result;
+}
+export function hills(c,o={}) { return place(c,'hills',o,cc=>draw_hills(cc,o)); }
+export function street(c,o={}) { return place(c,'street',o,cc=>draw_street(cc,o)); }
+export function wallSide(c,o={}) { return place(c,'wallSide',o,cc=>draw_wallSide(cc,o)); }
+export function ramparts(c,o={}) { return place(c,'ramparts',o,cc=>draw_ramparts(cc,o)); }
+export function nightField(c,o={}) { return place(c,'nightField',o,cc=>draw_nightField(cc,o)); }
+export function plankRoom(c,o={}) { return place(c,'plankRoom',o,cc=>draw_plankRoom(cc,o)); }
+export function hall(c,o={}) { return place(c,'hall',o,cc=>draw_hall(cc,o)); }
+export function tabletop(c,o={}) { return place(c,'tabletop',o,cc=>draw_tabletop(cc,o)); }
+export function heavens(c,o={}) {
+  if ((o.still || o.life === false) && S.clock?.life) return withStyle({clock:{...S.clock,life:false}},()=>draw_heavens(c,o));
+  return draw_heavens(c,o);
+}
+export function gloom(c,o={}) { return place(c,'gloom',o,cc=>draw_gloom(cc,o)); }
+export function burst(c,o={}) { const m=elementMotion('burst',o.seed??1,o); return living(c,cc=>draw_burst(cc,o),{...o,seed:m.seed,float:false}); }
+export function cypress(c,x,y,s=1,o={}) { const m=elementMotion('cypress','cypress',o); return living(c,cc=>draw_cypress(cc,x,y,s,o),{...o,seed:m.seed,kind:'wind',float:true,amount:1,cached:true,pivot:[x,y]}); }

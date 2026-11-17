@@ -1,9 +1,10 @@
 import { randomUUID } from "node:crypto";
+import { constants } from "node:fs";
 import { copyFile, cp, lstat, mkdir, readdir, readFile, realpath, rename, rm, stat, writeFile, appendFile } from "node:fs/promises";
 import path from "node:path";
 import { parseDocument } from "yaml";
 import { confinedFile, inside, mediaType } from "./paths.ts";
-import type { ConversationEvent, Project, ProjectEvent, ProviderId, Skill, WorkspaceFile } from "./types.ts";
+import type { ConversationEvent, NarrationEngine, Project, ProjectEvent, ProviderId, Skill, WorkspaceFile } from "./types.ts";
 
 export { confinedFile, mediaType } from "./paths.ts";
 
@@ -38,6 +39,30 @@ function safeId(id: string): string {
   return id;
 }
 const slug = (name: string) => name.toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "").slice(0, 60) || "project";
+function validateNarration(engine: unknown, skill: Skill): void {
+  if (engine !== undefined && engine !== null) {
+    if (engine !== "kokoro" && engine !== "zonos" && engine !== "gemini") throw new Error("Choose Kokoro, Zonos, Gemini or the story default.");
+    if (skill.name !== "ink-history") throw new Error("Narration selection is available for ink-history projects.");
+  }
+}
+export const MAX_UPLOAD_BYTES = 100 * 1024 * 1024;
+function projectName(name: string): string {
+  name = name.trim();
+  if (!name || name.length > 120) throw new Error("Give the project a name of 1–120 characters.");
+  return name;
+}
+function uploadName(name: string): string {
+  // Accept names from either platform, but never paths, alternate streams or device names.
+  return path.posix.basename(name.replaceAll("\\", "/")).replace(/[<>:"/\\|?*\x00-\x1f]/g, "_").replace(/[. ]+$/g, "").slice(0, 180) || "file";
+}
+function validSkill(value: unknown, id?: string): value is Skill {
+  if (!value || typeof value !== "object") return false;
+  const skill = value as Skill;
+  return typeof skill.id === "string" && /^[a-f0-9-]{36}$/.test(skill.id) && (!id || skill.id === id)
+    && typeof skill.name === "string" && /^[a-z0-9]+(?:-[a-z0-9]+)*$/.test(skill.name) && skill.name.length <= 64
+    && typeof skill.description === "string" && !!skill.description.trim()
+    && typeof skill.importedAt === "string" && Number.isFinite(Date.parse(skill.importedAt));
+}
 
 export class WorkspaceStore {
   readonly dataDir: string;
@@ -50,8 +75,10 @@ export class WorkspaceStore {
   private skillDir(id: string) { return path.join(this.dataDir, "skills", safeId(id)); }
   private projectDir(id: string) { return path.join(this.dataDir, "projects", safeId(id)); }
   private serial<T>(id: string, work: () => Promise<T>): Promise<T> {
+    safeId(id);
     const next = (this.writes.get(id) ?? Promise.resolve()).catch(() => {}).then(work);
     this.writes.set(id, next);
+    void next.finally(() => { if (this.writes.get(id) === next) this.writes.delete(id); }).catch(() => {});
     return next;
   }
   async importSkill(source: string): Promise<Skill> {
@@ -76,21 +103,30 @@ export class WorkspaceStore {
     return (await readdir(dir, { withFileTypes: true }).catch(() => [])).filter(e => e.isDirectory() && /^[a-f0-9-]{36}$/.test(e.name)).map(e => e.name);
   }
   async skills(): Promise<Skill[]> {
-    return Promise.all((await this.ids(path.join(this.dataDir, "skills"))).map(async id => JSON.parse(await readFile(path.join(this.skillDir(id), "skill.json"), "utf8")) as Skill));
+    const skills = await Promise.all((await this.ids(path.join(this.dataDir, "skills"))).map(async id => {
+      try {
+        const skill: unknown = JSON.parse(await readFile(path.join(this.skillDir(id), "skill.json"), "utf8"));
+        return validSkill(skill, id) ? skill : null;
+      } catch { return null; /* One damaged library entry must not hide the others. */ }
+    }));
+    return skills.filter((skill): skill is Skill => skill !== null).sort((a, b) => b.importedAt.localeCompare(a.importedAt));
   }
-  async createProject(name: string, skillId: string, provider: ProviderId = "codex"): Promise<Project> {
+  async deleteSkill(id: string): Promise<void> {
+    await this.serial(id, () => rm(this.skillDir(id), { recursive: true, force: true }));
+  }
+  async createProject(name: string, skillId: string, provider: ProviderId = "codex", narrationEngine?: NarrationEngine): Promise<Project> {
     if (provider !== "claude-code" && provider !== "codex") throw new Error("Choose Claude Code or Codex.");
-    name = name.trim();
-    if (!name || name.length > 120) throw new Error("Give the project a name of 1–120 characters.");
+    name = projectName(name);
     const skill = (await this.skills()).find(s => s.id === skillId);
     if (!skill) throw new Error("Choose an imported skill.");
+    validateNarration(narrationEngine, skill);
     const id = randomUUID();
     const workspace = path.join(this.projectsDir, `${slug(name)}-${id.slice(0, 8)}`);
     await mkdir(workspace, { recursive: true });
     await this.installSkill(skillId, workspace, provider);
     await Promise.all([mkdir(path.join(workspace, "uploads")), mkdir(path.join(workspace, "outbox"))]);
     const now = new Date().toISOString();
-    const project: Project = { id, name, workspace, provider, skill, createdAt: now, updatedAt: now };
+    const project: Project = { id, name, workspace, provider, skill, ...(narrationEngine ? { narrationEngine } : {}), createdAt: now, updatedAt: now };
     await atomicJson(path.join(this.projectDir(id), "project.json"), project);
     return project;
   }
@@ -104,12 +140,48 @@ export class WorkspaceStore {
   }
   async project(id: string): Promise<Project> {
     const project = JSON.parse(await readFile(path.join(this.projectDir(id), "project.json"), "utf8")) as Project;
+    if (!project || project.id !== id || typeof project.name !== "string" || !project.name.trim() || project.name.length > 120
+      || typeof project.workspace !== "string" || !path.isAbsolute(project.workspace) || !validSkill(project.skill)
+      || typeof project.createdAt !== "string" || !Number.isFinite(Date.parse(project.createdAt))
+      || typeof project.updatedAt !== "string" || !Number.isFinite(Date.parse(project.updatedAt))
+      || (project.provider !== undefined && project.provider !== "claude-code" && project.provider !== "codex")
+      || (project.narrationEngine !== undefined && (project.skill.name !== "ink-history" || !["kokoro", "zonos", "gemini"].includes(project.narrationEngine)))
+      || (project.sessionId !== undefined && typeof project.sessionId !== "string")) throw new Error("This project's saved details are damaged.");
     // Projects created before provider selection always used Claude Code.
     return { ...project, provider: project.provider ?? "claude-code" };
   }
   async projects(): Promise<Project[]> {
-    const projects = await Promise.all((await this.ids(path.join(this.dataDir, "projects"))).map(id => this.project(id)));
-    return projects.sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+    const projects = await Promise.all((await this.ids(path.join(this.dataDir, "projects"))).map(id => this.project(id).catch(() => null)));
+    return projects.filter((project): project is Project => project !== null).sort((a, b) => b.updatedAt.localeCompare(a.updatedAt));
+  }
+  async renameProject(id: string, name: string): Promise<Project> {
+    name = projectName(name);
+    return this.serial(id, async () => {
+      const project = { ...await this.project(id), name, updatedAt: new Date().toISOString() };
+      await atomicJson(path.join(this.projectDir(id), "project.json"), project);
+      return project;
+    });
+  }
+  async setNarrationEngine(id: string, engine: NarrationEngine | null): Promise<Project> {
+    return this.serial(id, async () => {
+      const project = await this.project(id);
+      validateNarration(engine, project.skill);
+      if (engine === null) delete project.narrationEngine;
+      else {
+        if (engine === undefined) throw new Error("Choose Kokoro, Zonos, Gemini or the story default.");
+        project.narrationEngine = engine;
+      }
+      project.updatedAt = new Date().toISOString();
+      await atomicJson(path.join(this.projectDir(id), "project.json"), project);
+      return project;
+    });
+  }
+  async deleteProject(id: string): Promise<Project> {
+    return this.serial(id, async () => {
+      const project = await this.project(id);
+      await rm(this.projectDir(id), { recursive: true, force: true });
+      return project;
+    });
   }
   async record(id: string, event: ConversationEvent): Promise<ProjectEvent> {
     return this.serial(id, async () => {
@@ -138,19 +210,34 @@ export class WorkspaceStore {
     return events;
   }
   async attach(id: string, sources: string[]): Promise<string[]> {
-    const project = await this.project(id);
-    const files: string[] = [];
-    for (const source of sources) {
-      if (!(await stat(source)).isFile()) throw new Error("Attach regular files only.");
-      const relative = path.join("uploads", `${randomUUID().slice(0, 8)}-${path.basename(source)}`);
-      const uploads = path.join(project.workspace, "uploads");
-      await mkdir(uploads, { recursive: true });
-      // A replaced uploads directory must not route a copy outside the workspace.
-      if (!inside(await realpath(project.workspace), await realpath(uploads))) throw new Error("Uploads folder is outside the workspace.");
-      await copyFile(source, path.join(project.workspace, relative));
-      files.push(relative.replaceAll(path.sep, "/"));
-    }
-    return files;
+    return this.serial(id, async () => {
+      const project = await this.project(id);
+      const files: string[] = [];
+      for (const source of sources) {
+        if (!(await stat(source)).isFile()) throw new Error("Attach regular files only.");
+        const relative = await this.uploadPath(project, source);
+        await copyFile(source, path.join(project.workspace, relative), constants.COPYFILE_EXCL);
+        files.push(relative);
+      }
+      return files;
+    });
+  }
+  private async uploadPath(project: Project, name: string): Promise<string> {
+    const uploads = path.join(project.workspace, "uploads");
+    await mkdir(uploads, { recursive: true });
+    // A replaced uploads directory must not route a write outside the workspace.
+    if (!inside(await realpath(project.workspace), await realpath(uploads))) throw new Error("Uploads folder is outside the workspace.");
+    return `uploads/${randomUUID().slice(0, 8)}-${uploadName(name)}`;
+  }
+  async attachData(id: string, name: string, data: Uint8Array): Promise<string[]> {
+    if (typeof name !== "string") throw new Error("Expected a file name.");
+    if (!(data instanceof Uint8Array) || !data.byteLength || data.byteLength > MAX_UPLOAD_BYTES) throw new Error("Paste a file between 1 byte and 100 MB.");
+    return this.serial(id, async () => {
+      const project = await this.project(id);
+      const relative = await this.uploadPath(project, name);
+      await writeFile(path.join(project.workspace, relative), data, { flag: "wx" });
+      return [relative];
+    });
   }
   async files(id: string): Promise<WorkspaceFile[]> {
     const { workspace } = await this.project(id);

@@ -7,6 +7,8 @@
 //   node render.mjs clip   <story.mjs> <work> <shot> [fps]  one shot as a silent mp4 -> work/clips/<shot>.mp4
 //   node render.mjs strip  <story.mjs> <work> <shot> [from] [to]   12 fps filmstrip of a shot -> work/strips/<shot>.jpg
 //   node render.mjs video  <story.mjs> <work> [--jobs n]    the whole film, silent -> work/picture.mp4
+//   node render.mjs draft  <story.mjs> <work> [--shot id] [--start sec --end sec] [--width 960 --fps 12 --jobs 6]
+//     silent motion-draft.mp4 + motion-draft.json; keeps authored timing, needs no audio/review
 // <shot> is a shot id or a 1-based number. <t> is seconds from the start of the shot (or `cue1`, `end`, `50%`).
 import fs from 'node:fs';
 import os from 'node:os';
@@ -20,6 +22,10 @@ import { loadStory, describe, speechSpec, draftTimeline, context, drawFrame, ima
 const HERE = path.dirname(fileURLToPath(import.meta.url));
 const config = () => { try { return JSON.parse(fs.readFileSync(path.join(HERE, 'config.json'), 'utf8').replace(/^\uFEFF/, '')); } catch { return {}; } };
 const FFMPEG = () => process.env.FFMPEG || config().ffmpeg || 'ffmpeg';
+// 960px preserves thin ink/antialiasing under the 480px motion analyser. Drawing
+// directly at 480px undercounted stale time by ~7pp; 960px differed <1pp in
+// both old/new example comparisons. 12Hz matches liveness; final QA still rules.
+const DRAFT_WIDTH = 960, DRAFT_FPS = 12;
 
 function timelineFor(story, work, forceDraft = false) {
   const file = path.join(work, 'timeline.json');
@@ -124,23 +130,101 @@ function contactSheet(work, rows, tl) {
   if (pages > 1) fs.copyFileSync(path.join(work, 'contact-sheet-1.jpg'), path.join(work, 'contact-sheet.jpg'));
 }
 // ------------------------------------------------------------------ video
-function encoder(out, fps, extra = []) {
-  const child = spawn(FFMPEG(), ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${W}x${H}`, '-r', String(fps), '-i', 'pipe:0', '-an',
-    '-c:v', 'libx264', '-preset', 'medium', '-crf', '17', '-pix_fmt', 'yuv420p', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', ...extra, out], { stdio: ['pipe', 'inherit', 'inherit'] });
+function encoder(out, fps, extra = [], width = W, height = H, draft = false) {
+  const child = spawn(FFMPEG(), ['-v', 'error', '-y', '-f', 'rawvideo', '-pix_fmt', 'rgba', '-s', `${width}x${height}`, '-r', String(fps), '-i', 'pipe:0', '-an',
+    '-c:v', 'libx264', '-preset', draft ? 'veryfast' : 'medium', ...(draft ? ['-threads', '1'] : []), '-crf', '17', '-pix_fmt', 'yuv420p', '-color_primaries', 'bt709', '-color_trc', 'bt709', '-colorspace', 'bt709', ...extra, out], { stdio: ['pipe', 'inherit', 'inherit'] });
   let error = null; child.on('error', e => { error = e; }); child.stdin.on('error', e => { error = e; });
   return { write: async buf => { if (error) throw error; if (!child.stdin.write(buf)) await once(child.stdin, 'drain'); }, close: async () => { child.stdin.end(); const [code] = await once(child, 'exit'); if (code !== 0) throw new Error(`ffmpeg exited with ${code}`); } };
 }
-async function renderRange(story, tl, out, fps, f0, f1, quiet) {
-  const cv = createCanvas(W, H), c = cv.getContext('2d'), enc = encoder(out, fps);
+function draftSampleTime(story, tl, f, fps) {
+  const sourceFps = story.fps ?? 30;
+  return Math.min(Math.ceil(tl.duration * sourceFps) - 1, Math.ceil((f + 0.5) * sourceFps / fps - 1e-8) - 1) / sourceFps;
+}
+async function renderRange(story, tl, out, fps, f0, f1, quiet, width = W, draft = false) {
+  const height = Math.round(H * width / W / 2) * 2;
+  const cv = createCanvas(width, height), c = cv.getContext('2d'), enc = encoder(out, fps, [], width, height, draft);
   let i = 0; const t0 = Date.now();
   for (let f = f0; f < f1; f++) {
-    const time = f / fps; while (i < tl.shots.length - 1 && time >= tl.shots[i].end) i++;
+    // Match ffmpeg fps=12:round=near's *selected source frame*, not merely
+    // output PTS. At 60fps its first sample is frame 2 (33ms), then 7, 12...
+    // This matters for stepped mouths/pose swaps and avoids phase bias in QA.
+    // Event QA verifies five-frame/60Hz transient pops at all five phases:
+    // never average source frames here, or a one-sample event can disappear.
+    const time = draft ? draftSampleTime(story, tl, f, fps) : f / fps;
+    while (i < tl.shots.length - 1 && time >= tl.shots[i].end) i++;
     while (i > 0 && time < tl.shots[i].start) i--;
-    drawFrame(c, story, tl, i, Math.max(0, time - tl.shots[i].start), 1);
+    drawFrame(c, story, tl, i, Math.max(0, time - tl.shots[i].start), width / W);
     await enc.write(cv.data());
     if (!quiet && (f - f0) % 150 === 0) process.stderr.write(`frame ${f - f0}/${f1 - f0}  ${(((Date.now() - t0) / 1000) / Math.max(1, f - f0) * 1000).toFixed(0)} ms/frame\n`);
   }
   await enc.close();
+}
+async function draft(story, storyFile, work, flags) {
+  const tl = timelineFor(story, work), fps = Number(flags.fps ?? DRAFT_FPS), width = Number(flags.width ?? DRAFT_WIDTH);
+  const jobs = Number(flags.jobs ?? Math.max(1, Math.min(6, os.cpus().length - 2)));
+  if (!Number.isFinite(fps) || fps < 1 || fps > 60) throw new Error('Draft --fps must be between 1 and 60.');
+  if (!Number.isInteger(width) || width < 480 || width > W || width % 4) throw new Error(`Draft --width must be a multiple of 4 between 480 and ${W}.`);
+  if (!Number.isInteger(jobs) || jobs < 1 || jobs > 32) throw new Error('--jobs must be an integer between 1 and 32.');
+  let start = flags.start === undefined ? 0 : Number(flags.start), end = flags.end === undefined ? tl.duration : Number(flags.end);
+  if (!Number.isFinite(start + end) || start < 0 || end > tl.duration + 1e-6 || end <= start) throw new Error(`Draft range needs 0 <= --start < --end <= ${tl.duration}.`);
+  if (flags.shot !== undefined) {
+    const i = shotIndex(story, String(flags.shot));
+    start = Math.max(start, tl.shots[i].start); end = Math.min(end, tl.shots[i].end);
+  }
+  const f0 = Math.ceil(start * fps - 1e-8), f1 = Math.ceil(end * fps - 1e-8), frames = f1 - f0;
+  if (frames < 1) throw new Error('Selected draft range contains no frames.');
+  const out = path.join(work, 'motion-draft.mp4'), meta = path.join(work, 'motion-draft.json');
+  // Remove stale metadata first; a failed worker must not look like a new draft.
+  fs.rmSync(meta, { force: true });
+  const started = Date.now();
+  // Dynamic shot-sized jobs avoid rebuilding an expensive set in two adjacent
+  // workers. Split only unusually long shots to keep cores busy. This relies
+  // solely on timeline bounds, never on drawing or cache implementation details.
+  const boundaries = [f0];
+  for (const s of tl.shots.slice(1)) {
+    let f = Math.max(f0, Math.min(f1, Math.floor(s.start * fps)));
+    while (f > f0 && draftSampleTime(story, tl, f - 1, fps) >= s.start) f--;
+    while (f < f1 && draftSampleTime(story, tl, f, fps) < s.start) f++;
+    if (f > boundaries.at(-1) && f < f1) boundaries.push(f);
+  }
+  boundaries.push(f1);
+  const target = Math.max(12, Math.ceil(frames / jobs)), parts = [];
+  for (let i = 1; i < boundaries.length; i++) {
+    const a = boundaries[i - 1], b = boundaries[i], n = b - a > target * 1.5 ? Math.ceil((b - a) / target) : 1;
+    for (let k = 0; k < n; k++) parts.push([a + Math.round((b - a) * k / n), a + Math.round((b - a) * (k + 1) / n)]);
+  }
+  const count = Math.min(jobs, parts.length);
+  if (count === 1) await renderRange(story, tl, out, fps, f0, f1, true, width, true);
+  else {
+    const dir = fs.mkdtempSync(path.join(work, 'motion-parts-'));
+    try {
+      let next = 0;
+      const piece = (a, b, k) => new Promise((resolve, reject) => {
+        const child = spawn(process.execPath, [fileURLToPath(import.meta.url), 'draft-range', storyFile, work, String(a), String(b), path.join(dir, `part-${k}.mp4`), '--fps', String(fps), '--width', String(width)], { stdio: ['ignore', 'inherit', 'inherit'] });
+        child.on('error', reject); child.on('exit', code => code === 0 ? resolve() : reject(new Error(`draft worker ${k} exited with ${code}`)));
+      });
+      const results = await Promise.allSettled(Array.from({ length: count }, async () => {
+        while (next < parts.length) { const k = next++; await piece(...parts[k], k); }
+      }));
+      const failed = results.find(r => r.status === 'rejected'); if (failed) throw failed.reason;
+      const list = path.join(dir, 'list.txt'); fs.writeFileSync(list, parts.map((_, k) => `file 'part-${k}.mp4'`).join('\n'));
+      const r = spawnSync(FFMPEG(), ['-v', 'error', '-y', '-f', 'concat', '-safe', '0', '-i', list, '-c', 'copy', out], { stdio: 'inherit' });
+      if (r.status !== 0) throw new Error('joining draft parts failed');
+    } finally { fs.rmSync(dir, { recursive: true, force: true }); }
+  }
+  const offset = f0 / fps, duration = frames / fps;
+  const shots = tl.shots.map((s, i) => ({ ...s, index: i + 1, name: story.shots[i].name ?? s.id,
+    kind: story.shots[i].kind, start: Math.max(0, s.start - offset), end: Math.min(duration, s.end - offset) }))
+    .filter(s => s.end > s.start);
+  // Rounding the final frame can extend the encode by <1/fps; attribute that
+  // final display interval to its actual shot, as the authoritative encode does.
+  if (shots.length) shots.at(-1).end = duration;
+  const report = { picture: out, fps, width, height: Math.round(H * width / W / 2) * 2, frames, duration,
+    workers: count, parts: count === 1 ? 1 : parts.length,
+    sourceStart: offset, sourceEnd: f1 / fps, requestedStart: start, requestedEnd: end,
+    draftTiming: !!tl.draft, elapsedSeconds: (Date.now() - started) / 1000, shots };
+  fs.writeFileSync(meta, JSON.stringify(report, null, 2));
+  console.log(`DRAFT picture only: ${width}px, ${fps}fps, ${duration.toFixed(3)}s in ${report.elapsedSeconds.toFixed(2)}s -> ${out}${tl.draft ? ' (estimated timing; prepare before final)' : ''}`);
 }
 async function video(story, storyFile, work, jobs) {
   const tl = timelineFor(story, work), fps = story.fps ?? 30, frames = Math.ceil(tl.duration * fps), out = path.join(work, 'picture.mp4');
@@ -172,7 +256,9 @@ async function main() {
   const work = path.resolve(workArg ?? path.join(path.dirname(storyFile), 'work')); fs.mkdirSync(work, { recursive: true });
   if (mode === 'stills') { await stills(story, work, more); return; }
   if (mode === 'video') { await video(story, storyFile, work, Number(flags.jobs ?? Math.max(1, Math.min(6, os.cpus().length - 2)))); return; }
+  if (mode === 'draft') { await draft(story, storyFile, work, flags); return; }
   const tl = timelineFor(story, work, !!flags.draft);
+  if (mode === 'draft-range') { await renderRange(story, tl, more[2], Number(flags.fps), Number(more[0]), Number(more[1]), true, Number(flags.width), true); return; }
   if (mode === 'range') { await renderRange(story, tl, more[2], story.fps ?? 30, Number(more[0]), Number(more[1]), true); return; }
   const i = shotIndex(story, more[0]), s = context(story, tl, i);
   if (mode === 'frame') {

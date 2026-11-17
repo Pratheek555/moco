@@ -7,10 +7,16 @@ description: Make a vertical animated cartoon short. Offers 10 ideas, writes the
 
 The look: flat 2D bean-head cartoon characters (canvas-drawn "cards" with plum outlines) in a colourful 3D world with black ink outlines, painted textures, depth-of-field and gliding cameras. The output is 1080x1920, 30 fps, exactly as long as the voiceover. The user's voice is unchanged. The music bed and SFX are synthesized and sit at **50 % of the voice level**. Proven on "The Soldier Who Never Left" (19.7 s, 8 shots).
 
+## Optional Gemini narration
+
+Uploaded narration always wins and remains unchanged. When no recording was supplied, `GEMINI_API_KEY` is present, and neither the user nor the Moco preference chose another voice, narrate the approved script with the imported skill's `kit/gemini_tts.py`: `python <skill>/kit/gemini_tts.py voice.wav --text-file script.txt --style "brisk, wry"` (optional `--voice Charon`, otherwise `MOCO_GEMINI_TTS_VOICE`, then Charon). Put delivery direction only in `--style`, never in the spoken script; this helper uses the user's billed Google key and reads no other credential. Feed that unretimed 24 kHz mono WAV to the existing `timing.py voice.wav script.txt --out work`, then follow Stage 4 with measured duration, phrase alignment and the same music/SFX mix; do not use the example frog film's recording or fixed timestamps. If no key is present, keep the current recording/upload flow (or an explicitly chosen local engine); the helper exits with a clear message so you can fall back. The helper ships inside the skill folder and does not depend on the repo's `artifacts/` directory. Never display or print the key.
+
 ## Rules
 - Stories, characters and shots are always original. Never recreate another creator's video shot for shot. Offer an original take on the same idea instead.
 - No real, named living people as characters, and no brand mascots or logos.
-- No captions unless the user asks. Diegetic text (a carved message, a sign) is fine, and it must read correctly (not mirrored).
+- No captions unless the user asks. Diegetic text (a carved message, a sign) is fine, and it must read correctly (not mirrored). The frame-one hook text below is not a caption and is always present on a feed Short.
+- **Frame one is the hook.** In a Shorts feed most viewers decide to swipe on the first frame, before they know the story. Frame 0 (no fade-in) therefore shows one large subject filling the frame, the famous thing itself, recognisable at 270 px wide; a bright, simple, saturated background that is still a real place; and the claim in very large text: 3 to 6 words, all caps, very heavy sans-serif with a thick dark outline, 2 or 3 lines across roughly 80 % of the width (cap height about 110 px or more at 1080x1920), kept out of the top 8 %, the bottom 20 % and the right-hand 12 % where the Shorts interface sits. The text is readable on frame 0, stays about two seconds, then leaves. The subject is already doing the surprising thing on frame 0; camera drift alone does not count. No title card, date card, label or small caption at the start.
+- **15 to 20 seconds, and it loops.** A short that is longer than its payoff loses viewers steadily to the end. The claim is spoken within the first two seconds, the payoff lands by the middle, and the last line runs grammatically straight back into the first line while the last picture returns to the first, so the film replays without a seam: no end card, no fade, no tail of silence. Go longer only when the user asks for it.
 - Never edit or re-time the voice. The picture is timed to it, and every visual reaction lands 0-3 frames before its word.
 - **Audio levels:** the music bed sits at 50 % of the voice level (−6 dB, gated RMS). SFX sit at 50 % or slightly less, with peaks capped so no hit pokes out over the narration. Always mix with `mix.py`, never by hand. Use no ducking or compression that would change this ratio; only one linear gain plus a peak limiter goes on the whole mix.
 - Keep the user informed with a task list. Send a stills contact sheet before the long render.
@@ -19,15 +25,16 @@ The look: flat 2D bean-head cartoon characters (canvas-drawn "cards" with plum o
 If an audio file is already attached, skip to Stage 4. If a script was also given, use it for the timing.
 Otherwise ask one AskUserQuestion (or plain text if that tool is missing): **"Where are you starting from?"**
 - **Voiceover ready**: ask them to upload it, plus the script text if they have it (the script makes the timing exact). Go to Stage 4 when it arrives.
-- **I have a script, need the voiceover**: tighten the script per Stage 3 if needed, give it back with recording tips, ask for the upload, then go to Stage 4.
+- **I have a script, need the voiceover**: tighten the script per Stage 3 if needed, then use optional Gemini narration when available and no other voice was chosen; otherwise give recording tips and ask for the upload. Go to Stage 4 when the recording is ready.
 - **Need video ideas and a script**: go to Stage 2.
-Also ask the target length if they haven't said. The default is 20-30 s; 45-60 s is allowed.
+Also ask the target length if they haven't said. The default is 15-20 s, which is what the hook and loop rules above are built for; 30 s or 45-60 s is allowed when the user wants it.
 
 ## Stage 2: 10 video ideas
 Give exactly 10 ideas in one reply, numbered, and ask the user to reply with a number (or "more"). Each idea gets:
-- **Title** (5-8 words, curiosity-driven, e.g. "The Soldier Who Never Left").
-- **Hook line**: the first spoken sentence, a paradox stated as fact ("A man sold the Eiffel Tower. Twice.").
-- **The twist** in one line (the ironic payoff that ends the video).
+- **Title**: a subject the viewer already recognises plus a concrete surprising claim ("The Man Who Sold the Eiffel Tower", "The Statue of Liberty Was Originally Brown"), 60 characters or fewer. Vague or poetic titles ("An Ocean Couldn't Stop Him") tell a stranger nothing.
+- **Hook line**: the first spoken sentence, the claim stated as fact in about seven words or fewer ("A man sold the Eiffel Tower. Twice.").
+- **Hook text**: the 3 to 6 words shown very large on frame one.
+- **The twist** in one line (the payoff, which lands by the middle of a 15-20 s short).
 - **Why it animates well**: the 2-3 big visual moments (a collapse, a reveal, a chase).
 - **True or legend**: say plainly whether it is documented history, a disputed account or folklore.
 
@@ -40,7 +47,15 @@ What makes an idea "perfect" for this format:
 - No real living people as the butt of a joke, nothing graphic and nothing political.
 
 ## Stage 3: Script (after they pick)
-Write the narration only (no stage directions in the spoken text), sized at about 3.7 words/s: 20 s ≈ 75 words, 30 s ≈ 110, 60 s ≈ 220. Formula:
+Write the narration only (no stage directions in the spoken text), sized at about 3.7 words/s for a brisk human read: 15 s ≈ 55 words, 20 s ≈ 75, 30 s ≈ 110, 60 s ≈ 220. A slower voice needs fewer: local text-to-speech narrators have run 40-45 words in 16-18 s. When the voice is generated, make it first, measure it, and cut words instead of changing tempo.
+
+Formula for the default 15-20 s short:
+1. **Hook** (sentence 1, no setup): the claim, about seven words or fewer, finished within two seconds.
+2. **Payoff by the middle**: the one cause or mechanism that makes the claim true, with a concrete detail (when, where, who).
+3. **One more turn**: a consequence, an irony or a number. One beat, not a saga.
+4. **Loop line**: the last sentence is left open so that it runs straight into sentence 1 ("Picture that empty wall, and remember:" → "Someone stole the Mona Lisa."). Write the last line and the first line together and read them as one sentence.
+
+For a longer short the user asked for:
 1. **Hook** (sentence 1, no setup): the absurd fact.
 2. **Setting** in 1-2 lines: when, where, who, a concrete detail.
 3. **Escalation**, 2-4 beats, each bigger. Others doubt or mock. Use one exaggeration joke.
@@ -48,7 +63,7 @@ Write the narration only (no stage directions in the spoken text), sized at abou
 5. **Twist / payoff**: short, ironic, and the last words of the video.
 Use plain spoken English, contractions, sentences around 8-15 words, and numbers written as words. Never describe what the viewer already sees.
 
-Then reply with:
+If optional Gemini narration applies, synthesize the approved script and go to Stage 4 instead of waiting for an upload. Otherwise reply with:
 - The script in a copyable block, with the word count and estimated length.
 - A one-paragraph visual plan (the shots you'll animate).
 - Recording tips: one steady, warm narrator voice; ElevenLabs works well (a deep narrator voice, speed about 1.05-1.1, stability about 45-55 %). Mp3 or wav is fine. Leave natural pauses at sentence ends. Export without music.
@@ -75,12 +90,14 @@ Run `python3 timing.py voice.mp3 script.txt --out work`.
 
 ### 4.2 Shot plan (`work/PLAN.md` before code)
 Make one row per shot: frames, words, setting, light, camera move, characters/poses/expressions, effects and SFX cue.
-- Frame 0 is already the hook image.
+- Frame 0 is the hook frame from the Rules: one big subject, bright place, giant claim text, the surprising action already under way. Render frame 0 alone, view it at 270 px wide, and ask whether a stranger could name the subject and read the claim in under a second.
 - Usually one shot per phrase. Merge tiny phrases into the next shot.
+- Each clause gets its own large action. A framing that holds for more than about a second while the narration moves on reads as a still picture, even if something small keeps swinging or drifting; change the action or the framing.
+- In a looping short the last shot returns to the frame-0 picture, hook text included, on the loop line.
 - Illustrate every sentence literally. Props carry the jokes.
 - Vary shot sizes: hook MCU → wide reveal → two-shot → insert close-up on the key object → reaction close-up → environment move for the payoff.
 - Use light for beats: day for normal, golden for decline or drama, night-blue for explanation. A time jump gets a 6-frame white flash.
-- The twist line gets a sting (music stops, low hit, push-in with roll). The last shot's physical payoff lands on the final word.
+- The twist line gets a sting (music stops, low hit, push-in with roll). In a longer, non-looping short the last shot's physical payoff lands on the final word; in a looping short the payoff lands by the middle and the ending hands back to the opening.
 
 ### 4.3 World (`web/main.js`)
 Keep the engine sections: toon materials, ink contract, `add`/`tbox`, sky, lights, cards, render targets/post, `applyLight`, `drawActors`, `swapForNd`, `renderFrame`. Replace the example world between `// ---------- world ----------` and `// ---------- cards ----------`, plus the story parts of `worldState()`.

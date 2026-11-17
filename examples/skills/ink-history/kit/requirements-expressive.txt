@@ -1,0 +1,9 @@
+# Torch/torchaudio 2.6.0 are installed separately from the CPU or CUDA 12.4 index.
+transformers==4.53.3
+huggingface-hub==0.34.4
+safetensors==0.5.3
+accelerate==1.9.0
+tokenizers==0.21.4
+numpy==2.2.6
+soundfile==0.13.1
+requests==2.34.2

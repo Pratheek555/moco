@@ -7,6 +7,7 @@ import { CodexConnection } from "./codex-rpc.ts";
 import { CodexMessageMapper } from "./codex-messages.ts";
 import { handOffFile } from "./handoff.ts";
 import { QuestionBroker } from "./questions.ts";
+import { narrationEnvironment } from "./narration-environment.ts";
 import type { AgentProvider, AgentSession, ProviderStatus, SessionOptions } from "./types.ts";
 
 const object = (value: unknown): Record<string, unknown> => value && typeof value === "object" ? value as Record<string, unknown> : {};
@@ -34,7 +35,7 @@ export async function findCodex(): Promise<string | undefined> {
 
 async function accountStatus(connection: CodexConnection, version: string): Promise<ProviderStatus> {
   const { account } = await connection.request<{ account: { type: string } | null }>("account/read", { refreshToken: false });
-  return account?.type === "chatgpt" ? { ok: true, version } : { ok: false, version, reason: signIn };
+  return account?.type === "chatgpt" ? { ok: true, version } : { ok: false, issue: "signed-out", version, reason: signIn };
 }
 
 const tools = [
@@ -172,16 +173,16 @@ export function codexProvider(options: { executable?: string } = {}): AgentProvi
     id: "codex",
     async status() {
       const binary = await executable();
-      if (!binary) return { ok: false, reason: "Codex is not installed. Install the Codex CLI from developers.openai.com/codex/cli, then run codex login and sign in with ChatGPT." };
+      if (!binary) return { ok: false, issue: "not-installed", reason: "Codex is not installed. Install the Codex CLI from developers.openai.com/codex/cli, then run codex login and sign in with ChatGPT." };
       const connection = new CodexConnection(binary, codexEnvironment());
       try { return await accountStatus(connection, await connection.initialize()); }
-      catch (error) { return { ok: false, reason: `Codex could not connect: ${error instanceof Error ? error.message : String(error)} ${signIn}` }; }
+      catch (error) { return { ok: false, issue: "unavailable", reason: `Codex could not connect: ${error instanceof Error ? error.message : String(error)} ${signIn}` }; }
       finally { await connection.close(); }
     },
     async start(sessionOptions) {
       const binary = await executable();
       if (!binary) throw new Error("Codex is not installed. Install the Codex CLI and sign in with ChatGPT, then retry.");
-      const connection = new CodexConnection(binary, codexEnvironment(), sessionOptions.cwd);
+      const connection = new CodexConnection(binary, narrationEnvironment(codexEnvironment(), sessionOptions.narration), sessionOptions.cwd);
       try {
         const status = await accountStatus(connection, await connection.initialize());
         if (!status.ok) throw new Error(status.reason);

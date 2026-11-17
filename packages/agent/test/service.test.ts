@@ -109,3 +109,78 @@ it("rejects unavailable provider IDs at the service boundary", async () => {
   await expect(service.call("status", ["codex"])).rejects.toThrow("available AI provider");
   await expect(service.call("create", ["Invalid", "skill", "unknown" as "codex"])).rejects.toThrow("available AI provider");
 });
+
+it("exposes only non-idle project states, including waiting, background work and errors", async () => {
+  const p = await project();
+  expect(await service.call("states", [])).toEqual({});
+  await service.call("send", [p.id, "Start", []]);
+  expect(await service.call("states", [])).toEqual({ [p.id]: "running" });
+  options.onEvent({ type: "question", id: "waiting", questions: input.questions });
+  expect(await service.call("states", [])).toEqual({ [p.id]: "waiting" });
+  options.onEvent({ type: "error", message: "Try again" });
+  expect(await service.call("states", [])).toEqual({ [p.id]: "error" });
+  await service.call("stop", [p.id]);
+  expect(await service.call("states", [])).toEqual({});
+});
+
+it("routes rename, pasted bytes and library removal through storage", async () => {
+  const p = await project();
+  expect(await service.call("rename", [p.id, "Renamed"])).toMatchObject({ name: "Renamed", workspace: p.workspace });
+  const [file] = await service.call("attachData", [p.id, "paste.png", new Uint8Array([1, 2, 3])]);
+  expect(await readFile(path.join(p.workspace, file!))).toEqual(Buffer.from([1, 2, 3]));
+  await service.call("removeSkill", [p.skill.id]);
+  expect(await service.call("skills", [])).toEqual([]);
+  expect((await service.call("project", [p.id])).project.skill).toEqual(p.skill);
+});
+
+it("stops a waiting session before deletion, writes no interruption, and ignores late callbacks", async () => {
+  const p = await project();
+  await service.call("send", [p.id, "Start", []]);
+  const response = questions.ask("delete-question", input, new AbortController().signal);
+  const record = vi.spyOn(store, "record");
+  const staleEvent = options.onEvent;
+  expect(await service.call("remove", [p.id])).toMatchObject({ id: p.id, workspace: p.workspace });
+  expect(await response).toMatchObject({ behavior: "deny" });
+  expect(stopped).toBe(1);
+  expect(record.mock.calls.some(([, event]) => event.type === "turn_end")).toBe(false);
+  staleEvent({ type: "text", messageId: "late", text: "Do not recreate me" });
+  staleEvent({ type: "error", message: "Late stop failure" });
+  expect(await service.call("states", [])).toEqual({});
+  expect(await service.call("projects", [])).toEqual([]);
+  await expect(readFile(path.join(store.dataDir, "projects", p.id, "project.json"))).rejects.toThrow();
+  expect(await readFile(path.join(p.workspace, ".claude/skills/sample/SKILL.md"), "utf8")).toContain("Ask first");
+});
+
+it("deletes safely while provider startup is still in flight", async () => {
+  const p = await project();
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const slow: AgentProvider = { ...provider, start: vi.fn(async config => { await gate; return provider.start(config); }) };
+  service = new ProjectService(store, slow, () => {});
+  const send = service.call("send", [p.id, "Do not send after delete", []]);
+  await vi.waitFor(() => expect(slow.start).toHaveBeenCalledOnce());
+  const remove = service.call("remove", [p.id]);
+  await expect(service.call("rename", [p.id, "Too late"])).rejects.toThrow("being deleted");
+  release();
+  await send; await remove;
+  expect(sent).toEqual([]); expect(stopped).toBe(1);
+  expect(await service.call("states", [])).toEqual({});
+  await expect(store.conversation(p.id)).rejects.toThrow();
+});
+
+it("rejects an unsent message stopped during startup so the composer keeps its draft", async () => {
+  const p = await project();
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  const slow: AgentProvider = { ...provider, start: vi.fn(async config => { await gate; return provider.start(config); }) };
+  service = new ProjectService(store, slow, () => {});
+  const send = service.call("send", [p.id, "Keep my draft", []]);
+  const rejected = expect(send).rejects.toThrow("Your draft is kept");
+  await vi.waitFor(() => expect(slow.start).toHaveBeenCalledOnce());
+  const stop = service.call("stop", [p.id]);
+  release();
+  await rejected; await stop;
+  expect(sent).toEqual([]);
+  expect((await store.conversation(p.id)).some(record => record.event.type === "user")).toBe(false);
+  expect(await service.call("states", [])).toEqual({});
+});

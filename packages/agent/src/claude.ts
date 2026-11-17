@@ -12,6 +12,7 @@ import { handOffFile } from "./handoff.ts";
 export { handOffFile } from "./handoff.ts";
 import { MessageMapper } from "./messages.ts";
 import { QuestionBroker } from "./questions.ts";
+import { narrationEnvironment } from "./narration-environment.ts";
 import type { AgentProvider, AgentSession, ProviderStatus, SessionOptions } from "./types.ts";
 
 const exec = promisify(execFile);
@@ -36,15 +37,20 @@ export async function findClaude(): Promise<string | undefined> {
 async function loginStatus(executable: string): Promise<ProviderStatus> {
   const isJs = executable.endsWith(".js");
   const run = (args: string[]) => exec(isJs ? "node" : executable, isJs ? [executable, ...args] : args, { env: subscriptionEnvironment(), windowsHide: true, timeout: 15_000 });
+  let version: string | undefined;
   try {
-    const version = (await run(["--version"])).stdout.trim();
-    const { stdout } = await run(["auth", "status"]);
+    version = (await run(["--version"])).stdout.trim();
+    // Claude may exit nonzero for a signed-out account but still return valid auth JSON.
+    const { stdout } = await run(["auth", "status"]).catch((error: unknown) => {
+      if (error && typeof error === "object" && "stdout" in error && typeof error.stdout === "string" && error.stdout.trim()) return { stdout: error.stdout };
+      throw error;
+    });
     const auth = JSON.parse(stdout) as { loggedIn?: boolean; authMethod?: string; subscriptionType?: string };
     if (!auth.loggedIn || auth.authMethod !== "claude.ai" || !auth.subscriptionType)
-      return { ok: false, version, reason: "Sign in to your Claude subscription: open a terminal, run claude, and choose your Claude account. Moco does not accept API keys." };
+      return { ok: false, issue: "signed-out", version, reason: "Claude Code is signed out. Run claude in a terminal and sign in to your Claude subscription, then check again. Moco does not accept API keys." };
     return { ok: true, version };
   } catch {
-    return { ok: false, reason: "Claude Code is not logged in or could not start. Run claude in a terminal and sign in to your Claude subscription, then retry." };
+    return { ok: false, issue: "unavailable", version, reason: "Claude Code could not connect. Run claude in a terminal to check your connection and sign-in, then check again." };
   }
 }
 
@@ -88,7 +94,7 @@ function startSession(options: SessionOptions, executable: string): AgentSession
   )] });
   const session: Query = query({ prompt: input, options: {
     cwd, pathToClaudeCodeExecutable: executable, executable: "node",
-    env: subscriptionEnvironment(), abortController: abort,
+    env: narrationEnvironment(subscriptionEnvironment(), options.narration), abortController: abort,
     resume: options.sessionId,
     settingSources: ["project"],
     systemPrompt: { type: "preset", preset: "claude_code", append: `Use the user's chosen skill: ${options.skill} (.claude/skills/${options.skill}/SKILL.md). User uploads are in uploads/; messages give their paths. Hand preview and final files to the user with mcp__moco__SendUserFile. Deliver files within this workspace; copy files created elsewhere into outbox/ before handing them over. Media files in this workspace also appear in the file panel.` },
@@ -135,7 +141,7 @@ export function claudeProvider(): AgentProvider {
     id: "claude-code",
     async status() {
       const executable = await findClaude();
-      return executable ? loginStatus(executable) : { ok: false, reason: "Claude Code is not installed. Install it from claude.ai/install, run claude in a terminal, and sign in with your Claude subscription. Then retry." };
+      return executable ? loginStatus(executable) : { ok: false, issue: "not-installed", reason: "Claude Code is not installed. Install it from claude.ai/install, run claude in a terminal, and sign in with your Claude subscription. Then check again." };
     },
     async start(options) {
       const executable = await findClaude();

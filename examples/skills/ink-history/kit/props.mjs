@@ -2,36 +2,48 @@
 // one or two cel() shapes for the mass, a rim on the lit side, a few thinner ink lines for construction.
 // A prop is drawn at (x, y) with size s (1 = natural size next to a standing figure about 600 units tall).
 // When a character holds something, draw it from the arm's `hold` callback so the fingers wrap over it.
-import { S, TAU, rad, lerp, rng, lineFor, cel, stroke, brush, paint, solid, blob, curve, poly, circle, oval, tube, shadeOf, lightOf, label, scrawl, lw, Path2D } from './ink.mjs';
-import { pop } from './motion.mjs';
+import { S, TAU, rad, lerp, rng, lineFor, cel, stroke, brush, paint, solid, blob, curve, poly, circle, oval, tube, shadeOf, lightOf, label, scrawl, lw, Path2D, withStyle } from './ink.mjs';
+import { pop, living, elementMotion, lifeEnabled, motionTime, reveal, settle, unit, atTime, eventSchedule, declareEvent, onCue, cue, span, easeOut, ease } from './motion.mjs';
 import { PathOp } from '@napi-rs/canvas';
 
 const at = (c, x, y, s, rot, fn) => { c.save(); c.translate(x, y); c.rotate(rad(rot ?? 0)); c.scale(s, s); fn(); c.restore(); };
 const L = (o, s = 1, d = 6) => o.line ?? lineFor(d, s);
 
 // ------------------------------------------------------------------ paper things
-export function paper(c, x, y, s = 1, o = {}) {       // a sheet or notice; o.lines scribbles text rows, o.title a heading, o.seal a wax seal
+function draw_paper(c, x, y, s = 1, o = {}) {       // a sheet or notice; o.lines scribbles text rows, o.title a heading, o.seal a wax seal
   at(c, x, y, s, o.rot, () => {
-    const w = o.w ?? 170, h = o.h ?? 220;
+    const w = o.w ?? 170, h = o.h ?? 220, flutter = lifeEnabled(o) && o.flutter === true ? Math.sin(motionTime(o)*2.2+unit(o.lifeSeed??o.seed??1,8)*TAU)*1.8 : 0;
     cel(c, blob([[-w / 2, -h / 2, 1], [w / 2 - 26, -h / 2 - 6, 1], [w / 2, -h / 2 + 24, 1], [w / 2 - 6, h / 2, 1], [-w / 2 + 4, h / 2 - 5, 1]]), { fill: o.fill ?? '#f6ecd0', depth: 0.03, line: L(o, s) });
-    if (S.mode === 'full') paint(c, poly([[w / 2 - 26, -h / 2 - 6], [w / 2 - 24, -h / 2 + 22], [w / 2, -h / 2 + 24]]), shadeOf(o.fill ?? '#f6ecd0', 0.6));
+    if (S.mode === 'full') paint(c, poly([[w / 2 - 26, -h / 2 - 6], [w / 2 - 24 + flutter, -h / 2 + 22 + flutter], [w / 2, -h / 2 + 24]]), shadeOf(o.fill ?? '#f6ecd0', 0.6));
     if (o.title) label(c, o.title, -4, -h / 2 + 38, { size: o.titleSize ?? 30, fill: S.ink, sw: 0, shadow: false, decor: true });
-    const n = o.lines ?? 5, y0 = -h / 2 + (o.title ? 72 : 36);
-    for (let i = 0; i < n; i++) stroke(c, curve([[-w / 2 + 22, y0 + i * 26], [0, y0 + i * 26 - 3], [w / 2 - 28 - (i % 3) * 16, y0 + i * 26]]), lineFor(4, s), S.mode === 'full' ? '#8a7a62' : undefined);
-    if (o.seal) cel(c, circle(w / 2 - 40, h / 2 - 40, 22), { fill: o.seal === true ? '#b8262c' : o.seal, depth: 0.15, line: lineFor(4, s) });
+    const n=o.rows?.length??o.lines??5, y0=-h/2+(o.title?72:36);
+    const last=writeRows(c,{...o,n,x0:-w/2+22,y0,width:w-50,gap:o.rowGap??26,size:o.rowSize??26});
+    if(o.seal) {
+      const when=atTime(o.sealAt,last+.25), live=writing(o), t=motionTime(o);
+      if(!live||t>=when) {
+        if(live)declareEvent('wax seal impression',when);
+        c.save();const k=live?pop(t,when,.24):1;c.translate(w/2-40,h/2-40);c.scale(k,k);
+        cel(c,circle(0,0,22),{fill:o.seal===true?'#b8262c':o.seal,depth:.15,line:lineFor(4,s)});c.restore();
+      }
+    }
+
   });
 }
-export function scroll(c, x, y, s = 1, o = {}) {      // an unrolled proclamation
+function draw_scroll(c, x, y, s = 1, o = {}) {      // an unrolled proclamation
   at(c, x, y, s, o.rot, () => {
     const w = o.w ?? 260, h = o.h ?? 330, f = o.fill ?? '#f1e2b6';
     cel(c, blob([[-w / 2, -h / 2 + 20, 1], [w / 2, -h / 2 + 20, 1], [w / 2 - 8, h / 2 - 20, 1], [-w / 2 + 8, h / 2 - 20, 1]]), { fill: f, depth: 0.03, line: L(o, s) });
     for (const yy of [-h / 2 + 12, h / 2 - 12]) cel(c, tube([[-w / 2 - 18, yy], [w / 2 + 18, yy]], 40, 40), { fill: f, shade: shadeOf(f, 0.7), depth: 0.3, line: L(o, s) });
     if (o.title) label(c, o.title, 0, -h / 2 + 76, { size: o.titleSize ?? 40, fill: S.ink, sw: 0, shadow: false, decor: true });
-    for (let i = 0; i < (o.lines ?? 5); i++) stroke(c, curve([[-w / 2 + 34, -h / 2 + 124 + i * 32], [0, -h / 2 + 120 + i * 32], [w / 2 - 34 - (i % 2) * 30, -h / 2 + 124 + i * 32]]), lineFor(4, s), S.mode === 'full' ? '#8a7a62' : undefined);
-    if (o.seal) cel(c, circle(0, h / 2 - 62, 26), { fill: '#b8262c', depth: 0.15, line: lineFor(4, s) });
+    const last=writeRows(c,{...o,n:o.rows?.length??o.lines??5,x0:-w/2+34,y0:-h/2+124,width:w-68,gap:32,size:28});
+    if(o.seal&&(!writing(o)||motionTime(o)>=atTime(o.sealAt,last+.25))) {
+      const when=atTime(o.sealAt,last+.25);if(writing(o))declareEvent('scroll seal',when);
+      cel(c,circle(0,h/2-62,26),{fill:'#b8262c',depth:.15,line:lineFor(4,s)});
+    }
+
   });
 }
-export function sign(c, x, y, s = 1, o = {}) {        // a board on a post; text may have line breaks
+function draw_sign(c, x, y, s = 1, o = {}) {        // a board on a post; text may have line breaks
   at(c, x, y, s, o.rot, () => {
     const w = o.w ?? 360, h = o.h ?? 170, f = o.fill ?? '#c79a5e';
     if (o.post !== false) cel(c, poly([[-16, -20], [16, -20], [14, o.postH ?? 300], [-14, o.postH ?? 300]]), { fill: shadeOf(f, 0.5), depth: 0.2, line: L(o, s) });
@@ -40,9 +52,9 @@ export function sign(c, x, y, s = 1, o = {}) {        // a board on a post; text
   });
 }
 // A cloth banner or flag that ripples. bands: colours top to bottom; t animates the wave.
-export function flag(c, x, y, s = 1, o = {}) {
+function draw_flag(c, x, y, s = 1, o = {}) {
   at(c, x, y, s, o.rot, () => {
-    const w = o.w ?? 300, h = o.h ?? 190, t = o.t ?? 0, bands = o.bands ?? ['#d42a1e', '#f4f0e6'], wave = o.wave ?? 12, pole = o.pole ?? 420;
+    const w = o.w ?? 300, h = o.h ?? 190, t = motionTime(o) + unit(o.lifeSeed ?? o.seed ?? 1, 1) * 8, bands = o.bands ?? ['#d42a1e', '#f4f0e6'], wave = o.wave ?? 12, pole = o.pole ?? 420;
     if (o.pole !== false) cel(c, tube([[0, pole], [0, -h - 30]], 16, 14), { fill: o.poleColor ?? '#8a6a40', depth: 0.25, line: L(o, s) });
     const edge = (yy, k) => Array.from({ length: 7 }, (_, i) => [i * w / 6, yy + Math.sin(i * 1.1 + t * 5 + k) * wave * (i / 6)]);
     const topE = edge(-h, 0), botE = edge(0, 0.6), shape = blob([...topE.map((p, i) => i === 0 || i === 6 ? [p[0], p[1], 1] : p), ...botE.reverse().map((p, i) => i === 0 || i === 6 ? [p[0], p[1], 1] : p)]);
@@ -51,7 +63,7 @@ export function flag(c, x, y, s = 1, o = {}) {
 }
 
 // ------------------------------------------------------------------ containers and goods
-export function bucket(c, x, y, s = 1, o = {}) {      // an oak pail: staves, two iron hoops, a rope handle. (x, y) is the middle of its base
+function draw_bucket(c, x, y, s = 1, o = {}) {      // an oak pail: staves, two iron hoops, a rope handle. (x, y) is the middle of its base
   at(c, x, y, s, o.rot, () => {
     const f = o.fill ?? '#b47c3e', hoop = o.hoop ?? '#6a6e78', tw = 76, bw = 58, h = 134, ry = 17, top = -h, line = L(o, s);
     if (o.handle !== false) { const hp = curve([[-tw + 10, top + 4], [-tw + 2, top - 70], [0, top - 104], [tw - 2, top - 70], [tw - 10, top + 4]]); stroke(c, hp, line * 2.3); stroke(c, hp, line * 1.0, o.rope ?? '#cfa868'); }
@@ -68,21 +80,21 @@ export function bucket(c, x, y, s = 1, o = {}) {      // an oak pail: staves, tw
     } });
   });
 }
-export function barrel(c, x, y, s = 1, o = {}) {
+function draw_barrel(c, x, y, s = 1, o = {}) {
   at(c, x, y, s, o.rot, () => {
     const f = o.fill ?? '#9a6a3a';
     cel(c, blob([[-70, -200, 1], [70, -200, 1], [92, -100], [70, 0, 1], [-70, 0, 1], [-92, -100]]), { fill: f, depth: 0.08, rim: lineFor(6, s), line: L(o, s), inner: cc => { for (const u of [-0.5, 0, 0.5]) stroke(cc, curve([[u * 120, -200], [u * 160, -100], [u * 120, 0]]), lineFor(3, s), shadeOf(f, 0.6)); for (const yy of [-170, -110, -40]) paint(cc, poly([[-100, yy], [100, yy], [100, yy + 14], [-100, yy + 14]]), '#4f4a52'); } });
     cel(c, oval(0, -200, 70, 15), { fill: lightOf(f, 0.2), flat: true, line: L(o, s) });
   });
 }
-export function crate(c, x, y, s = 1, o = {}) {
+function draw_crate(c, x, y, s = 1, o = {}) {
   at(c, x, y, s, o.rot, () => {
     const f = o.fill ?? '#b08a52', w = o.w ?? 190, h = o.h ?? 150;
     cel(c, poly([[-w / 2, -h], [w / 2, -h], [w / 2, 0], [-w / 2, 0]]), { fill: f, depth: 0.05, rim: lineFor(5, s), line: L(o, s), inner: cc => { for (let i = 1; i < 4; i++) stroke(cc, poly([[-w / 2, -h + i * h / 4], [w / 2, -h + i * h / 4]], false), lineFor(3, s), shadeOf(f, 0.6)); paint(cc, poly([[-w / 2, -h], [-w / 2 + 22, -h], [w / 2, -12], [w / 2, 0], [w / 2 - 22, 0], [-w / 2, -h + 12]]), shadeOf(f, 0.35)); } });
     if (o.text) label(c, o.text, 0, -h / 2, { size: o.size ?? 36, fill: S.ink, sw: 0, shadow: false, decor: true });
   });
 }
-export function sack(c, x, y, s = 1, o = {}) {        // a tied bag: grain, flour, money (o.mark draws a symbol)
+function draw_sack(c, x, y, s = 1, o = {}) {        // a tied bag: grain, flour, money (o.mark draws a symbol)
   at(c, x, y, s, o.rot, () => {
     const f = o.fill ?? '#c8a86a';
     cel(c, blob([[-20, -150, 1], [0, -168], [22, -150, 1], [16, -128], [70, -70], [78, -10], [0, 8], [-78, -10], [-70, -70], [-16, -128]]), { fill: f, depth: 0.08, rim: lineFor(5, s), line: L(o, s) });
@@ -90,12 +102,23 @@ export function sack(c, x, y, s = 1, o = {}) {        // a tied bag: grain, flou
     if (o.mark) label(c, o.mark, 0, -52, { size: 64, fill: o.markFill ?? '#3f7a2e', sw: 0, shadow: false, decor: true });
   });
 }
-export function coins(c, x, y, s = 1, o = {}) {       // a little stack or scatter of gold
-  at(c, x, y, s, o.rot, () => { const n = o.n ?? 5; for (let i = 0; i < n; i++) { const cx = (i % 3 - 1) * 46, cy = -Math.floor(i / 3) * 22; cel(c, oval(cx, cy, 30, 12), { fill: '#b8862a', flat: true, line: lineFor(4, s) }); cel(c, oval(cx, cy - 9, 30, 12), { fill: o.fill ?? '#f2c838', flat: true, line: lineFor(4, s) }); } });
+function draw_coins(c, x, y, s = 1, o = {}) {
+  at(c,x,y,s,o.rot,()=>{const t=motionTime(o), growing=lifeEnabled(o)&&!o._held&&!o._inSet&&o.grow!==false&&(['insert','map','board'].includes(S.clock?.s?.kind)||o.grow===true);
+    const times=eventSchedule(o.n??5,{at:o.at??S.clock?.s?.cue(0)??0,stagger:o.stagger??.55}),n=growing?times.filter(q=>q<=t).length:o.n??5;
+    if(growing)times.forEach((q,i)=>declareEvent(`coin deposit ${i+1}`,q));
+    for(let i=0;i<n;i++){
+      const cx=(i%3-1)*46,cy=-Math.floor(i/3)*22;
+      cel(c,oval(cx,cy,30,12),{fill:'#b8862a',flat:true,line:lineFor(4,s)});
+      cel(c,oval(cx,cy-9,30,12),{fill:o.fill??'#f2c838',flat:true,line:lineFor(4,s)});
+      if(lifeEnabled(o)&&o.glint===true) {const a=(t/2.8+unit(o.lifeSeed??o.seed??1,i+10))%1;
+        c.save();c.clip(oval(cx,cy-9,27,10));c.globalAlpha=.35*Math.sin(a*Math.PI)**2;
+        stroke(c,poly([[cx-42+a*84,cy-22],[cx-28+a*84,cy+4]],false),8,'#fff8ca');c.restore();}
+    }
+  });
 }
 
 // ------------------------------------------------------------------ tools and furniture
-export function spear(c, x, y, s = 1, o = {}) {       // also pikes, halberds, flagstaffs (o.len); o.head 'spear' | 'axe' | 'none'
+function draw_spear(c, x, y, s = 1, o = {}) {       // also pikes, halberds, flagstaffs (o.len); o.head 'spear' | 'axe' | 'none'
   at(c, x, y, s, o.rot, () => {
     const len = o.len ?? 620;
     cel(c, tube([[0, 60], [0, -len]], 15, 13), { fill: o.shaft ?? '#8a6a40', depth: 0.25, line: L(o, s, 5) });
@@ -103,14 +126,14 @@ export function spear(c, x, y, s = 1, o = {}) {       // also pikes, halberds, f
     if (o.head === 'axe') cel(c, blob([[6, -len + 10, 1], [70, -len - 30], [86, -len + 50], [6, -len + 90, 1]]), { fill: '#c9ccd2', depth: 0.14, rim: lineFor(4, s), line: L(o, s, 5) });
   });
 }
-export function sword(c, x, y, s = 1, o = {}) {
+function draw_sword(c, x, y, s = 1, o = {}) {
   at(c, x, y, s, o.rot, () => {
     cel(c, blob([[-13, -30, 1], [-11, -250], [0, -290, 1], [11, -250], [13, -30, 1]]), { fill: '#d5d8de', depth: 0.2, rim: lineFor(4, s), line: L(o, s, 5) });
     cel(c, tube([[-46, -28], [46, -28]], 18, 18), { fill: o.hilt ?? '#d9a630', depth: 0.25, line: L(o, s, 5) });
     cel(c, tube([[0, -20], [0, 40]], 20, 18), { fill: '#6a3a2a', depth: 0.25, line: L(o, s, 5) });
   });
 }
-export function table(c, x, y, s = 1, o = {}) {       // a heavy table seen slightly from above; y is the floor line
+function draw_table(c, x, y, s = 1, o = {}) {       // a heavy table seen slightly from above; y is the floor line
   at(c, x, y, s, o.rot, () => {
     const w = o.w ?? 620, h = o.h ?? 230, f = o.fill ?? '#8a5a34', d = o.depth ?? 70;
     for (const u of [-0.42, 0.42]) cel(c, poly([[u * w - 22, -h + 10], [u * w + 22, -h + 10], [u * w + 18, 0], [u * w - 18, 0]]), { fill: shadeOf(f, 0.5), depth: 0.2, line: L(o, s) });
@@ -118,10 +141,14 @@ export function table(c, x, y, s = 1, o = {}) {       // a heavy table seen slig
     cel(c, poly([[-w / 2 + d * 0.5, -h - d], [w / 2 - d * 0.5, -h - d], [w / 2, -h], [-w / 2, -h]]), { fill: f, depth: 0.04, rim: lineFor(5, s), line: L(o, s), inner: cc => { for (const u of [0.3, 0.6]) brush(cc, [[-w / 2, -h - d * u], [0, -h - d * u - 5], [w / 2, -h - d * u]], [0, lineFor(4, s), 0], shadeOf(f, 0.5)); } });
   });
 }
-export function candle(c, x, y, s = 1, o = {}) {      // lit candle with its small glow
+function draw_candle(c, x, y, s = 1, o = {}) {      // lit candle with its small glow
   at(c, x, y, s, 0, () => {
+    const t = motionTime(o), ph = unit(o.lifeSeed ?? o.seed ?? 1, 5) * TAU;
+    const flicker = 1 + (o.still || o.life === false ? 0 : 0.045 * Math.sin(t * TAU * 3 + ph) + 0.015 * Math.sin(t * TAU * 9 + ph));
     cel(c, poly([[-12, -80], [12, -80], [12, 0], [-12, 0]]), { fill: '#f3ead2', depth: 0.2, line: lineFor(4, s) });
+    c.save(); c.translate(0, -84); c.scale(1 / flicker, flicker); c.translate(0, 84);
     cel(c, blob([[0, -126, 1], [12, -98], [0, -84], [-12, -98]]), { fill: '#ffd24a', flat: true, line: lineFor(3, s) });
+    c.restore();
     if (S.mode === 'full') { const g = c.createRadialGradient(0, -100, 0, 0, -100, 200); g.addColorStop(0, '#ffe9a0aa'); g.addColorStop(1, '#ffe9a000'); c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(-200, -300, 400, 400); c.restore(); }
   });
 }
@@ -140,12 +167,12 @@ export function burst(c, x, y, r = 120, o = {}) {     // spiky impact flash behi
   const n = o.points ?? 11, rr = rng(o.seed ?? 3), pts = Array.from({ length: n * 2 }, (_, i) => { const a = i * Math.PI / n + (o.rot ?? 0), q = i % 2 ? r * (0.5 + rr() * 0.12) : r * (0.9 + rr() * 0.25); return [x + Math.cos(a) * q, y + Math.sin(a) * q]; });
   cel(c, poly(pts), { fill: o.fill ?? '#ffe14a', flat: true, line: o.line ?? 6 });
 }
-export function puff(c, x, y, r = 60, o = {}) {       // dust or smoke: grows with age (0..1) and thins out
-  const age = o.age ?? 0, rr = rng(o.seed ?? 5); let p = circle(x, y, r * (0.7 + age * 0.5));
+function draw_puff(c, x, y, r = 60, o = {}) {       // dust or smoke: grows with age (0..1) and thins out
+  const age = o.age ?? ((motionTime(o) * 0.6 + unit(o.lifeSeed ?? o.seed ?? 1, 2)) % 1), rr = rng(o.seed ?? 5); let p = circle(x, y, r * (0.7 + age * 0.5));
   for (let i = 0; i < 5; i++) { const a = i / 5 * TAU; p = p.op(circle(x + Math.cos(a) * r * (0.6 + age), y + Math.sin(a) * r * (0.45 + age * 0.6), r * (0.4 + rr() * 0.3)), PathOp.Union); }
   c.save(); c.globalAlpha = 1 - age * 0.9; cel(c, p, { fill: o.fill ?? '#e9dfc8', depth: 0.14, line: o.line ?? 5 }); c.restore();
 }
-export function sparkle(c, x, y, r = 30, o = {}) {    // four-point glint
+function draw_sparkle(c, x, y, r = 30, o = {}) {    // four-point glint
   cel(c, blob([[x, y - r, 1], [x + r * 0.2, y - r * 0.2], [x + r, y, 1], [x + r * 0.2, y + r * 0.2], [x, y + r, 1], [x - r * 0.2, y + r * 0.2], [x - r, y, 1], [x - r * 0.2, y - r * 0.2]]), { fill: o.fill ?? '#fff6b0', flat: true, line: o.line ?? 4 });
 }
 export function speedLines(c, x, y, o = {}) {         // streaks behind something fast; dir in degrees
@@ -153,7 +180,7 @@ export function speedLines(c, x, y, o = {}) {         // streaks behind somethin
   for (let i = 0; i < n; i++) { const off = (i - (n - 1) / 2) * (o.gap ?? 34), sx = x - Math.sin(a) * off, sy = y + Math.cos(a) * off, l = len * (0.6 + ((i * 37) % 10) / 20); brush(c, [[sx, sy], [sx + Math.cos(a) * l, sy + Math.sin(a) * l]], [o.w ?? 9, 0], o.color); }
 }
 // A fat outlined arrow from a to b (maps, boards, "this goes there"). bend curves it sideways.
-export function arrow(c, a, b, o = {}) {
+function draw_arrow(c, a, b, o = {}) {
   const w = o.w ?? 34, dx = b[0] - a[0], dy = b[1] - a[1], len = Math.hypot(dx, dy) || 1, ux = dx / len, uy = dy / len, nx = -uy, ny = ux, head = o.head ?? w * 1.5, bend = (o.bend ?? 0) * len;
   const mid = [(a[0] + b[0]) / 2 + nx * bend, (a[1] + b[1]) / 2 + ny * bend], neck = [b[0] - ux * head, b[1] - uy * head];
   let p = tube([a, mid, neck], w, w); p = p.op(poly([[neck[0] + nx * w * 1.25, neck[1] + ny * w * 1.25], b, [neck[0] - nx * w * 1.25, neck[1] - ny * w * 1.25]]), PathOp.Union);
@@ -161,7 +188,144 @@ export function arrow(c, a, b, o = {}) {
 }
 // Pop-in wrapper: scale something up from a point with overshoot, starting at time `at`.
 export function popIn(c, t, at, x, y, fn, dur = 0.22) {
-  const k = pop(t, at, dur); if (k <= 0) return;
-  const moving = Math.abs(k - 1) > 0.03, was = S.transient; if (moving) S.transient = true;     // lettering is not measured mid-pop
-  c.save(); c.translate(x, y); c.scale(k, k); c.translate(-x, -y); try { fn(); } finally { c.restore(); S.transient = was; }
+  at=atTime(at);const m = elementMotion('popGroup', null), k = pop(t, at, dur); if (k <= 0) return;
+  const moving = Math.abs(k - 1) > 0.03, was = S.transient, rigid = S.rigid;
+  const j = lifeEnabled() ? settle(t, at + dur * 0.65) : 0;
+  S.transient ||= moving; S.rigid = true;
+  c.save();
+  c.translate(x, y + j * 4); c.scale(k + j * 0.012, k - j * 0.009); c.translate(-x, -y);
+  try { fn(); } finally { c.restore(); S.transient = was; S.rigid = rigid; }
+}
+
+// Existing calls acquire motion from the stage. Explicit t is still supported for independent tools.
+// Held props inherit the hand transform; fixed furniture stays grounded. Documents carry their text.
+function propLife(draw, kind, c, x, y, size, o) {
+  const m = elementMotion('prop', kind, o), text = ['paper','scroll','sign','crate'].includes(kind);
+  const furniture = kind === 'table' || kind === 'barrel', held = S.held, inSet=!!S.clock?.painting;
+  if (!lifeEnabled(o)) return withStyle({clock:S.clock?{...S.clock,life:false}:null},()=>draw(c, x, y, size, o));
+  return living(c, cc => {
+    const t = motionTime(o), entering = !held && !S.rigid && !furniture && !inSet;
+    const start=atTime(o.at,Math.min(m.order,5)*.12);
+    if(o.at!==undefined)declareEvent(`${kind} arrival`,start);
+    if(o.at!==undefined&&t<start)return;
+    if(entering&&text)cc.translate(0,60*(1-easeOut((t-start)/.55)));
+    const out=atTime(o.out,!held&&!inSet&&['paper','scroll'].includes(kind)&&['insert','title'].includes(S.clock?.s?.kind)?S.clock.s.dur-.35:Infinity);
+    if(t>=out)cc.translate(-200*ease(span(t,out,out+.35)),0);
+    const k = entering&&!text ? reveal(t,m.order,{duration:.28,stagger:.12,...o}) : t<start&&entering?0:1;
+    if (k <= 0) return;
+    cc.translate(x, y); cc.scale(k, k); cc.translate(-x, -y);
+    const old = S.rigid, tr = S.transient; S.rigid ||= text; S.transient ||= Math.abs(k - 1) > 0.03;
+    try { return draw(cc, x, y, size, { ...o, lifeSeed:m.seed, _inSet:inSet, _held:held }); } finally { S.rigid = old; S.transient = tr; }
+  }, { ...o, seed: m.seed, kind: text ? 'document' : furniture ? 'background' : 'prop',
+    amount: held || S.rigid ? 0 : furniture ? 0.16 : text ? 1 : 0.7, pivot: [x, y], size: 240 * size,
+    cached: !['flag','candle','coins','puff','sparkle','paper','scroll'].includes(kind) });
+}
+export function paper(c, x, y, s = 1, o = {}) { return propLife(draw_paper, 'paper', c, x, y, s, o); }
+export function scroll(c, x, y, s = 1, o = {}) { return propLife(draw_scroll, 'scroll', c, x, y, s, o); }
+export function sign(c, x, y, s = 1, o = {}) { return propLife(draw_sign, 'sign', c, x, y, s, o); }
+export function flag(c, x, y, s = 1, o = {}) { return propLife(draw_flag, 'flag', c, x, y, s, o); }
+export function bucket(c, x, y, s = 1, o = {}) { return propLife(draw_bucket, 'bucket', c, x, y, s, o); }
+export function barrel(c, x, y, s = 1, o = {}) { return propLife(draw_barrel, 'barrel', c, x, y, s, o); }
+export function crate(c, x, y, s = 1, o = {}) { return propLife(draw_crate, 'crate', c, x, y, s, o); }
+export function sack(c, x, y, s = 1, o = {}) { return propLife(draw_sack, 'sack', c, x, y, s, o); }
+export function coins(c, x, y, s = 1, o = {}) { return propLife(draw_coins, 'coins', c, x, y, s, o); }
+export function spear(c, x, y, s = 1, o = {}) { return propLife(draw_spear, 'spear', c, x, y, s, o); }
+export function sword(c, x, y, s = 1, o = {}) { return propLife(draw_sword, 'sword', c, x, y, s, o); }
+export function table(c, x, y, s = 1, o = {}) { return propLife(draw_table, 'table', c, x, y, s, o); }
+export function candle(c, x, y, s = 1, o = {}) { return propLife(draw_candle, 'candle', c, x, y, s, o); }
+export function puff(c, x, y, s = 60, o = {}) { return propLife(draw_puff, 'puff', c, x, y, s, o); }
+export function sparkle(c, x, y, s = 30, o = {}) { return propLife(draw_sparkle, 'sparkle', c, x, y, s, o); }
+
+// Routes reveal their length first, then a travelling dash carries direction without moving labels.
+export function arrow(c, a, b, o = {}) {
+  const m = elementMotion('route', 'arrow', o);
+  if (!lifeEnabled(o)) return draw_arrow(c, a, b, o);
+  return living(c, cc => {
+    const t = motionTime(o), start=atTime(o.at,m.order*.7), k=o.enter===false||(S.transient&&o.at===undefined)?1:easeOut((t-start)/(o.duration??.8));
+    if(o.at!==undefined)declareEvent('arrow grows',start);
+    if (!k || t<start) return;
+    draw_arrow(cc, a, [lerp(a[0], b[0], k), lerp(a[1], b[1], k)], o);
+    if (k === 1 && o.travel !== false) {
+      const u = (t / (o.period ?? 2.4) + unit(m.seed, 1)) % 1;
+      cc.save(); cc.globalAlpha *= 0.45; cc.setLineDash([12, 40]); cc.lineDashOffset = -t * 65;
+      stroke(cc, curve([a, [(a[0]+b[0])/2, (a[1]+b[1])/2], b]), 4, '#ffe9a8'); cc.restore();
+    }
+  }, { ...o, seed: m.seed, float: false });
+}
+
+// Living fire/ship/writing tools for authored places and information inserts. Like the original
+// shelf, all art is code drawn; all loops inherit stage time and accept still:true / life:false.
+export function fire(c,x,y,s=1,o={}) {
+  const m=elementMotion('fire','fire',o);
+  return living(c,cc=>at(cc,x,y,s,o.rot,()=>{
+    const t=motionTime(o), f=lifeEnabled(o)?1+.045*Math.sin(t*TAU*3.25+unit(m.seed,1)*TAU)+.015*Math.sin(t*TAU*9.75):1;
+    for(const d of [-1,1])cel(cc,tube([[-50,-4+d*12],[55,-4-d*12]],18,18),{fill:'#613b2b',depth:.15,line:4});
+    cc.save();cc.scale(1/f,f);cel(cc,blob([[-46,0],[-44,-58],[-22,-98],[-12,-154,1],[18,-94],[38,-122,1],[52,-51],[35,0]]),{fill:'#ea6c27',flat:true,line:4});
+    cel(cc,blob([[-24,0],[-24,-48],[0,-92,1],[23,-36],[17,0]]),{fill:'#ffd45b',flat:true,line:0});cc.restore();
+    for(let i=0;i<3;i++){const a=(t*.35+unit(m.seed,i+5))%1;cc.save();cc.globalAlpha=.16*Math.sin(a*Math.PI);cc.fillStyle='#c4b9a3';cc.beginPath();cc.ellipse(Math.sin(t+i)*12,-80-a*100,12+a*18,18+a*20,0,0,TAU);cc.fill();cc.restore();}
+  }),{...o,float:false,seed:m.seed});
+}
+export function ship(c,x,y,s=1,o={}) {
+  const m=elementMotion('ship','ship',o);
+  return living(c,cc=>at(cc,x,y,s,o.rot,()=>{
+    const t=motionTime(o), bob=lifeEnabled(o)?Math.sin(t*TAU*.8+unit(m.seed,1)*TAU):0;
+    cc.translate(0,bob*3);cc.rotate(bob*.009);
+    cel(cc,blob([[-120,-30,1],[120,-30,1],[85,30],[0,44],[-86,24]]),{fill:o.hull??'#865135',depth:.12,line:L(o,s)});
+    cel(cc,tube([[0,-30],[0,-210]],10,9),{fill:'#6d452b',depth:.2,line:L(o,s,4)});
+    cel(cc,blob([[8,-200,1],[84,-112],[8,-58,1],[17,-130]]),{fill:o.sail??'#efe4c8',depth:.08,line:L(o,s,4)});
+    cel(cc,blob([[-8,-190,1],[-77,-120],[-8,-68,1],[-17,-126]]),{fill:o.sail??'#efe4c8',depth:.08,line:L(o,s,4)});
+  }),{...o,float:false,seed:m.seed});
+}
+export function quill(c,x,y,s=1,o={}) {
+  const m=elementMotion('quill','quill',o);
+  return living(c,cc=>at(cc,x,y,s,o.rot??-20,()=>{
+    const t=motionTime(o), v=lifeEnabled(o)&&o.writing?Math.sin(t*TAU*1.4+unit(m.seed,1)*TAU):0;cc.translate(v*4,v*2);cc.rotate(v*.025);
+    cel(cc,blob([[0,0,1],[14,-95],[60,-172,1],[75,-124],[44,-52]]),{fill:o.fill??'#f4ead3',depth:.08,line:4});
+    stroke(cc,curve([[0,0],[24,-84],[60,-166]]),3);stroke(cc,poly([[3,-8],[-3,7]],false),5);
+  }),{...o,kind:'text',seed:m.seed,pivot:[x,y]});
+}
+export function seal(c,x,y,s=1,o={}) {
+  return propLife((cc,xx,yy,k,opts)=>at(cc,xx,yy,k,opts.rot,()=>{
+    cel(cc,blob(Array.from({length:14},(_,i)=>{const a=i*TAU/14,r=i%2?30:34;return [Math.cos(a)*r,Math.sin(a)*r];})),{fill:opts.fill??'#af2937',depth:.15,line:4});
+    stroke(cc,circle(0,0,20),3,shadeOf(opts.fill??'#af2937',.7));
+  }),'seal',c,x,y,s,o);
+}
+// A readable ledger cover plus an independently writing quill; use title for its heading.
+export function ledger(c,x,y,s=1,o={}) {
+  paper(c,x,y,s,{w:240,h:290,lines:6,title:o.title??'LEDGER',...o,write:o.write??true});
+}
+export function stamp(c,x,y,s=1,o={}) {
+  const when=atTime(o.at,.25),t=motionTime(o);declareEvent('stamp impression',when);
+  if(lifeEnabled(o)&&t<when)return;
+  return onCue(c,when,cc=>at(cc,x,y,s,o.rot,()=>{
+    if(o.text) {
+      const w=o.w??300,h=o.h??110;stroke(cc,poly([[-w/2,-h/2],[w/2,-h/2],[w/2,h/2],[-w/2,h/2]]),4,o.ink??'#a82a31');
+      label(cc,o.text,0,0,{size:o.size??45,fill:o.ink??'#a82a31',sw:0,shadow:false,decor:true});
+    } else draw_seal(cc,0,0,1,o);
+  }),{...o,enter:'drop',height:90,pivot:[x,y],duration:.26});
+}
+function draw_seal(c,x,y,s,o){
+  at(c,x,y,s,o.rot,()=>{cel(c,circle(0,0,32),{fill:o.fill??'#af2937',depth:.15,line:4});stroke(c,circle(0,0,20),3,shadeOf(o.fill??'#af2937',.7));});
+}
+// A physical code-drawn document: heading + sequential ink rows + writing hand/quill + seal.
+export function document(c,x,y,s=1,o={}) {return paper(c,x,y,s,{w:300,h:330,write:true,hand:true,seal:true,...o});}
+function writing(o){return lifeEnabled(o)&&o.write!==false&&!o._held&&!o._inSet&&(['insert','board','map'].includes(S.clock?.s?.kind)||o.write===true);}
+function writeRows(c,o){
+  const live=writing(o),t=motionTime(o),times=eventSchedule(o.n,{at:o.lineAt??(atTime(o.at,0)+.55),stagger:o.lineGap??.55});
+  let active=null;
+  for(let i=0;i<o.n;i++){
+    const when=times[i],u=live?span(t,when,when+.38):1;if(live)declareEvent(`document writes row ${i+1}`,when);
+    if(!u)continue;const yy=o.y0+i*o.gap,ww=o.width-(i%3)*12;
+    c.save();c.beginPath();c.rect(o.x0-5,yy-o.size*.65,(ww+10)*easeOut(u),o.size*1.3);c.clip();
+    if(o.rows?.[i])label(c,o.rows[i],o.x0,yy,{size:o.size,align:'left',fill:o.ink??'#6d5946',sw:0,shadow:false,decor:true});
+    else stroke(c,curve([[o.x0,yy],[o.x0+ww*.5,yy-3],[o.x0+ww,yy]]),3.5,o.ink??'#8a7a62');
+    c.restore();if(u>0&&u<1)active=[o.x0+ww*easeOut(u),yy];
+  }
+  if(active&&o.quill!==false){draw_quill_tip(c,active[0],active[1],o.hand!==false);}
+  return (times.at(-1)??atTime(o.at,0))+.38;
+}
+function draw_quill_tip(c,x,y,hand){
+  c.save();c.translate(x,y);c.rotate(.5);
+  if(hand){cel(c,blob([[8,-24],[29,-34],[44,-18],[42,12],[20,19],[7,4]]),{fill:'#ffffff',depth:.1,line:3});stroke(c,curve([[19,-18],[28,-9],[29,3]]),2.5);}
+  cel(c,blob([[0,0,1],[6,-50],[26,-90,1],[36,-64],[15,-25]]),{fill:'#f4ead3',depth:.08,line:3});stroke(c,poly([[0,0],[26,-86]],false),2);c.restore();
 }

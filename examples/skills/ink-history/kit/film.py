@@ -4,23 +4,32 @@
   python film.py stills  <story.mjs> --out <work> [shot ...]
   python film.py render  <story.mjs> --out <work> --name <slug>.mp4
   python film.py qa      <story.mjs> --out <work> --name <slug>.mp4
+  python film.py motion  <story.mjs> --out <work> [--shot id | --start 10 --end 20] [--jobs 6]
 
-prepare  speaks every clause of the story with the free local voice (or cuts up an uploaded recording),
+prepare  speaks each clause with the selected local/Gemini voice (or cuts up an uploaded recording),
          and writes timeline.json: when each shot and each clause starts and stops.
 stills   draws three stills per shot, a contact sheet and audit.json (the picture gates).
 render   refuses to run until the gates pass and review.json records what you saw on the contact sheet;
          then renders every frame, mixes voice + music + effects, and checks the finished file.
+motion   renders a silent 960px / 12fps draft and applies the SAME motion gate;
+         no voice models, stills or review needed. Final encoded QA stays authoritative.
 """
 from pathlib import Path
-import argparse, hashlib, json, math, os, re, shutil, subprocess, sys
+import argparse, hashlib, json, math, os, re, shutil, subprocess, sys, time
 
 import numpy as np
 import soundfile as sf
 from PIL import Image, ImageDraw, ImageFont
+import liveness
 
 ROOT = Path(__file__).resolve().parent
 SR = 24000          # voice sample rate
 MIX = 48000         # mix sample rate
+# Calibrated against old/new example encodes: 480px ink rasterization changed
+# stale share by ~7 percentage points; 960px agrees within one point. Keep
+# liveness analysis itself at 480px/12Hz. Final encoded QA is authoritative.
+MOTION_DRAFT_WIDTH = 960
+MOTION_DRAFT_FPS = 12
 for stream in (sys.stdout, sys.stderr):
     try: stream.reconfigure(encoding='utf-8', errors='replace')
     except Exception: pass
@@ -82,29 +91,67 @@ def trim(a, pad_in=0.02, pad_out=0.07):
     return out
 
 
-def speak(desc, out):
-    cfg = config(); voice = desc.get('voice') or {}
-    name = voice.get('name', 'bm_george'); speed = float(voice.get('speed', 1.12)); lang = voice.get('lang', 'en-gb' if name.startswith('b') else 'en-us')
+def speak(desc, out, story_dir=None):
+    from tts import LocalVoice
+    cfg = config(); voice = dict(desc.get('voice') or {})
+    dia_hint = voice.pop('ending_hint', True) if voice.get('engine') == 'dia' else None
+    dia_hints = voice.pop('clause_ending_hints', {}) if voice.get('engine') == 'dia' else {}
+    clause_seeds = voice.pop('clause_seeds', {}) if voice.get('engine') in {'zonos', 'dia'} else {}
     cache = out / 'voice-cache'; cache.mkdir(exist_ok=True)
-    engine = None; clips = {}
-    clauses = [(i, k, text) for i, sh in enumerate(desc['shots']) for k, text in enumerate(sh['say'])]
-    for n, (i, k, text) in enumerate(clauses):
-        key = hashlib.sha256(json.dumps([text, name, speed, lang]).encode()).hexdigest()[:24]
-        f = cache / f'{key}.wav'
-        if f.exists():
-            a, rate = sf.read(f, dtype='float32')
+    started = time.perf_counter(); clips = {}; measurements = []
+    try:
+        if voice.get('engine') == 'dia' and not isinstance(dia_hint, bool): raise ValueError('Dia voice.ending_hint must be true or false.')
+        if not isinstance(dia_hints, dict) or any(not isinstance(value, bool) for value in dia_hints.values()):
+            raise ValueError('Dia voice.clause_ending_hints must map "shot-id:zero-based-clause" to true or false.')
+        known = {f'{sh["id"]}:{k}' for sh in desc['shots'] for k in range(len(sh['say']))}
+        if unknown := set(dia_hints) - known: raise ValueError(f'Unknown Dia clause ending-hint keys: {list(unknown)}')
+        if not isinstance(clause_seeds, dict) or any(type(value) is not int or not 0 <= value < 2 ** 32 for value in clause_seeds.values()):
+            raise ValueError('voice.clause_seeds must map "shot-id:zero-based-clause" to an integer seed in 0..2^32-1.')
+        if unknown := set(clause_seeds) - known: raise ValueError(f'Unknown voice clause seed keys: {list(unknown)}')
+        if voice.get('engine') == 'gemini':
+            from tts_gemini import GeminiVoice
+            engine = GeminiVoice(voice, cfg, story_dir or ROOT, out, tool('ffmpeg'), trim)
         else:
-            if engine is None:
-                if 'voiceCache' not in cfg:
-                    raise SystemExit('No voice model configured. Run setup.py (without --no-tts), or pass --voice with a recording.')
-                from kokoro_onnx import Kokoro
-                engine = Kokoro(str(Path(cfg['voiceCache']) / 'kokoro-v1.0.onnx'), str(Path(cfg['voiceCache']) / 'voices-v1.0.bin'))
-            print(f'voice {n + 1}/{len(clauses)}: {text[:60]}', flush=True)
-            a, rate = engine.create(text, voice=name, speed=speed, lang=lang)
-            if rate != SR:
-                raise SystemExit(f'Unexpected voice sample rate {rate}.')
-            a = trim(np.asarray(a, dtype=np.float32)); sf.write(f, a, SR, subtype='FLOAT')
-        clips[(i, k)] = a
+            engine = LocalVoice(voice, cfg, story_dir or ROOT, out, tool('ffmpeg'), trim)
+        if engine.engine == 'dia':
+            import tts_dia
+            plain_dia_text = engine._dia_text
+            tts_dia.configure(engine, dia_hint)
+            hinted_dia_text = lambda text: tts_dia.ending_hint(plain_dia_text(text.strip()))
+        engine.ensure_anchor()
+        base_identity = dict(engine.identity); base_seed = engine.seed
+        clauses = [(i, k, text) for i, sh in enumerate(desc['shots']) for k, text in enumerate(sh['say'])]
+        for n, (i, k, text) in enumerate(clauses):
+            clause_key = f'{desc["shots"][i]["id"]}:{k}'
+            engine.identity = dict(base_identity); engine.seed = clause_seeds.get(clause_key, base_seed)
+            if engine.seed != base_seed: engine.identity['clauseSeed'] = engine.seed
+            if engine.engine == 'dia':
+                clause_hint = dia_hints.get(clause_key, dia_hint)
+                engine.identity['diaEndingHint'] = clause_hint
+                engine._dia_text = hinted_dia_text if clause_hint else plain_dia_text
+            print(f'voice {n + 1}/{len(clauses)} ({engine.engine}): {text[:60]}', flush=True)
+            before = time.perf_counter(); audio, cached = engine.clip(text, cache)
+            elapsed = time.perf_counter() - before
+            measurements.append(dict(shot=desc['shots'][i]['id'], clause=k, cached=cached,
+                                     seconds=round(elapsed, 3), audioSeconds=round(len(audio) / SR, 3), seed=engine.last_clip_seed))
+            if engine.engine == 'dia': measurements[-1]['endingHint'] = clause_hint
+            print(f'  {len(audio) / SR:.2f}s audio in {elapsed:.2f}s' + (' (cached)' if cached else ''), flush=True)
+            clips[(i, k)] = audio
+    except (ValueError, ImportError) as exc:
+        raise SystemExit(f'Narration: {exc}') from None
+    engine.identity = base_identity; engine.seed = base_seed
+    info = engine.info()
+    if engine.engine == 'dia':
+        info.update(endingHint=dia_hint, textProcessorSha256=engine.identity['diaTextProcessor'],
+                    options=dict(voice, ending_hint=dia_hint))
+        if dia_hints:
+            info['clauseEndingHints'] = dia_hints
+            info['options']['clause_ending_hints'] = dia_hints
+    if clause_seeds:
+        info['clauseSeeds'] = clause_seeds
+        info['options'] = dict(info['options'], clause_seeds=clause_seeds)
+    (out / 'voice-performance.json').write_text(json.dumps(dict(voice=info, elapsedSeconds=round(time.perf_counter() - started, 3),
+                                                              clauses=measurements), indent=2), encoding='utf8')
     t = 0.0; shots = []; parts = []
     def silence(sec):
         nonlocal t
@@ -118,7 +165,7 @@ def speak(desc, out):
         silence(sh.get('pause', 0.22) + sh.get('hold', 0))
         if t - start < 0.6: silence(0.6 - (t - start))
         shots.append({'id': sh['id'], 'start': start, 'end': t, 'cues': cues, 'ends': ends})
-    return np.concatenate(parts), shots, {'engine': 'kokoro-onnx (local, free)', 'voice': name, 'speed': speed, 'lang': lang}
+    return np.concatenate(parts), shots, info
 
 
 def cut_upload(desc, voice_file, timings, out):
@@ -183,7 +230,7 @@ def prepare(story_file, out, voice=None, timings=None):
     if voice:
         audio, shots, info = cut_upload(desc, voice, timings, out)
     else:
-        audio, shots, info = speak(desc, out)
+        audio, shots, info = speak(desc, out, story_file.parent)
     duration = len(audio) / SR
     if shots: shots[-1]['end'] = duration
     sf.write(out / 'voice.wav', audio, SR)
@@ -372,6 +419,9 @@ def sounds(desc, timeline, out):
 # ---------------------------------------------------------------------------- gates
 def signature(story_file, out):
     """Everything that decides what the pictures look like: story and drawing code plus the shot timing."""
+    # Python pipeline files (including liveness.py) do not change the pictures.
+    # Their separate policyFingerprint is recorded by motion_qa; no QA result
+    # is reused on the strength of a contact-sheet/review fingerprint.
     h = hashlib.sha256(); folder = story_file.parent
     files = {story_file, *ROOT.glob('*.mjs')}
     files.update(f for f in (ROOT / 'assets').rglob('*') if f.suffix.lower() in {'.png', '.jpg', '.jpeg', '.svg', '.ttf', '.otf'})
@@ -404,7 +454,57 @@ def finish(out, name):
     return file
 
 
-def qa(story_file, out, file):
+def motion_qa(file, out, timeline, *, limits=None, time_offset=0., preflight=False):
+    """Always remeasure the actual encode; never trust cached/review QA results."""
+    out.mkdir(parents=True, exist_ok=True)
+    report_file, png = out / 'motion-report.json', out / 'motion-timeline.png'
+    # A failed decode must not leave a previous passing artifact behind.
+    for artifact in (report_file, png): artifact.unlink(missing_ok=True)
+    fingerprint = hashlib.sha256()
+    for name in ('film.py', 'liveness.py'):
+        fingerprint.update(name.encode()); fingerprint.update((ROOT / name).read_bytes())
+    try:
+        shots = timeline['shots']
+        if not shots:
+            raise ValueError('Motion QA needs at least one authored timeline shot.')
+        summary = liveness.measure(file, ffmpeg=tool('ffmpeg'), png_path=png, shot_ranges=shots, time_offset=time_offset)
+        result = liveness.gate(summary, time_offset=time_offset, **(limits or {}))
+        summary.update(qa=result, preflight=preflight, policyFingerprint=fingerprint.hexdigest(),
+                       eventPolicyVersion=liveness.DETECTOR_VERSION,
+                       note='Draft preview only; final encoded QA is authoritative.' if preflight else 'Measured from the final encoded file; no hold exemptions.')
+        liveness.print_gate(result)
+    except (OSError, ValueError, RuntimeError, subprocess.CalledProcessError) as exc:
+        result = dict(passed=False, failures=[f'Motion measurement failed: {exc}'], windows=[], warnings=[], per_shot=[])
+        summary = dict(qa=result, preflight=preflight, path=str(file), policyFingerprint=fingerprint.hexdigest())
+        print(result['failures'][0])
+    report_file.write_text(json.dumps(summary, indent=1, allow_nan=False), encoding='utf8')
+    print(f'Motion report: {report_file}\nMotion timeline: {png}')
+    return result
+
+
+def motion(story_file, out, args):
+    """Fast picture-only preflight, optionally on a shot or global time range."""
+    started = time.perf_counter()
+    cmd = [tool('node'), str(ROOT / 'render.mjs'), 'draft', str(story_file), str(out),
+           '--width', str(args.width), '--fps', str(args.fps)]
+    for key in ('shot', 'start', 'end', 'jobs'):
+        value = getattr(args, key)
+        if value is not None: cmd.extend(['--' + key, str(value)])
+    run(cmd)
+    meta = json.loads((out / 'motion-draft.json').read_text(encoding='utf-8-sig'))
+    result = motion_qa(out / 'motion-draft.mp4', out / 'motion-preflight', meta,
+                       limits=liveness.gate_options(args), time_offset=meta['sourceStart'], preflight=True)
+    elapsed = time.perf_counter() - started
+    report_file = out / 'motion-preflight' / 'motion-report.json'
+    report = json.loads(report_file.read_text(encoding='utf8'))
+    report.update(draft=meta, preflight_elapsed_seconds=round(elapsed, 3))
+    report_file.write_text(json.dumps(report, indent=1, allow_nan=False), encoding='utf8')
+    print(f"Preflight took {elapsed:.2f}s for {meta['duration']:.2f}s of picture ({elapsed * 60 / meta['duration']:.2f}s per film-minute). "
+          f"{'Estimated' if meta['draftTiming'] else 'Prepared voice'} timing. Final encode QA remains authoritative.")
+    return result
+
+
+def qa(story_file, out, file, motion_limits=None):
     issues = []
     p = json.loads(run(['ffprobe', '-v', 'error', '-show_streams', '-show_format', '-of', 'json', file], capture_output=True, text=True).stdout)
     v = next((s for s in p['streams'] if s['codec_type'] == 'video'), None); a = next((s for s in p['streams'] if s['codec_type'] == 'audio'), None)
@@ -419,12 +519,12 @@ def qa(story_file, out, file):
     if abs(dur - timeline['duration']) > 0.15: issues.append(f"File runs {dur:.2f}s but the timeline is {timeline['duration']:.2f}s.")
     audit = json.loads((out / 'audit.json').read_text(encoding='utf-8-sig')) if (out / 'audit.json').exists() else None
     if not audit or not audit.get('passed'): issues.append('The picture gates (audit.json) have unresolved issues.')
-    rep = run(['ffmpeg', '-hide_banner', '-i', file, '-vf', 'blackdetect=d=0.2:pix_th=0.08,freezedetect=n=-52dB:d=2.5', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'], capture_output=True, text=True).stderr
-    freeze_starts = [float(q) for q in re.findall(r'freeze_start: ([\d.]+)', rep)]
-    freeze_ends = [float(q) for q in re.findall(r'freeze_end: ([\d.]+)', rep)]
-    freezes = [(start, next((end for end in freeze_ends if end > start), dur)) for start in freeze_starts]
+    motion_result = motion_qa(file, out, timeline, limits=motion_limits)
+    issues.extend('Motion: ' + msg for msg in motion_result['failures'])
+    # liveness now owns all frozen spans, including a hold at EOF, at 0.5s
+    # rather than 2.5s. Do not report the same trailing freeze a second time.
+    rep = run(['ffmpeg', '-hide_banner', '-i', file, '-vf', 'blackdetect=d=0.2:pix_th=0.08', '-af', 'loudnorm=I=-16:TP=-1.5:LRA=11:print_format=json', '-f', 'null', '-'], capture_output=True, text=True).stderr
     blacks = re.findall(r'black_start:([\d.]+)', rep)
-    if freezes: issues.append('Frozen picture at ' + ', '.join(f'{s:.1f}-{e:.1f}s' for s, e in freezes) + '. Nothing at all moves there, not even the camera: give the shot a camera drift and an action.')
     if blacks: issues.append(f'Black picture at {", ".join(blacks)}s.')
     loud = json.loads(re.findall(r'\{[^{}]+\}', rep)[-1])
     if not -18 <= float(loud['input_i']) <= -14: issues.append(f"Loudness {loud['input_i']} LUFS is outside -18..-14.")
@@ -453,6 +553,7 @@ def qa(story_file, out, file):
     result = {'passed': not issues, 'issues': issues, 'file': str(file), 'duration': round(dur, 2), 'width': v and v['width'], 'height': v and v['height'], 'fps': v and v['avg_frame_rate'],
               'videoCodec': v and v['codec_name'], 'audioCodec': a and a['codec_name'], 'loudnessLufs': float(loud['input_i']), 'truePeakDb': float(loud['input_tp']), 'audio': stems,
               'voice': timeline.get('voice'), 'finalSheet': str(out / 'final-sheet.jpg'),
+              'motion': motion_result, 'motionReport': str(out / 'motion-report.json'), 'motionTimeline': str(out / 'motion-timeline.png'),
               'note': 'These checks cannot judge drawing or comedy. Look at final-sheet.jpg (frames taken from the finished file) before handing over.'}
     (out / 'qa.json').write_text(json.dumps(result, indent=1), encoding='utf8'); (out / 'ffmpeg-qa.log').write_text(rep, encoding='utf8')
     print(json.dumps({k: result[k] for k in ('passed', 'issues', 'duration', 'width', 'height', 'fps', 'loudnessLufs', 'truePeakDb', 'finalSheet')}, indent=1))
@@ -486,19 +587,37 @@ def render(story_file, out, name):
 
 def main():
     p = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    p.add_argument('stage', choices=['prepare', 'stills', 'render', 'qa', 'sound'])
+    p.add_argument('stage', choices=['prepare', 'stills', 'render', 'qa', 'sound', 'motion'])
     p.add_argument('story'); p.add_argument('shots', nargs='*', help='stills only: limit to these shot ids or numbers')
     p.add_argument('--out', default=None); p.add_argument('--voice'); p.add_argument('--timings'); p.add_argument('--name', default='film.mp4')
+    draft = p.add_argument_group('motion preflight only (times are seconds in the whole film)')
+    draft.add_argument('--shot', help='Authored shot id or 1-based index; can intersect --start/--end')
+    draft.add_argument('--start', type=float); draft.add_argument('--end', type=float)
+    draft.add_argument('--jobs', type=int, help='Parallel draft render workers (default: up to 6)')
+    draft.add_argument('--width', type=int, default=MOTION_DRAFT_WIDTH, help='Draft width; multiple of 4, 480..1920 (default: 960; 480 can distort thin ink motion)')
+    draft.add_argument('--fps', type=float, default=MOTION_DRAFT_FPS, help='Draft fps (default: 12, matching motion analysis)')
+    liveness.add_gate_arguments(p)
     a = p.parse_args()
+    try: liveness.gate_limits(**liveness.gate_options(a))
+    except ValueError as exc: p.error(str(exc))
     story_file = Path(a.story).resolve()
     if not story_file.exists(): raise SystemExit(f'No story file at {story_file}')
     out = Path(a.out).resolve() if a.out else story_file.parent / 'work'; out.mkdir(parents=True, exist_ok=True)
+    if a.shots and a.stage != 'stills': p.error('positional shot selectors are for stills only; motion uses --shot')
+    if a.stage != 'motion' and (any(getattr(a, k) is not None for k in ('shot', 'start', 'end', 'jobs')) or a.width != MOTION_DRAFT_WIDTH or a.fps != MOTION_DRAFT_FPS):
+        p.error('--shot/--start/--end/--jobs/--width/--fps are for motion preflight only')
+    if a.stage not in {'motion', 'qa', 'render'} and liveness.gate_options(a):
+        p.error('--motion-* overrides apply only to motion, qa or render')
+    if a.stage == 'motion':
+        result = motion(story_file, out, a)
+        if not result['passed']: raise SystemExit('Motion preflight FAILED (motion-preflight/motion-report.json). Fix the held windows and missing timed events before a full render.')
+        return
     if a.stage == 'prepare': prepare(story_file, out, a.voice, a.timings); return
     if a.stage == 'stills': stills(story_file, out, a.shots); return
     if a.stage == 'sound':                                      # rebuild only the mix (to audition music or effects)
         print(json.dumps(sounds(describe(story_file), json.loads((out / 'timeline.json').read_text(encoding='utf-8-sig')), out), indent=1)); return
     file = render(story_file, out, a.name) if a.stage == 'render' else out / a.name
-    result = qa(story_file, out, file)
+    result = qa(story_file, out, file, motion_limits=liveness.gate_options(a))
     if not result['passed']: raise SystemExit('The finished file needs attention (qa.json). Fix the cause and render again; do not loosen a check.')
 
 

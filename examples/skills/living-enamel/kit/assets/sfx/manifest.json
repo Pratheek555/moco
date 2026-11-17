@@ -1,0 +1,4336 @@
+{
+  "schema_version": 1,
+  "library": "living-enamel-foley-and-places-v2",
+  "sample_rate": 48000,
+  "export_subtype": "PCM_24",
+  "file_contract": {
+    "peak_ceiling_dbfs": -3,
+    "build_peak_target_dbfs": -4,
+    "build_reconstructed_peak_ceiling_dbtp": -3.2,
+    "onset": "Source crop to first sample exceeding -45 dB relative peak, <=0.25 ms pre-roll. After layering, remove pre-contact noise up to first 1 ms RMS block above -32 dB relative max RMS; <=0.25 ms pre-roll, <=0.5 ms entry fade.",
+    "tail": "Trim to -48 dB relative + <=12 ms, then absolute -50 dBFS + <=12 ms after headroom; final 18 ms cosine-squared fade, exact zero endpoint.",
+    "processing": "Decode, mono downmix, 65 Hz high-pass / 14.5 kHz low-pass, bandlimited 48 kHz resampling with FFmpeg. Crop, bandlimited rate change / layering if listed. Global headroom only; film loudness belongs to mixer.",
+    "scope": "Original 45 one-shot variants. Additions use addition_contract and their per-file methods/layers."
+  },
+  "review": "Measured only. No listening review was possible. Source descriptions/file labels support the intended event; timbre and suitability require owner audition.",
+  "packs": {
+    "rpg": {
+      "title": "RPG Audio / 50 RPG sound effects",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/50-rpg-sound-effects",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/rpg-license-evidence.txt",
+      "evidence_sha256": "246dea1a304291af5d8447f3038aac9a2b2f25384075ce3d08e588e325b2eca9",
+      "original_source_page_sha256": "4d7580b0781a0daf7602731b4798112b375059e0cc1ea3829f68ce753ed90db4",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "archive_sha256": "3ae398ad63e293f9c450bda22d5d81c3af69c74df66fc1400f33c012c0bbc231",
+      "archive_license_file": "licenses/kenney-rpg-license.txt",
+      "archive_license_sha256": "6f12f89bf8d1cc417b25afd1f8e6d9560b2b1d1ac2b175cf4ee9c377e180783d"
+    },
+    "foley": {
+      "title": "100 CC0 SFX #2",
+      "author": "rubberduck",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx-2",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/100-cc0-sfx-2",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/foley-license-evidence.txt",
+      "evidence_sha256": "7568c858834a1c937af1738cc5ed95d29c09816e7541a4088a9158bd3a612113",
+      "original_source_page_sha256": "8caf9e1aba02bd4d3046f2d0caa9eb8a1504d36f675d16e80d70b47c735d13e8",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_100_v2.zip",
+      "archive_sha256": "0fc61b4494e2e893c0c015ced4877b3f689c7d84a48cb61daecd7ddb52db797b"
+    },
+    "breaking": {
+      "title": "75 CC0 breaking / falling / hit sfx",
+      "author": "rubberduck",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/breaking-license-evidence.txt",
+      "evidence_sha256": "46b6bac18e61b7afe609e6e0ebc563c1abeff67a0374eaaf09433999ecb137ab",
+      "original_source_page_sha256": "6523554e162b521a96dfd19acf700f557bc14a39a967d13feff4d4bb2c2262e5",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "archive_sha256": "e6ee04d91c5f4d30cfda1260d2c9d1faf96fda36319287215fbd07bcb1a80451"
+    },
+    "paper": {
+      "title": "Various Paper Sound Effects",
+      "author": "Luckius",
+      "source_url": "https://opengameart.org/content/various-paper-sound-effects",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/various-paper-sound-effects",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/paper-license-evidence.txt",
+      "evidence_sha256": "a69f35080f6a753c35b786ed5e32262667c38abb0093b889acb817b9095c0ea8",
+      "original_source_page_sha256": "589abf3cd34a6ef293916e9b0002f3e6695193f446348f78b73ae699333166eb",
+      "download_url": "https://opengameart.org/sites/default/files/sounds_6.zip",
+      "archive_sha256": "aa1889414310c7cfdd8dc291c19d4e4fc21ec987e9238b0d961fb72449c263a4"
+    },
+    "water": {
+      "title": "40 CC0 water / splash / slime SFX",
+      "author": "rubberduck",
+      "source_url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/water-license-evidence.txt",
+      "evidence_sha256": "bb0069a3f2f128d827c9cb807fa1e76a12247ea2796a1afd8a368ea1ac2f017f",
+      "original_source_page_sha256": "323a40bf29abc93f0873416b3418067dd07359aa63d8e590291f7c25a8a6cd48",
+      "download_url": "https://opengameart.org/sites/default/files/water-splash-slime-sfx.zip",
+      "archive_sha256": "7cd39abb49d4362a37ba18dc0e454c7dc1d08029d4e5b683149046bc237b2eba"
+    },
+    "pencil": {
+      "title": "Pencil Sounds",
+      "author": "NachtmahrTV (pencil_write); edited/packaged by AntumDeluge",
+      "source_url": "https://opengameart.org/content/pencil-sounds",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/pencil-sounds",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/pencil-license-evidence.txt",
+      "evidence_sha256": "48ac85d8ddc2369085f1af002c0251c3e686ef5fdcdc158567f09a07c6b6310b",
+      "original_source_page_sha256": "d9dddcb13b54c11fb19c9c018754b596c7c754125f22c630995ad77974d2922a",
+      "download_url": "https://opengameart.org/sites/default/files/pencil.zip",
+      "archive_sha256": "e944c3a6261b4eda793247e90e0905a9b3a2bec48a4fab44fdd63a08109cd28a",
+      "archive_license_file": "licenses/pencil-README.txt",
+      "archive_license_sha256": "347921c25e07b7c40dff256731122a14826caaed18b367bfa01c538541872593",
+      "upstream_recording_url": "https://freesound.org/s/571800/"
+    },
+    "foleyone": {
+      "title": "100 CC0 SFX",
+      "author": "rubberduck",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/100-cc0-sfx",
+      "retrieved": "2026-11-14",
+      "evidence_file": "licenses/foleyone-license-evidence.txt",
+      "evidence_sha256": "251c73e3add07aeb18f6c95e3f807b78f3d626ddcbb334819b5a06ab142a5185",
+      "original_source_page_sha256": "060fc3c0c02bfef5169890bde4ff02eb06be211432a02abd1e5363b359815e9f",
+      "download_url": "https://opengameart.org/sites/default/files/100-CC0-SFX_0.zip",
+      "archive_sha256": "a5c135878c132f1c59cca54e60061c296cd0ac27ad031ca2c41b8cd5cab3c706"
+    },
+    "sea": {
+      "title": "Beach Ocean Waves",
+      "author": "jasinski; extracted/submitted by qubodup",
+      "source_url": "https://opengameart.org/content/beach-ocean-waves",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/beach-ocean-waves",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/sea-license-evidence.txt",
+      "evidence_sha256": "e436f81f11d8aea14847962e8dfad186dcc59f4babfa3a1b78db7e0012eaf327",
+      "download_url": "https://opengameart.org/sites/default/files/wave_01_cc0-18363__jasinski__alkaibeach.flac"
+    },
+    "desert": {
+      "title": "Wind",
+      "author": "IgnasD",
+      "source_url": "https://opengameart.org/content/wind",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/wind",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/desert-license-evidence.txt",
+      "evidence_sha256": "1a7de3894bfbb1dd046db01a471c4e89efc034161aee112a7634743ae992a6f8",
+      "download_url": "https://opengameart.org/sites/default/files/wind.zip",
+      "archive_sha256": "8f6185f6eb836a5c35c492e8dabd276e507ba3e4dca0e7d551d04c689d0c0d63"
+    },
+    "crowd": {
+      "title": "Crowd Shouting/Speaking Ambience",
+      "author": "StarNinjas",
+      "source_url": "https://opengameart.org/content/crowd-shoutingspeaking-ambience",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/crowd-shoutingspeaking-ambience",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/crowd-license-evidence.txt",
+      "evidence_sha256": "fc23335f7427457c474ed83f588ce33e0e6284d721d93256aaa1b7f03f03c368",
+      "download_url": "https://opengameart.org/sites/default/files/crowd_shouting_0.ogg"
+    },
+    "rain": {
+      "title": "Rain (Ambient, Not Loopable) 2 Versions Available.",
+      "author": "Ove Melaa",
+      "source_url": "https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/rain-license-evidence.txt",
+      "evidence_sha256": "b33ac5fe94cd4fbea5c1c5acc835a673b2059f1e406ccec166f9e9e4422a85c9",
+      "download_url": "https://opengameart.org/sites/default/files/Ove%20Melaa%20-%20Rainy%20%28NOT%20loopable%29.ogg"
+    },
+    "fire": {
+      "title": "Fireplace Sound loop",
+      "author": "PagDev",
+      "source_url": "https://opengameart.org/content/fireplace-sound-loop",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/fireplace-sound-loop",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/fire-license-evidence.txt",
+      "evidence_sha256": "f99851dd92a589a450851a11d9eb881fd3c6b582dc740e6a76f252882da30619",
+      "download_url": "https://opengameart.org/sites/default/files/fire.wav"
+    },
+    "workshop": {
+      "title": "68 Workshop Sounds",
+      "author": "bart",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/68-workshop-sounds",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/workshop-license-evidence.txt",
+      "evidence_sha256": "b530cf9f556e3e8f58c08f5e25f1d6029d2c6dd9fc3ae19dcd35f7d3e7873dd3",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "archive_sha256": "79d7801041b5fbc8e181d9aaaa8dafb94b68bb51f325017e82fb37448e2fb1d3"
+    },
+    "cannon": {
+      "title": "Cannon fire",
+      "author": "Thimras",
+      "source_url": "https://opengameart.org/content/cannon-fire",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/cannon-fire",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/cannon-license-evidence.txt",
+      "evidence_sha256": "d34fc77b7fdd47704496aa2980e781287ea07c9330b86683858ac69e1d682029",
+      "download_url": "https://opengameart.org/sites/default/files/cannon_fire_0.ogg"
+    },
+    "hooves": {
+      "title": "Horse Trotting",
+      "author": "EZduzziteh",
+      "source_url": "https://opengameart.org/content/horse-trotting",
+      "license": "CC0-1.0",
+      "license_url": "https://creativecommons.org/publicdomain/zero/1.0/",
+      "license_evidence_url": "https://opengameart.org/content/horse-trotting",
+      "retrieved": "2026-11-15",
+      "evidence_file": "licenses/hooves-license-evidence.txt",
+      "evidence_sha256": "ff275bd244f518db8353d3f971b36470e2ace9c80d0a9338250e8f7e4883d8aa",
+      "download_url": "https://opengameart.org/sites/default/files/Trot.ogg"
+    }
+  },
+  "source_recordings": {
+    "rpg/OGG/handleCoins2.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/handleCoins2.ogg",
+      "sha256": "4b857968d64f9ac9336a10ffac6694d7547e1f01566ad6857b30bc8db3ee6c32",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.338208,
+      "decoded_peak_dbfs": -10.695
+    },
+    "rpg/OGG/handleCoins.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/handleCoins.ogg",
+      "sha256": "8a91f969e932df709df80ee124d86a51389eed9b67f22e5e716bc2bbf60d8dab",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.845521,
+      "decoded_peak_dbfs": 0.192
+    },
+    "breaking/bfh1_glass_hit_01.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_hit_01.ogg",
+      "sha256": "eb32d258cb72a304a3571fb0849f4b89c212cf21f434aad304bfb7eacfe9cb49",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.302104,
+      "decoded_peak_dbfs": -2.076
+    },
+    "breaking/bfh1_rock_breaking_01.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_rock_breaking_01.ogg",
+      "sha256": "970cac3139e1530009ca87f8ee0dd800dc4da61917a5e62bdc83d475a9bf4da7",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 1.146542,
+      "decoded_peak_dbfs": -3.176
+    },
+    "breaking/bfh1_glass_breaking_02.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_breaking_02.ogg",
+      "sha256": "35dcb1dc69338bad745e1cd56c676d04e4afb6687b9aa6d05ba83a255252747b",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.388396,
+      "decoded_peak_dbfs": -2.829
+    },
+    "foley/sfx100v2_air_02.ogg": {
+      "pack": "foley",
+      "original_file": "sfx100v2_air_02.ogg",
+      "sha256": "c2d5d5f73b70c155797c1655bdd1850145a47606803e1d9b6dd9c59d35a6909a",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx-2",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_100_v2.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 1.105375,
+      "decoded_peak_dbfs": -4.439
+    },
+    "breaking/bfh1_wood_hit_01.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_wood_hit_01.ogg",
+      "sha256": "841caeb101eeaebcb88afed9cd64db0de1b00c7f3b06835daefaabc95b970337",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.247646,
+      "decoded_peak_dbfs": -1.627
+    },
+    "rpg/OGG/metalLatch.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/metalLatch.ogg",
+      "sha256": "ba9ba60b172b3ebc131a940f25793cd2e207aca7af73dc80d637277f060f1708",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.261333,
+      "decoded_peak_dbfs": 1.615
+    },
+    "breaking/bfh1_glass_breaking_01.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_breaking_01.ogg",
+      "sha256": "438c45398ee77a40d5cc6ffcc59db0cdc709dc6d0521da5e2896b4afc19fcacb",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.760833,
+      "decoded_peak_dbfs": -4.622
+    },
+    "breaking/bfh1_glass_falling_01.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_falling_01.ogg",
+      "sha256": "444d1d351eada5c0b8849420dd09fcd95024e28fc7423b3f41effd0df1729337",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.430729,
+      "decoded_peak_dbfs": -1.506
+    },
+    "rpg/OGG/metalClick.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/metalClick.ogg",
+      "sha256": "9851a69d0c613e13bceef08060ecc4148f098ef487927cbebe270d642398a3b3",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.445833,
+      "decoded_peak_dbfs": -6.929
+    },
+    "breaking/bfh1_glass_hit_02.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_hit_02.ogg",
+      "sha256": "451e56c4c581305c985ad58ca1e6b15cd7562a5ff1b2a49d66a732fec0ca9a0b",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.332583,
+      "decoded_peak_dbfs": -3.462
+    },
+    "breaking/bfh1_rock_breaking_02.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_rock_breaking_02.ogg",
+      "sha256": "3e06b794511f693b6aaca5eee1d47491bab74d814746a68de6c8bf4eec744ccc",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.864625,
+      "decoded_peak_dbfs": -1.942
+    },
+    "breaking/bfh1_glass_breaking_03.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_breaking_03.ogg",
+      "sha256": "065edd6caeb5846fa9cddbaeacbabcdea834e7c42182ff98297f2e49f126cc25",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.775792,
+      "decoded_peak_dbfs": -2.058
+    },
+    "foley/sfx100v2_air_03.ogg": {
+      "pack": "foley",
+      "original_file": "sfx100v2_air_03.ogg",
+      "sha256": "df32019155c3a8b5fc77244126261695f762ba7018a4fc4c6d9ad201cedeb985",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx-2",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_100_v2.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.284625,
+      "decoded_peak_dbfs": -1.143
+    },
+    "breaking/bfh1_wood_hit_02.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_wood_hit_02.ogg",
+      "sha256": "16851c45e3d7add9f7ff8fe18d7b43e2d7d368b9bd1260d198127851b17af6d7",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.281479,
+      "decoded_peak_dbfs": -2.061
+    },
+    "breaking/bfh1_glass_falling_02.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_falling_02.ogg",
+      "sha256": "27d1c4f6ded6aab19ce3c573139c65ed756719d6e200ca08bd387d499e27e6e0",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.824833,
+      "decoded_peak_dbfs": -2.311
+    },
+    "breaking/bfh1_rock_breaking_03.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_rock_breaking_03.ogg",
+      "sha256": "a4f7a3ccebff4e8211b6aa146b8ff708bdea1c4e41115ab3b8a0d0c33094d6ee",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.455479,
+      "decoded_peak_dbfs": -2.003
+    },
+    "breaking/bfh1_glass_breaking_04.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_breaking_04.ogg",
+      "sha256": "b5038806325fa2f336a70cfb72c643d6eaa6e69df084988d4c63d65a0123000c",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.762729,
+      "decoded_peak_dbfs": -1.817
+    },
+    "foley/sfx100v2_air_01.ogg": {
+      "pack": "foley",
+      "original_file": "sfx100v2_air_01.ogg",
+      "sha256": "bb292a9fc082557e65199d01abe124459d910519b39c913ecb6c6f2207576d6f",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx-2",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_100_v2.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 2.637583,
+      "decoded_peak_dbfs": -7.183
+    },
+    "breaking/bfh1_wood_hit_03.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_wood_hit_03.ogg",
+      "sha256": "3b9f304e4de3a54624cfa9e2b2326cfe4c202d3e368dd899e7dacb0d0be78f57",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.403125,
+      "decoded_peak_dbfs": -2.265
+    },
+    "breaking/bfh1_glass_breaking_06.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_breaking_06.ogg",
+      "sha256": "5dad395c21e85d0750be4b1f9c110aeba366ee5da0dadae8c307497e0a4b4c0d",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.915792,
+      "decoded_peak_dbfs": -3.403
+    },
+    "breaking/bfh1_glass_falling_03.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_glass_falling_03.ogg",
+      "sha256": "60311be4cc96c38de5d79377a5506977528f6c5830557ea5454003e558fc53f1",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.553521,
+      "decoded_peak_dbfs": -2.08
+    },
+    "rpg/OGG/drawKnife1.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/drawKnife1.ogg",
+      "sha256": "276403e72c3b71c47bc24db3083970c23f8e5551ffa78f436f83483c56f3f0bb",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.399708,
+      "decoded_peak_dbfs": -24.284
+    },
+    "breaking/bfh1_rock_hit_01.ogg": {
+      "pack": "breaking",
+      "original_file": "bfh1_rock_hit_01.ogg",
+      "sha256": "a9c0d7e562bdcc7619bb100206305ac2300f9bb7e4533bdfbae46da4289fe994",
+      "source_url": "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/sfx_breaking_and_falling.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.109333,
+      "decoded_peak_dbfs": -2.036
+    },
+    "paper/WAV/Paper Sound - 1.wav": {
+      "pack": "paper",
+      "original_file": "WAV/Paper Sound - 1.wav",
+      "sha256": "d04ac578637259182dc4c9e03664217d9c80c0da90d5784563dbe43bd6a264cc",
+      "source_url": "https://opengameart.org/content/various-paper-sound-effects",
+      "download_url": "https://opengameart.org/sites/default/files/sounds_6.zip",
+      "author": "Luckius",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 0.487619,
+      "decoded_peak_dbfs": -9.197
+    },
+    "pencil/flac/pencil_write.flac": {
+      "pack": "pencil",
+      "original_file": "flac/pencil_write.flac",
+      "sha256": "aa835e94c7bafed9e096684a709f20de806083da5511e284d802bd16e244c025",
+      "source_url": "https://opengameart.org/content/pencil-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/pencil.zip",
+      "author": "NachtmahrTV (pencil_write); edited/packaged by AntumDeluge",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 1.422109,
+      "decoded_peak_dbfs": -6.41
+    },
+    "rpg/OGG/footstep00.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep00.ogg",
+      "sha256": "6fe61ef1fc3bcf0e253bf2eb64759db6cb69e2fe452f4d88cc597ecf78a3d601",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.248854,
+      "decoded_peak_dbfs": 0.331
+    },
+    "rpg/OGG/footstep01.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep01.ogg",
+      "sha256": "313472dba31fd0c855376069fa368bb5a198c27251cc8398ef464578b7047a4c",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.282479,
+      "decoded_peak_dbfs": 0.242
+    },
+    "rpg/OGG/footstep02.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep02.ogg",
+      "sha256": "2d9575b7dead6e1217ca113991fc5229e9b6d998ea0726ebbb277e7398ab888f",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.242146,
+      "decoded_peak_dbfs": -1.176
+    },
+    "rpg/OGG/footstep03.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep03.ogg",
+      "sha256": "a86756b9af9f370455ab47844239bb07fd1bee7a113068c91f0fcd9b72703fae",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.269021,
+      "decoded_peak_dbfs": 0.442
+    },
+    "rpg/OGG/drawKnife2.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/drawKnife2.ogg",
+      "sha256": "d5df6a4130cbb016f97b4883769a418917b9629cb4c21717030b186e0c73281a",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.445833,
+      "decoded_peak_dbfs": -22.949
+    },
+    "paper/WAV/Paper Sound - 2.wav": {
+      "pack": "paper",
+      "original_file": "WAV/Paper Sound - 2.wav",
+      "sha256": "7b670c269c463c308c8808a7d3bad5116fbd7a55c7e26d0b9064627f4c576b03",
+      "source_url": "https://opengameart.org/content/various-paper-sound-effects",
+      "download_url": "https://opengameart.org/sites/default/files/sounds_6.zip",
+      "author": "Luckius",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 0.545669,
+      "decoded_peak_dbfs": -12.501
+    },
+    "rpg/OGG/footstep04.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep04.ogg",
+      "sha256": "fd264d72a7cd622b82abde202f4ed09fa7de95d34c36473ee938ce66cdf39830",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.322833,
+      "decoded_peak_dbfs": -3.523
+    },
+    "rpg/OGG/footstep05.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep05.ogg",
+      "sha256": "817957e1f95d97fd36870064c41673895575cde17bccb245f50364c86ed10198",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.275771,
+      "decoded_peak_dbfs": -2.986
+    },
+    "rpg/OGG/footstep06.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep06.ogg",
+      "sha256": "6cabfe7ae95d227a84066c6e17014ac31cc7c89b14ef51d7877e98352d4a64fb",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.242125,
+      "decoded_peak_dbfs": -0.259
+    },
+    "rpg/OGG/drawKnife3.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/drawKnife3.ogg",
+      "sha256": "a11ae62fb1a628425769d11a9de394980ad8909c31f4c9a4316f226963e21caf",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.476562,
+      "decoded_peak_dbfs": -11.369
+    },
+    "paper/WAV/Paper Sound - 3.wav": {
+      "pack": "paper",
+      "original_file": "WAV/Paper Sound - 3.wav",
+      "sha256": "31c6a512b42ac3420b701ea7b4b4644f0f901794f944584d9e99372df6958623",
+      "source_url": "https://opengameart.org/content/various-paper-sound-effects",
+      "download_url": "https://opengameart.org/sites/default/files/sounds_6.zip",
+      "author": "Luckius",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 0.696599,
+      "decoded_peak_dbfs": -8.267
+    },
+    "rpg/OGG/footstep07.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep07.ogg",
+      "sha256": "42924cdbf998d5b3db180a339fd74afc94c570d594a536687e337ef1bdfdb346",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.255583,
+      "decoded_peak_dbfs": 0.057
+    },
+    "rpg/OGG/footstep08.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep08.ogg",
+      "sha256": "668f14dc1254d0d0f33025e9c7dbcdf2c2f00462ed0e07fb8f099c1d711c1337",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.255583,
+      "decoded_peak_dbfs": 0.714
+    },
+    "rpg/OGG/footstep09.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG/footstep09.ogg",
+      "sha256": "9324ebb9b2c5bcd078dcb523c6518d38a9f34081069d511602c2efb14ce06ce2",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.215229,
+      "decoded_peak_dbfs": -6.085
+    },
+    "water/splash_04.ogg": {
+      "pack": "water",
+      "original_file": "splash_04.ogg",
+      "sha256": "58dddea3843b89e9504e6f174ea49cd061b1002bb6ae8a94f358409fabb8340a",
+      "source_url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/water-splash-slime-sfx.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 1.010646,
+      "decoded_peak_dbfs": -1.023
+    },
+    "foleyone/bell_01.ogg": {
+      "pack": "foleyone",
+      "original_file": "bell_01.ogg",
+      "sha256": "b29cf8f3885eb2a266a16455227288dd3e004ea0414d2823b1a8677915f862d1",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/100-CC0-SFX_0.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 1.299583,
+      "decoded_peak_dbfs": 0.033
+    },
+    "water/splash_05.ogg": {
+      "pack": "water",
+      "original_file": "splash_05.ogg",
+      "sha256": "7aeaf4ac236629cf71042f56592ffc50e36f552df12c8442600839ce10156ca3",
+      "source_url": "https://opengameart.org/content/40-cc0-water-splash-slime-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/water-splash-slime-sfx.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 1.177188,
+      "decoded_peak_dbfs": -2.227
+    },
+    "foleyone/bell_02.ogg": {
+      "pack": "foleyone",
+      "original_file": "bell_02.ogg",
+      "sha256": "ea47ae29d3fe87c82414881084cf5dfa4a0a43c6def7437fcafbc21ffbf3ec72",
+      "source_url": "https://opengameart.org/content/100-cc0-sfx",
+      "download_url": "https://opengameart.org/sites/default/files/100-CC0-SFX_0.zip",
+      "author": "rubberduck",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.530979,
+      "decoded_peak_dbfs": -0.293
+    },
+    "rpg/footstep00.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\footstep00.ogg",
+      "sha256": "6fe61ef1fc3bcf0e253bf2eb64759db6cb69e2fe452f4d88cc597ecf78a3d601",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.24885416666666665
+    },
+    "rpg/footstep01.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\footstep01.ogg",
+      "sha256": "313472dba31fd0c855376069fa368bb5a198c27251cc8398ef464578b7047a4c",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.28247916666666667
+    },
+    "rpg/footstep02.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\footstep02.ogg",
+      "sha256": "2d9575b7dead6e1217ca113991fc5229e9b6d998ea0726ebbb277e7398ab888f",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.24214583333333334
+    },
+    "rpg/doorOpen_1.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\doorOpen_1.ogg",
+      "sha256": "4ab93bab96522d8eb109ff96dc57cb6765deb02448fe14c10472084be5bb2a0b",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.9189583333333333
+    },
+    "rpg/doorOpen_2.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\doorOpen_2.ogg",
+      "sha256": "68962fb0458c9bac59dec3adefa9849703c7c89d34712de03dd0075d095e79e9",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 1.4133125
+    },
+    "rpg/doorClose_1.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\doorClose_1.ogg",
+      "sha256": "834d29c60a8a8bfb50b158cdb6b7dfa8f02812a408a1ee9703d038dfab0b1aeb",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.6750416666666667
+    },
+    "rpg/cloth1.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\cloth1.ogg",
+      "sha256": "ddb93a3671233f95da0e0b10367f082f7eb42fa6caaddcf776410aa8833c747d",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.6610416666666666
+    },
+    "rpg/cloth2.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\cloth2.ogg",
+      "sha256": "8a7451193c38bc05483aec25dd193e163a15d44cf7fff04ac7912573231b0201",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.4150625
+    },
+    "rpg/cloth3.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\cloth3.ogg",
+      "sha256": "a48632d17a4f1416541d261a32a31612e01267144c407fa3ecab3ff410f0085b",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.4765625
+    },
+    "rpg/creak1.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\creak1.ogg",
+      "sha256": "8a346186fd297254248cab8e8117060a52a5cf2a84f603153a762108550ea95e",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.6610416666666666
+    },
+    "rpg/creak2.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\creak2.ogg",
+      "sha256": "8a990afdc03aebb91d528f5385e2f95582dbfa8e2c12c71098ab01be9142294a",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.8301458333333334
+    },
+    "rpg/creak3.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\creak3.ogg",
+      "sha256": "f9638787f95004b9d2d06f8eff8e99d4e594c21b51947daf562856fbcec905d1",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.33820833333333333
+    },
+    "workshop/workshop - metal hammering.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - metal hammering.wav",
+      "sha256": "1e27a1cb5247382c7eec8d7f1d16eedf7411c2e2122ed171ebc570d1d6740aae",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 2.5478231292517006
+    },
+    "workshop/workshop - metal hammering 2.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - metal hammering 2.wav",
+      "sha256": "edf523449d1f7946ec0ede557bb7b3e21d95590248acce59264017ab44c6f1bc",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 2.351859410430839
+    },
+    "workshop/workshop - metal hammering 3.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - metal hammering 3.wav",
+      "sha256": "362a714e87785556fc49d0237e57b2d3917402a4c01bcaecf0e083df33f11851",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 3.201111111111111
+    },
+    "workshop/workshop - scrape1.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - scrape1.wav",
+      "sha256": "00a0ea4d85afc496a2c7868052c6dd6c6b254ce290be02db011a7c6506ff78cc",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 3.050952380952381
+    },
+    "workshop/workshop - scrape2.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - scrape2.wav",
+      "sha256": "da1a820fe2ff991c8e5e810279875b408ce3e38f71bec0dca5b90421404bf7ec",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 2.533854875283447
+    },
+    "workshop/workshop - scrape3.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - scrape3.wav",
+      "sha256": "5e7a58d568bc9a3eab40f97d48836d3b422529a837323f3218a2476d9d66f2f6",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 1.9650113378684808
+    },
+    "crowd/crowd.ogg": {
+      "pack": "crowd",
+      "original_file": "crowd.ogg",
+      "sha256": "a2c23a64c127c77717cbe4abb21f138bac9d9aa6cb3cc89d62bab5d0d96dd7ca",
+      "source_url": "https://opengameart.org/content/crowd-shoutingspeaking-ambience",
+      "download_url": "https://opengameart.org/sites/default/files/crowd_shouting_0.ogg",
+      "author": "StarNinjas",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 27.383990929705217
+    },
+    "cannon/cannon.ogg": {
+      "pack": "cannon",
+      "original_file": "cannon.ogg",
+      "sha256": "2b21ffa41e5c3be4eecdfbd3490544f5aa8b6d1581787265863e13de1a8e599d",
+      "source_url": "https://opengameart.org/content/cannon-fire",
+      "download_url": "https://opengameart.org/sites/default/files/cannon_fire_0.ogg",
+      "author": "Thimras",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 3.575875
+    },
+    "hooves/hooves.ogg": {
+      "pack": "hooves",
+      "original_file": "hooves.ogg",
+      "sha256": "0fd1a787f3ebb2c0213de8a807566a4879b659bdf2643c8720d6e1720bb436b9",
+      "source_url": "https://opengameart.org/content/horse-trotting",
+      "download_url": "https://opengameart.org/sites/default/files/Trot.ogg",
+      "author": "EZduzziteh",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 12.4498125
+    },
+    "sea/sea.flac": {
+      "pack": "sea",
+      "original_file": "sea.flac",
+      "sha256": "fcfca178eca2eac536e8c2a4ed5cf8096e44c921acd587047b3d9f1d7845435c",
+      "source_url": "https://opengameart.org/content/beach-ocean-waves",
+      "download_url": "https://opengameart.org/sites/default/files/wave_01_cc0-18363__jasinski__alkaibeach.flac",
+      "author": "jasinski; extracted/submitted by qubodup",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 4.0
+    },
+    "desert/Wind.ogg": {
+      "pack": "desert",
+      "original_file": "Wind.ogg",
+      "sha256": "ff4f8a48b824e88ef3a53c5bc726e1da2b9593d84ac1bd6048b4ed6ddd4bad69",
+      "source_url": "https://opengameart.org/content/wind",
+      "download_url": "https://opengameart.org/sites/default/files/wind.zip",
+      "author": "IgnasD",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 1,
+      "duration_s": 6.635283446712018
+    },
+    "fire/fire.wav": {
+      "pack": "fire",
+      "original_file": "fire.wav",
+      "sha256": "85ca0cc60d0c037fff8b185e31ad1fcdbda6ce45eee17c3ee1318d1b8f59e330",
+      "source_url": "https://opengameart.org/content/fireplace-sound-loop",
+      "download_url": "https://opengameart.org/sites/default/files/fire.wav",
+      "author": "PagDev",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 29.263537414965988
+    },
+    "rain/rain.ogg": {
+      "pack": "rain",
+      "original_file": "rain.ogg",
+      "sha256": "5083851776c2b3ff56b81550672d7f697efcdb88f605f83402d7dfc91c56b476",
+      "source_url": "https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available",
+      "download_url": "https://opengameart.org/sites/default/files/Ove%20Melaa%20-%20Rainy%20%28NOT%20loopable%29.ogg",
+      "author": "Ove Melaa",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 80.67707482993197
+    },
+    "workshop/workshop - scrapes.wav": {
+      "pack": "workshop",
+      "original_file": "workshop - scrapes.wav",
+      "sha256": "4c25365261220ccd89cef23482ecd5427cb66e20063079fd1467b90cdf2a1b30",
+      "source_url": "https://opengameart.org/content/68-workshop-sounds",
+      "download_url": "https://opengameart.org/sites/default/files/workshop.7z",
+      "author": "bart",
+      "license": "CC0-1.0",
+      "sample_rate": 44100,
+      "channels": 2,
+      "duration_s": 10.393922902494332
+    },
+    "rpg/footstep04.ogg": {
+      "pack": "rpg",
+      "original_file": "OGG\\footstep04.ogg",
+      "sha256": "fd264d72a7cd622b82abde202f4ed09fa7de95d34c36473ee938ce66cdf39830",
+      "source_url": "https://kenney.nl/assets/rpg-audio",
+      "download_url": "https://opengameart.org/sites/default/files/RPGsounds_Kenney.zip",
+      "author": "Kenney Vleugels (Kenney.nl)",
+      "license": "CC0-1.0",
+      "sample_rate": 48000,
+      "channels": 2,
+      "duration_s": 0.32283333333333336
+    }
+  },
+  "effects": [
+    {
+      "name": "tink",
+      "variant": 1,
+      "file": "tink.flac",
+      "sha256": "058c892ee1be8d95d9cce2540db298f831da5508ae7350977d174e02820da18d",
+      "wav_sha256": "983ff95b3a08305dcc85c5fdce58b74013b224fcd815661f9cd56ae56bb5d3a7",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 7373,
+      "duration_s": 0.153604,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Glass-hit foley; short gem / gold-wire contact, with bandlimited speed variations.",
+      "assembly_trim_start_s": 0.000917,
+      "layers": [
+        {
+          "source": "breaking/bfh1_glass_hit_01.ogg",
+          "crop_s": [
+            0.006125,
+            0.181854
+          ],
+          "speed": 1.12,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "tink",
+      "variant": 2,
+      "file": "tink-2.flac",
+      "sha256": "e91f0dd808ba87f2841329c17985dfef05899743bd41a339a7ac265911a61654",
+      "wav_sha256": "b1b8321fc5a0e5aba93df8e6341247f270c72a780a800f61149cfc0211ca23aa",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 11330,
+      "duration_s": 0.236042,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Glass-hit foley; short gem / gold-wire contact, with bandlimited speed variations.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "breaking/bfh1_glass_hit_02.ogg",
+          "crop_s": [
+            0.0,
+            0.239021
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "tink",
+      "variant": 3,
+      "file": "tink-3.flac",
+      "sha256": "4e29c1e676eee56d64085fe46cf1756aa288b5deb760fa65aa53914e5f91bd7e",
+      "wav_sha256": "52ca724aec7a7665e1d79f316948a4ce2f752bed7120f50ad1cd40822275fc0f",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 8868,
+      "duration_s": 0.18475,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Glass-hit foley; short gem / gold-wire contact, with bandlimited speed variations.",
+      "assembly_trim_start_s": 0.000771,
+      "layers": [
+        {
+          "source": "breaking/bfh1_glass_hit_01.ogg",
+          "crop_s": [
+            0.006125,
+            0.181854
+          ],
+          "speed": 0.92,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "clink",
+      "variant": 1,
+      "file": "clink.flac",
+      "sha256": "b9a4e2bdc04e4ef4bc337f494fd41946226d49581fb7cfa8fb566742bf203dcc",
+      "wav_sha256": "3c818b06f3eec2c43112bbe4460f4d67af68b1ea3d1f8d4ff5a8bd91bd6a90b1",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 5280,
+      "duration_s": 0.11,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Isolated coin-handling transient, cropped before neighbouring action; mono, no oscillator tail.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "clink",
+      "variant": 2,
+      "file": "clink-2.flac",
+      "sha256": "3f92c9bea5aff4d681ab3e7d515549833a20cdb5ddf327040b5e46bd5ec30bfe",
+      "wav_sha256": "2dc4f87e2a8d14835b38e844ab37735fa20555129a64938bd291f4411e48d2a7",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 4080,
+      "duration_s": 0.085,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Isolated coin-handling transient, cropped before neighbouring action; mono, no oscillator tail.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "clink",
+      "variant": 3,
+      "file": "clink-3.flac",
+      "sha256": "fce393a72bc7d1899707b0ab84cb61f4e7bd2c62912bcca7ba9c805956f1e68c",
+      "wav_sha256": "dd7261fb19df7dddc9e26f300488df5585c487b899644a4f0db67a9df66b5fa2",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 5616,
+      "duration_s": 0.117,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Isolated coin-handling transient, cropped before neighbouring action; mono, no oscillator tail.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "pour",
+      "variant": 1,
+      "file": "pour.flac",
+      "sha256": "5c7d571164c80c585d6eca10561ce192e0395d431fe652db80f851d33a2999ef",
+      "wav_sha256": "dea9eae069886d857baa5c6df1ad6a67e9eb9fa977652c0f36e422854b978855",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 22320,
+      "duration_s": 0.465,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Six or seven recorded coin contacts at irregular, explicitly stored offsets; a handful spilling, not liquid.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.7,
+          "at_s": 0.046
+        },
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.85,
+          "at_s": 0.105
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.62,
+          "at_s": 0.176
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.72,
+          "at_s": 0.265
+        },
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.42,
+          "at_s": 0.348
+        }
+      ]
+    },
+    {
+      "name": "pour",
+      "variant": 2,
+      "file": "pour-2.flac",
+      "sha256": "2a5f4e51bc01cd17089c7c9738470733a3ee313df0f86ace89979b1144f56bf4",
+      "wav_sha256": "15dbfab37be1c0c9621e8aa2fdd0ae28f678c3d6987a2940298fa17cfee9a178",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 22848,
+      "duration_s": 0.476,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Six or seven recorded coin contacts at irregular, explicitly stored offsets; a handful spilling, not liquid.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.7,
+          "at_s": 0.035
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.85,
+          "at_s": 0.091
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.62,
+          "at_s": 0.153
+        },
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.72,
+          "at_s": 0.238
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.42,
+          "at_s": 0.326
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.3,
+          "at_s": 0.391
+        }
+      ]
+    },
+    {
+      "name": "pour",
+      "variant": 3,
+      "file": "pour-3.flac",
+      "sha256": "72a9c7f359282eca5f5ca871f957ae346b2fb42915473845ab6f4773e29c9a55",
+      "wav_sha256": "6934926d94b6868bcf90498816fca19eb1f0740340650273ba0cb8ddb582c130",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 21504,
+      "duration_s": 0.448,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Six or seven recorded coin contacts at irregular, explicitly stored offsets; a handful spilling, not liquid.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.7,
+          "at_s": 0.061
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.85,
+          "at_s": 0.119
+        },
+        {
+          "source": "rpg/OGG/handleCoins.ogg",
+          "crop_s": [
+            0.228,
+            0.345
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.62,
+          "at_s": 0.193
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.157,
+            0.267
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.72,
+          "at_s": 0.276
+        },
+        {
+          "source": "rpg/OGG/handleCoins2.ogg",
+          "crop_s": [
+            0.055,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.42,
+          "at_s": 0.363
+        }
+      ]
+    },
+    {
+      "name": "crack",
+      "variant": 1,
+      "file": "crack.flac",
+      "sha256": "fba1ba3dbe89fd1f8db154ee1d62e8fb952678986a8c12dc38656d2976f68ec0",
+      "wav_sha256": "77971c49e37b2d589690a643ea84cac465353708334e0b5a401e0614b3556ce5",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 20919,
+      "duration_s": 0.435812,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Rock fracture with a small glass-fracture layer for enamel; no invented long rattle.",
+      "assembly_trim_start_s": 0.001771,
+      "layers": [
+        {
+          "source": "breaking/bfh1_rock_breaking_01.ogg",
+          "crop_s": [
+            0.010313,
+            0.5
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_glass_breaking_02.ogg",
+          "crop_s": [
+            0.000729,
+            0.19
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.18,
+          "at_s": 0.012
+        }
+      ]
+    },
+    {
+      "name": "crack",
+      "variant": 2,
+      "file": "crack-2.flac",
+      "sha256": "5e9952bf96bde73d92c6072f2a036a03af31763c265052420984de7c99c4172f",
+      "wav_sha256": "05ae36a12c6e71b8edb143e382f3a8c6cd4c334bcccd2b8345e1e510fcd3a22b",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 30720,
+      "duration_s": 0.64,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Rock fracture with a small glass-fracture layer for enamel; no invented long rattle.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "breaking/bfh1_rock_breaking_02.ogg",
+          "crop_s": [
+            0.0,
+            0.64
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_glass_breaking_03.ogg",
+          "crop_s": [
+            0.000396,
+            0.19
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.18,
+          "at_s": 0.012
+        }
+      ]
+    },
+    {
+      "name": "crack",
+      "variant": 3,
+      "file": "crack-3.flac",
+      "sha256": "1ba3fa3373e8c1920179f72b70ad2e309cf75f18ef8c963bed760488e22bca3f",
+      "wav_sha256": "2f9bdc9f66cda8ed65f83dba0e20f427172a231d582edaed4bd6186be1e1386d",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 19786,
+      "duration_s": 0.412208,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Rock fracture with a small glass-fracture layer for enamel; no invented long rattle.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "breaking/bfh1_rock_breaking_03.ogg",
+          "crop_s": [
+            0.0,
+            0.43
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_glass_breaking_04.ogg",
+          "crop_s": [
+            0.025792,
+            0.19
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.18,
+          "at_s": 0.012
+        }
+      ]
+    },
+    {
+      "name": "whoosh",
+      "variant": 1,
+      "file": "whoosh.flac",
+      "sha256": "af9ec863ad2a7e5e7ec52ff2f70384a08f7c03b5c2095e53518cbaecc5846c13",
+      "wav_sha256": "04bd6f6c9793d41e08e36c5e76ec7d2335136afbcef18b18a3e752ca7ccf18a5",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 23925,
+      "duration_s": 0.498437,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx-2"
+      ],
+      "method": "Air-flow foley, trimmed and time-scaled for a moving prop or cut.",
+      "assembly_trim_start_s": 0.003854,
+      "layers": [
+        {
+          "source": "foley/sfx100v2_air_02.ogg",
+          "crop_s": [
+            0.0,
+            1.007937
+          ],
+          "speed": 2.0,
+          "relative_layer_gain": 1.0,
+          "additional_filter_hz": [
+            150,
+            10000
+          ]
+        }
+      ]
+    },
+    {
+      "name": "whoosh",
+      "variant": 2,
+      "file": "whoosh-2.flac",
+      "sha256": "cd9e697eb5780cd67a6409dcc1f8d25d6ad799adda3e9e7e3a3610d85f74e860",
+      "wav_sha256": "73c4e5948d5214d9124ba6eb513c3db1513b5d17020e745d233f2fe5c3b95598",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 14675,
+      "duration_s": 0.305729,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx-2"
+      ],
+      "method": "Air-flow foley, trimmed and time-scaled for a moving prop or cut.",
+      "assembly_trim_start_s": 0.005063,
+      "layers": [
+        {
+          "source": "foley/sfx100v2_air_03.ogg",
+          "crop_s": [
+            0.004896,
+            0.263896
+          ],
+          "speed": 0.8,
+          "relative_layer_gain": 1.0,
+          "additional_filter_hz": [
+            150,
+            10000
+          ]
+        }
+      ]
+    },
+    {
+      "name": "whoosh",
+      "variant": 3,
+      "file": "whoosh-3.flac",
+      "sha256": "8f0e9c49e95bcd83076c8bbae869dfe42eb32989dcc769bea654b51a073b7485",
+      "wav_sha256": "c697cf588fd5b28c7013786ca974e70b883ce0d2340157b74b3677d7b5a227fd",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 20856,
+      "duration_s": 0.4345,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx-2"
+      ],
+      "method": "Air-flow foley, trimmed and time-scaled for a moving prop or cut.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "foley/sfx100v2_air_01.ogg",
+          "crop_s": [
+            0.07,
+            0.7
+          ],
+          "speed": 1.45,
+          "relative_layer_gain": 1.0,
+          "additional_filter_hz": [
+            150,
+            10000
+          ]
+        }
+      ]
+    },
+    {
+      "name": "stamp",
+      "variant": 1,
+      "file": "stamp.flac",
+      "sha256": "4533cf5fbcd38ef52581d8d560eba56e941523f818eaf38e9de647cccfe6bf6d",
+      "wav_sha256": "4ca7f285df8f7e37aea0649e1b1b1adbcc65714a8f62818a8502ede46010d130",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 5788,
+      "duration_s": 0.120583,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)",
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio",
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Wood impact plus low-level metal-latch contact for a seal landing.",
+      "assembly_trim_start_s": 0.016833,
+      "layers": [
+        {
+          "source": "breaking/bfh1_wood_hit_01.ogg",
+          "crop_s": [
+            0.007083,
+            0.139854
+          ],
+          "speed": 0.94,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/metalLatch.ogg",
+          "crop_s": [
+            0.013167,
+            0.14
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.16,
+          "at_s": 0
+        }
+      ]
+    },
+    {
+      "name": "stamp",
+      "variant": 2,
+      "file": "stamp-2.flac",
+      "sha256": "aa6b10090dd93048d4a8329bf25c3c1203cd663155e3e2809bd97e73dd91d113",
+      "wav_sha256": "3106452471f3a9183c48a9338da0764b6ea4c083736ffdeb2405aedf7c9aea32",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 11253,
+      "duration_s": 0.234437,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)",
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio",
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Wood impact plus low-level metal-latch contact for a seal landing.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "breaking/bfh1_wood_hit_02.ogg",
+          "crop_s": [
+            0.0,
+            0.224083
+          ],
+          "speed": 0.94,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/metalLatch.ogg",
+          "crop_s": [
+            0.013167,
+            0.14
+          ],
+          "speed": 1.04,
+          "relative_layer_gain": 0.16,
+          "at_s": 0
+        }
+      ]
+    },
+    {
+      "name": "stamp",
+      "variant": 3,
+      "file": "stamp-3.flac",
+      "sha256": "9abf87e593f5d9550435dbcfb4ad0456fb9c46c68e85882e54e98cc7e2027d80",
+      "wav_sha256": "ca09176d7509fc4b05f6a21c128cc95ff5f8247db41493c419cf5fbc90a4b65f",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 11665,
+      "duration_s": 0.243021,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)",
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio",
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Wood impact plus low-level metal-latch contact for a seal landing.",
+      "assembly_trim_start_s": 0.003771,
+      "layers": [
+        {
+          "source": "breaking/bfh1_wood_hit_03.ogg",
+          "crop_s": [
+            0.000812,
+            0.236458
+          ],
+          "speed": 0.94,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/metalLatch.ogg",
+          "crop_s": [
+            0.013167,
+            0.14
+          ],
+          "speed": 1.08,
+          "relative_layer_gain": 0.16,
+          "at_s": 0
+        }
+      ]
+    },
+    {
+      "name": "shatter",
+      "variant": 1,
+      "file": "shatter.flac",
+      "sha256": "f5806d998f584e586999d9bc66ade9986b36f3f1684f44730c5582151af598e5",
+      "wav_sha256": "399b5d7050988d94fb8e29914a4d207c6e95872548226fe1c5f23cb2d139e56d",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 21456,
+      "duration_s": 0.447,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Glass-breaking foley followed by recorded falling fragments; suits an enamel object breaking apart.",
+      "assembly_trim_start_s": 0.000125,
+      "layers": [
+        {
+          "source": "breaking/bfh1_glass_breaking_01.ogg",
+          "crop_s": [
+            0.009979,
+            0.460083
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_glass_falling_01.ogg",
+          "crop_s": [
+            0.014542,
+            0.332437
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.28,
+          "at_s": 0.035
+        }
+      ]
+    },
+    {
+      "name": "shatter",
+      "variant": 2,
+      "file": "shatter-2.flac",
+      "sha256": "b09abb3e7c6700e801239be729da0ede6a0c0b5186c959cf30633a4acdb72794",
+      "wav_sha256": "bf985248d130cae830f8755fbd5549b38f339b1d78f842e00f4c77fc07822d61",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 38828,
+      "duration_s": 0.808917,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Glass-breaking foley followed by recorded falling fragments; suits an enamel object breaking apart.",
+      "assembly_trim_start_s": 0.000792,
+      "layers": [
+        {
+          "source": "breaking/bfh1_glass_breaking_03.ogg",
+          "crop_s": [
+            0.000396,
+            0.625104
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_glass_falling_02.ogg",
+          "crop_s": [
+            0.005646,
+            0.799208
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.28,
+          "at_s": 0.035
+        }
+      ]
+    },
+    {
+      "name": "shatter",
+      "variant": 3,
+      "file": "shatter-3.flac",
+      "sha256": "09da423a8f9cce0d80d5597ed9ea883ac72f3f57d6e6234a430b0e4d8ae5cbf4",
+      "wav_sha256": "885efd9b7cc9a893026a06bea22c79a1fc372b3b3692db6e8a322c74bf6b3af5",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 37105,
+      "duration_s": 0.773021,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Glass-breaking foley followed by recorded falling fragments; suits an enamel object breaking apart.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "breaking/bfh1_glass_breaking_06.ogg",
+          "crop_s": [
+            0.0,
+            0.777604
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_glass_falling_03.ogg",
+          "crop_s": [
+            0.022042,
+            0.494271
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.28,
+          "at_s": 0.035
+        }
+      ]
+    },
+    {
+      "name": "spark",
+      "variant": 1,
+      "file": "spark.flac",
+      "sha256": "4cbc8d7e29add7b563df57ef49f0fd244822a92877d5c37ad454607b1a1a5a41",
+      "wav_sha256": "6aee082188652d0352a965218e08043ffb5e6801fecac746df810c4def1fdbcd",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 3676,
+      "duration_s": 0.076583,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)",
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio",
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Micro metal-click and glass contact, high-passed and shortened; designed glint/contact cue, not electricity.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/metalClick.ogg",
+          "crop_s": [
+            0.0,
+            0.07
+          ],
+          "speed": 1.1,
+          "relative_layer_gain": 1.0,
+          "at_s": 0,
+          "additional_filter_hz": [
+            500,
+            12500
+          ]
+        },
+        {
+          "source": "breaking/bfh1_glass_hit_01.ogg",
+          "crop_s": [
+            0.006125,
+            0.1
+          ],
+          "speed": 1.5,
+          "relative_layer_gain": 0.22,
+          "at_s": 0.014,
+          "additional_filter_hz": [
+            500,
+            12500
+          ]
+        }
+      ]
+    },
+    {
+      "name": "spark",
+      "variant": 2,
+      "file": "spark-2.flac",
+      "sha256": "05885e0216b92230601c6c4860f5f055ccc9f2c1c3fbaab2d2995e9b2b53c6d5",
+      "wav_sha256": "9adc2c4b2eff9b6fb10dd2fc8bfc3bf8ab8ae4d8911d5c765c7bc1ed1b76f380",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 3872,
+      "duration_s": 0.080667,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)",
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio",
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Micro metal-click and glass contact, high-passed and shortened; designed glint/contact cue, not electricity.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/metalClick.ogg",
+          "crop_s": [
+            0.0,
+            0.07
+          ],
+          "speed": 1.2,
+          "relative_layer_gain": 1.0,
+          "at_s": 0,
+          "additional_filter_hz": [
+            500,
+            12500
+          ]
+        },
+        {
+          "source": "breaking/bfh1_glass_hit_02.ogg",
+          "crop_s": [
+            0.0,
+            0.1
+          ],
+          "speed": 1.5,
+          "relative_layer_gain": 0.22,
+          "at_s": 0.014,
+          "additional_filter_hz": [
+            500,
+            12500
+          ]
+        }
+      ]
+    },
+    {
+      "name": "spark",
+      "variant": 3,
+      "file": "spark-3.flac",
+      "sha256": "b9ab432e9dba778c791174c89ad4149f40c2d2b613e8a2f39adbffc6280664bb",
+      "wav_sha256": "98c1cc78f67744e80ea7e030b8266b59a8ba725dbfb72e588c44e3c99f860cbf",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 3676,
+      "duration_s": 0.076583,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)",
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio",
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Micro metal-click and glass contact, high-passed and shortened; designed glint/contact cue, not electricity.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "rpg/OGG/metalClick.ogg",
+          "crop_s": [
+            0.0,
+            0.07
+          ],
+          "speed": 1.05,
+          "relative_layer_gain": 1.0,
+          "at_s": 0,
+          "additional_filter_hz": [
+            500,
+            12500
+          ]
+        },
+        {
+          "source": "breaking/bfh1_glass_hit_01.ogg",
+          "crop_s": [
+            0.006125,
+            0.1
+          ],
+          "speed": 1.5,
+          "relative_layer_gain": 0.22,
+          "at_s": 0.014,
+          "additional_filter_hz": [
+            500,
+            12500
+          ]
+        }
+      ]
+    },
+    {
+      "name": "blade",
+      "variant": 1,
+      "file": "blade.flac",
+      "sha256": "593816de2a9f0655d06ffa4be50574d2b70dd104f6928e328831565cd9cf44cc",
+      "wav_sha256": "54b8eb020b11bc1dca3936c156292108513a7e140a2c3e46ca21662faefce2b2",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 15202,
+      "duration_s": 0.316708,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded knife draw; suits unsheathing or a blade entering frame.",
+      "assembly_trim_start_s": 0.062854,
+      "layers": [
+        {
+          "source": "rpg/OGG/drawKnife1.ogg",
+          "crop_s": [
+            0.0,
+            0.382521
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "blade",
+      "variant": 2,
+      "file": "blade-2.flac",
+      "sha256": "83d14429d1fcd70ac0889d98c585f9ef94fd46b13b7bc9a2f5bb8b093c27d89f",
+      "wav_sha256": "a3dece444df23af4f8097e04125343737bf617c823317549f1bb201a50eecf02",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 17583,
+      "duration_s": 0.366312,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded knife draw; suits unsheathing or a blade entering frame.",
+      "assembly_trim_start_s": 0.000937,
+      "layers": [
+        {
+          "source": "rpg/OGG/drawKnife2.ogg",
+          "crop_s": [
+            0.0,
+            0.370229
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "blade",
+      "variant": 3,
+      "file": "blade-3.flac",
+      "sha256": "d1043b1aa9986fa66c56153d6fa2a2a9c8469d41a8e47f1634f03da5a1ad0b55",
+      "wav_sha256": "eb3ff6baeaa193d0e817afbf5b7bdccb6df3ee03f5acf766eeeedb63034f957c",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 13209,
+      "duration_s": 0.275187,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded knife draw; suits unsheathing or a blade entering frame.",
+      "assembly_trim_start_s": 0.027771,
+      "layers": [
+        {
+          "source": "rpg/OGG/drawKnife3.ogg",
+          "crop_s": [
+            0.036729,
+            0.342667
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "impact",
+      "variant": 1,
+      "file": "impact.flac",
+      "sha256": "8ca0a95d88618b3faf16fa31713682c9f38239e404f576157c0dbcf826bc5cad",
+      "wav_sha256": "9c14fbfe2a3c97efe2080b0e99d2c2a5cf7a7040faa4f644629c2a00634618c5",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 12104,
+      "duration_s": 0.252167,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Rock/wood impact with a recorded-transient-driven damped body (137, 213, 331 Hz); heavy reveal / wall or cage landing.",
+      "assembly_trim_start_s": 0.00075,
+      "layers": [
+        {
+          "source": "breaking/bfh1_rock_hit_01.ogg",
+          "crop_s": [
+            0.0,
+            0.081771
+          ],
+          "speed": 0.72,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_wood_hit_01.ogg",
+          "crop_s": [
+            0.007083,
+            0.139854
+          ],
+          "speed": 0.8,
+          "relative_layer_gain": 0.65,
+          "at_s": 0
+        }
+      ]
+    },
+    {
+      "name": "impact",
+      "variant": 2,
+      "file": "impact-2.flac",
+      "sha256": "adb3f8dc5f262fd389c0b217516936f83248d217722333961256f966a42f311c",
+      "wav_sha256": "e7292bd523f5a7f5b9c0fcea4448a73943a1e338b44fadeaf291840345f7b7bd",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 13511,
+      "duration_s": 0.281479,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Rock/wood impact with a recorded-transient-driven damped body (137, 213, 331 Hz); heavy reveal / wall or cage landing.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "breaking/bfh1_rock_hit_01.ogg",
+          "crop_s": [
+            0.0,
+            0.081771
+          ],
+          "speed": 0.8,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_wood_hit_02.ogg",
+          "crop_s": [
+            0.0,
+            0.224083
+          ],
+          "speed": 0.8,
+          "relative_layer_gain": 0.65,
+          "at_s": 0
+        }
+      ]
+    },
+    {
+      "name": "impact",
+      "variant": 3,
+      "file": "impact-3.flac",
+      "sha256": "61d450f9d73b63740eac4578d74527028720cd8bee1e78c9904ca683d05b2fd2",
+      "wav_sha256": "adae8869ebaaacb129dac21f4c0121c6513cee67c2e15f1ffa578cdf798990f7",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 13820,
+      "duration_s": 0.287917,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx"
+      ],
+      "method": "Rock/wood impact with a recorded-transient-driven damped body (137, 213, 331 Hz); heavy reveal / wall or cage landing.",
+      "assembly_trim_start_s": 0.000208,
+      "layers": [
+        {
+          "source": "breaking/bfh1_rock_hit_01.ogg",
+          "crop_s": [
+            0.0,
+            0.081771
+          ],
+          "speed": 0.66,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "breaking/bfh1_wood_hit_03.ogg",
+          "crop_s": [
+            0.000812,
+            0.236458
+          ],
+          "speed": 0.8,
+          "relative_layer_gain": 0.65,
+          "at_s": 0
+        }
+      ]
+    },
+    {
+      "name": "paper",
+      "variant": 1,
+      "file": "paper.flac",
+      "sha256": "55d069dea21c45b4d4b59209f233d19366010ca5b4abe2a31be0073b1ff70c83",
+      "wav_sha256": "489e887a495ceaafb3ee10dfe6224fc7f5eb4183744aea48f4e63bf0ddf4e7c4",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 23406,
+      "duration_s": 0.487625,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Luckius"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/various-paper-sound-effects"
+      ],
+      "method": "Recorded paper manipulation; the pack author made it for map opening/closing.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "paper/WAV/Paper Sound - 1.wav",
+          "crop_s": [
+            0.0,
+            0.487625
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "paper",
+      "variant": 2,
+      "file": "paper-2.flac",
+      "sha256": "952a7d89700020f401b07f46978dbc4cdd3f025559d399253424a996495d80f8",
+      "wav_sha256": "fa1e65a4548adace96edc12489ae20cb87580ce47d1b94ff36cd7d461f5905fd",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 26173,
+      "duration_s": 0.545271,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Luckius"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/various-paper-sound-effects"
+      ],
+      "method": "Recorded paper manipulation; the pack author made it for map opening/closing.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "paper/WAV/Paper Sound - 2.wav",
+          "crop_s": [
+            0.0,
+            0.545687
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "paper",
+      "variant": 3,
+      "file": "paper-3.flac",
+      "sha256": "feaade59880d25a89b80f3a0ca01fb4c6fe1643c3905d4024c8b3d4d7dec1157",
+      "wav_sha256": "6bbe4614b71aebfc38ab8e739d3ebcd70a4dbf9c45c6925deb22b334e35e07c3",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 33383,
+      "duration_s": 0.695479,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Luckius"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/various-paper-sound-effects"
+      ],
+      "method": "Recorded paper manipulation; the pack author made it for map opening/closing.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "paper/WAV/Paper Sound - 3.wav",
+          "crop_s": [
+            0.0,
+            0.696604
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "draw",
+      "variant": 1,
+      "file": "draw.flac",
+      "sha256": "25c1b97ae8e25d9f6afba875c5339270a89569d867815fd787a4b3a57ebd4f90",
+      "wav_sha256": "593915116394ef70949322e7ea0bb3d4fd7bf70e859ee8dd5255637717c1b3a4",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 19680,
+      "duration_s": 0.41,
+      "peak_dbfs": -4.0,
+      "author": [
+        "NachtmahrTV (pencil_write); edited/packaged by AntumDeluge"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/pencil-sounds"
+      ],
+      "method": "Separate recorded pencil strokes; route-drawing, signing or striking a name.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "pencil/flac/pencil_write.flac",
+          "crop_s": [
+            0.0,
+            0.41
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "draw",
+      "variant": 2,
+      "file": "draw-2.flac",
+      "sha256": "2807203bb8b65fbbe8b6b992ab9ef775649ae74310b1ba2135e96b837e58dc25",
+      "wav_sha256": "59f48e9e86adebf4222ac2f867bfc8ee0c59abd75b410b40ebd3701a86e78952",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 19680,
+      "duration_s": 0.41,
+      "peak_dbfs": -4.0,
+      "author": [
+        "NachtmahrTV (pencil_write); edited/packaged by AntumDeluge"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/pencil-sounds"
+      ],
+      "method": "Separate recorded pencil strokes; route-drawing, signing or striking a name.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "pencil/flac/pencil_write.flac",
+          "crop_s": [
+            0.42,
+            0.83
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "draw",
+      "variant": 3,
+      "file": "draw-3.flac",
+      "sha256": "6f889bf99073f57ebb50c0a93d3b067d7c4dd73254162121e879ce1ba9e8f573",
+      "wav_sha256": "42f23c86e2c120eb54dee977dbd0288c6d41df799ae2700980dca51ac3871831",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 18720,
+      "duration_s": 0.39,
+      "peak_dbfs": -4.0,
+      "author": [
+        "NachtmahrTV (pencil_write); edited/packaged by AntumDeluge"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/pencil-sounds"
+      ],
+      "method": "Separate recorded pencil strokes; route-drawing, signing or striking a name.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "pencil/flac/pencil_write.flac",
+          "crop_s": [
+            0.84,
+            1.23
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "water",
+      "variant": 1,
+      "file": "water.flac",
+      "sha256": "88f7d25ae502116f13a6278a96c305da13ed752bc1261948c8da430481749495",
+      "wav_sha256": "67d88c5cf0e9a65827b2c95994793b7a0b25d873131491a29ffdd9dee6f82546",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 40516,
+      "duration_s": 0.844083,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/40-cc0-water-splash-slime-sfx"
+      ],
+      "method": "Recorded/labeled water splash; small wave / water-entry action, not an ocean ambience bed.",
+      "assembly_trim_start_s": 0.000125,
+      "layers": [
+        {
+          "source": "water/splash_04.ogg",
+          "crop_s": [
+            0.012875,
+            0.860062
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "water",
+      "variant": 2,
+      "file": "water-2.flac",
+      "sha256": "2376b659a48141098178f52fb02c396b383dae517e1d48a546aaccc46d088b60",
+      "wav_sha256": "a9e89e3cfc033cf995abd889521fa85d36f5a07ca1b2d34daf63fc9bef501615",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 44131,
+      "duration_s": 0.919396,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/40-cc0-water-splash-slime-sfx"
+      ],
+      "method": "Recorded/labeled water splash; small wave / water-entry action, not an ocean ambience bed.",
+      "assembly_trim_start_s": 0.011958,
+      "layers": [
+        {
+          "source": "water/splash_05.ogg",
+          "crop_s": [
+            0.014458,
+            0.949
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "wind",
+      "variant": 1,
+      "file": "wind.flac",
+      "sha256": "d1590b48c114395a3aff03d37f85469c5c101d2fa339a7fcdc5691250b296721",
+      "wav_sha256": "e24ca751ce6cae4b5db6a12354f9297339b2f69778841a7c008d502140e244bc",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 62185,
+      "duration_s": 1.295521,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx-2"
+      ],
+      "method": "Air-flow foley excerpt; short gust for flags or blowing sand; one-shot, not a seamless loop.",
+      "assembly_trim_start_s": 0.002833,
+      "layers": [
+        {
+          "source": "foley/sfx100v2_air_01.ogg",
+          "crop_s": [
+            0.001646,
+            1.3
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "additional_filter_hz": [
+            180,
+            7000
+          ]
+        }
+      ]
+    },
+    {
+      "name": "wind",
+      "variant": 2,
+      "file": "wind-2.flac",
+      "sha256": "0f884447fee32b1702a15a47a7e0173f00ca37f8a13506dfad53c539b63d203c",
+      "wav_sha256": "6eb8cfad25743d0ab770c039947192ebe5607f6c75ef71270b60404bbdbc71c9",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 70080,
+      "duration_s": 1.46,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx-2"
+      ],
+      "method": "Air-flow foley excerpt; short gust for flags or blowing sand; one-shot, not a seamless loop.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "foley/sfx100v2_air_01.ogg",
+          "crop_s": [
+            1.1,
+            2.56
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "additional_filter_hz": [
+            180,
+            7000
+          ]
+        }
+      ]
+    },
+    {
+      "name": "bell",
+      "variant": 1,
+      "file": "bell.flac",
+      "sha256": "7f6ee4b3eb31b1e1cf6ea4590fbab58ceedd2f3119047464f7cd0de5fd8adef0",
+      "wav_sha256": "74fc26b6b8b731e38c454aaf3c24886bde7ff9f04c0b209fc50789e999c0d68f",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 52831,
+      "duration_s": 1.100646,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx"
+      ],
+      "method": "Recorded bell strike; the source pack explicitly documents phone recordings.",
+      "assembly_trim_start_s": 0.0,
+      "layers": [
+        {
+          "source": "foleyone/bell_01.ogg",
+          "crop_s": [
+            0.0,
+            1.103604
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "bell",
+      "variant": 2,
+      "file": "bell-2.flac",
+      "sha256": "a781c0156597b86a7c9a3ef8dc15d7e2c5af565778ce0e45db99de7d4dd4241b",
+      "wav_sha256": "be88b2cc8a831cf422d9ac51b68a35d139222801cd60d46b04616433132058fd",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 18276,
+      "duration_s": 0.38075,
+      "peak_dbfs": -4.0,
+      "author": [
+        "rubberduck"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://opengameart.org/content/100-cc0-sfx"
+      ],
+      "method": "Recorded bell strike; the source pack explicitly documents phone recordings.",
+      "assembly_trim_start_s": 8.3e-05,
+      "layers": [
+        {
+          "source": "foleyone/bell_02.ogg",
+          "crop_s": [
+            0.016917,
+            0.400729
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "march",
+      "variant": 1,
+      "file": "march.flac",
+      "sha256": "6580edda66f8d4211c83562bab46605b5d57b76f06381deca8a61e42120aff09",
+      "wav_sha256": "c91691c444e6d0e38e9b87a2d23a227c4506ca2319958e7c2c3af62be9040125",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 57210,
+      "duration_s": 1.191875,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Four recorded footfalls, 0.32 s apart; a 1.2 s walking/marching phrase, not a single step.",
+      "assembly_trim_start_s": 0.006833,
+      "layers": [
+        {
+          "source": "rpg/OGG/footstep00.ogg",
+          "crop_s": [
+            0.020063,
+            0.237771
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/footstep01.ogg",
+          "crop_s": [
+            0.032729,
+            0.262979
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.85,
+          "at_s": 0.32
+        },
+        {
+          "source": "rpg/OGG/footstep02.ogg",
+          "crop_s": [
+            0.010438,
+            0.226708
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.94,
+          "at_s": 0.64
+        },
+        {
+          "source": "rpg/OGG/footstep03.ogg",
+          "crop_s": [
+            0.015729,
+            0.269021
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.8,
+          "at_s": 0.96
+        }
+      ]
+    },
+    {
+      "name": "march",
+      "variant": 2,
+      "file": "march-2.flac",
+      "sha256": "681bd38e246124f64020a04a883ee24e6cfbf52883ba1a017ab622f465123f3f",
+      "wav_sha256": "2fdf4cb71aac4fa7952d6666014c235d10b9360aeceddd07213641add2f62337",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 56302,
+      "duration_s": 1.172958,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Four recorded footfalls, 0.32 s apart; a 1.2 s walking/marching phrase, not a single step.",
+      "assembly_trim_start_s": 0.001854,
+      "layers": [
+        {
+          "source": "rpg/OGG/footstep03.ogg",
+          "crop_s": [
+            0.015729,
+            0.269021
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/footstep04.ogg",
+          "crop_s": [
+            0.027292,
+            0.284667
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.85,
+          "at_s": 0.32
+        },
+        {
+          "source": "rpg/OGG/footstep05.ogg",
+          "crop_s": [
+            0.012083,
+            0.246104
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.94,
+          "at_s": 0.64
+        },
+        {
+          "source": "rpg/OGG/footstep06.ogg",
+          "crop_s": [
+            0.001458,
+            0.222458
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.8,
+          "at_s": 0.96
+        }
+      ]
+    },
+    {
+      "name": "march",
+      "variant": 3,
+      "file": "march-3.flac",
+      "sha256": "f6de793883250c0914c7f2ac9136dba40ee2df657b22ae7a3a13448d365606fb",
+      "wav_sha256": "273e9bd9384fc3b8a6498c713da06a3c0de56228eba3c7b88c65350125b26bfe",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 56278,
+      "duration_s": 1.172458,
+      "peak_dbfs": -4.0,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing and any DSP layers)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Four recorded footfalls, 0.32 s apart; a 1.2 s walking/marching phrase, not a single step.",
+      "assembly_trim_start_s": 0.002771,
+      "layers": [
+        {
+          "source": "rpg/OGG/footstep06.ogg",
+          "crop_s": [
+            0.001458,
+            0.222458
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/OGG/footstep07.ogg",
+          "crop_s": [
+            0.023167,
+            0.223125
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.85,
+          "at_s": 0.32
+        },
+        {
+          "source": "rpg/OGG/footstep08.ogg",
+          "crop_s": [
+            0.006521,
+            0.221708
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.94,
+          "at_s": 0.64
+        },
+        {
+          "source": "rpg/OGG/footstep09.ogg",
+          "crop_s": [
+            0.0,
+            0.215229
+          ],
+          "speed": 1.0,
+          "relative_layer_gain": 0.8,
+          "at_s": 0.96
+        }
+      ]
+    },
+    {
+      "name": "footstep",
+      "variant": 1,
+      "file": "footstep.flac",
+      "sha256": "c906f5be6f9a97446aae6c078aa07cf853673b6768ddb486ce3b85bc56c99046",
+      "wav_sha256": "350bc2e8afac5f6f7a7548ae0bde0efead237d0c4ba0f94f4314fcdaf7628b8b",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 9120,
+      "duration_s": 0.19,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded footstep contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/footstep00.ogg",
+          "crop_s": [
+            0.025313,
+            0.215313
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "footstep",
+      "variant": 2,
+      "file": "footstep-2.flac",
+      "sha256": "6c03b754e6d6053bcaa0f68fae082702f41120c763d0d5633dc5c1da3bb1cb55",
+      "wav_sha256": "fac14bb36e46a31d992c2241575534c6ba6a82654e3cd68fa03046c986cf03d0",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 9977,
+      "duration_s": 0.207854,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded footstep contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/footstep01.ogg",
+          "crop_s": [
+            0.033271,
+            0.241125
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "footstep",
+      "variant": 3,
+      "file": "footstep-3.flac",
+      "sha256": "ee88700d840d88a585d8a5becb6978246916e6fb11f8e6f4ec2bdd40d6657188",
+      "wav_sha256": "00d80f32c3039c1620f015271658725a3a87380cac4dd5698e29fbada3810802",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 10128,
+      "duration_s": 0.211,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded footstep contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/footstep02.ogg",
+          "crop_s": [
+            0.013896,
+            0.224896
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "door",
+      "variant": 1,
+      "file": "door.flac",
+      "sha256": "4ca85d0d12e69fa0e347f11393b7629c90a687b16fb70b6b652c8cf2d0fcef24",
+      "wav_sha256": "caf5d76cf9aa1e221c738ed01cafea22a01d1b2f4f81ee226970b44eb89d41d6",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 42325,
+      "duration_s": 0.881771,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded door contact; distinct source take. Door variants both open; not an architectural identification.",
+      "layers": [
+        {
+          "source": "rpg/doorOpen_1.ogg",
+          "crop_s": [
+            0.007083,
+            0.888854
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "door",
+      "variant": 2,
+      "file": "door-2.flac",
+      "sha256": "15f53188367fc0bd3cd3de1c1e9af7e2d709e3c6612029f87bdc6436395598b6",
+      "wav_sha256": "d0aa4e0c53fa70dd9c056ccaf65566cda7ecc3b520a4f16e84a05596aa58aca7",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 64329,
+      "duration_s": 1.340188,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded door contact; distinct source take. Door variants both open; not an architectural identification.",
+      "layers": [
+        {
+          "source": "rpg/doorOpen_2.ogg",
+          "crop_s": [
+            0.034625,
+            1.374812
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "cloth",
+      "variant": 1,
+      "file": "cloth.flac",
+      "sha256": "f0f09f5ed6f6200d4c99486947d28c9983d19901648e51a89eb3493acdb597d3",
+      "wav_sha256": "d502022f5df855a1c4d269f4f7dbd4335ffd2d8750cff49b2eea9c1e38db60a3",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 26848,
+      "duration_s": 0.559333,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded cloth contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/cloth1.ogg",
+          "crop_s": [
+            0.032667,
+            0.592
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "cloth",
+      "variant": 2,
+      "file": "cloth-2.flac",
+      "sha256": "e012d918fb51da54ceca9651bbaf5900fa7be34500c918aad9ede13f2f7cbf04",
+      "wav_sha256": "e4655ab899699a31fbe4b1c0b2d65b15523674ed19bcf04d148f0acd5a6167f8",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 15288,
+      "duration_s": 0.3185,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded cloth contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/cloth2.ogg",
+          "crop_s": [
+            0.052187,
+            0.370688
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "cloth",
+      "variant": 3,
+      "file": "cloth-3.flac",
+      "sha256": "d55229f8954d9d8f4a5f5014088124037abcdd8b265be5447456dc6198270d43",
+      "wav_sha256": "821f6a5ff18c2248567f76674675df34fb5130e5b862f4b4a6213fb9c3e725ff",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 21463,
+      "duration_s": 0.447146,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded cloth contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/cloth3.ogg",
+          "crop_s": [
+            0.016479,
+            0.463625
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "creak",
+      "variant": 1,
+      "file": "creak.flac",
+      "sha256": "4f2515e8d2397549c7d0f47f88187ea21b3dcf8dddf1b7d124eb93bb2fe135c1",
+      "wav_sha256": "ec294186a582869018b39369fa08aad37004a663b2feb60fa974228413f21df0",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 27893,
+      "duration_s": 0.581104,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded creak contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/creak1.ogg",
+          "crop_s": [
+            0.059646,
+            0.64075
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "creak",
+      "variant": 2,
+      "file": "creak-2.flac",
+      "sha256": "d434e3abfe93555de54583006766fe9d72b5d0e575b5717fbe7a51c6a6803df0",
+      "wav_sha256": "1ffffea12b3aa773d98bdd6158cf80bb20140a4c4ca646c6ec77d07a179b8750",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 35596,
+      "duration_s": 0.741583,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded creak contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/creak2.ogg",
+          "crop_s": [
+            0.009104,
+            0.750688
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "creak",
+      "variant": 3,
+      "file": "creak-3.flac",
+      "sha256": "02ce6ccb9345dc99bf10137732ab3681af4e0b0704269cc7cfbe6575dee6aa1f",
+      "wav_sha256": "c08c4d12e434db69c232e131e1d0659ded0a36a0c7735fd17d7f00b3df44a811",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 13605,
+      "duration_s": 0.283438,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Recorded creak contact; distinct source take.",
+      "layers": [
+        {
+          "source": "rpg/creak3.ogg",
+          "crop_s": [
+            0.019854,
+            0.303292
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "hammer",
+      "variant": 1,
+      "file": "hammer.flac",
+      "sha256": "ea9ab95133d6ce3d6d8dcd4e9b42ab6bc210e14e7289460c145e226fff297f5d",
+      "wav_sha256": "90b66d244d892c30949f8014a74809f2987deb115c1282c77b65893c008eba79",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 18240,
+      "duration_s": 0.38,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "First forceful onset cropped from recorded hammering; <=0.38s. Single strike, not a phrase.",
+      "layers": [
+        {
+          "source": "workshop/workshop - metal hammering.wav",
+          "crop_s": [
+            0.342667,
+            0.722667
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "hammer",
+      "variant": 2,
+      "file": "hammer-2.flac",
+      "sha256": "6bee81cf69225fdab46b686a295a892fe2c04dce4e7065f5cda068132da647b3",
+      "wav_sha256": "edc9aba003e0522e67caf198c69aa9bff600aff56de966779da311ce57f2479e",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 18240,
+      "duration_s": 0.38,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "First forceful onset cropped from recorded hammering; <=0.38s. Single strike, not a phrase.",
+      "layers": [
+        {
+          "source": "workshop/workshop - metal hammering 2.wav",
+          "crop_s": [
+            0.416521,
+            0.796521
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "hammer",
+      "variant": 3,
+      "file": "hammer-3.flac",
+      "sha256": "34f954ec88150fd8ea247d78736612e9f9efcd7b7295cac3b4919e8fdd607db4",
+      "wav_sha256": "00f6f67eb659653adadd8bd7b302e309b8424241f209a6c4ec2114535a3f3aa1",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 18240,
+      "duration_s": 0.38,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "First forceful onset cropped from recorded hammering; <=0.38s. Single strike, not a phrase.",
+      "layers": [
+        {
+          "source": "workshop/workshop - metal hammering 3.wav",
+          "crop_s": [
+            2.216375,
+            2.596375
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "grind",
+      "variant": 1,
+      "file": "grind.flac",
+      "sha256": "6207694f0a9938760a548921179c19ad0c5e0dc80b6d7e0b21e8244ec2253abd",
+      "wav_sha256": "5f378fa3a5453ccd1d2fe79d5c62610611809196556f728f0f6146cfcbe50266",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 86400,
+      "duration_s": 1.8,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "Recorded hand/tool scrape as a stylized wheel-contact phrase, not a historical wheel recording.",
+      "layers": [
+        {
+          "source": "workshop/workshop - scrape1.wav",
+          "crop_s": [
+            0.0,
+            1.8
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            7000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "grind",
+      "variant": 2,
+      "file": "grind-2.flac",
+      "sha256": "d27f47edbb67ef92b817c4384863e3074b534576ebff70a5559e34f6d8c50607",
+      "wav_sha256": "228c037bde4a77ebb9bc2ce57561db4e8340f521d4e84842116073a474dbe6c5",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 83574,
+      "duration_s": 1.741125,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "Recorded hand/tool scrape as a stylized wheel-contact phrase, not a historical wheel recording.",
+      "layers": [
+        {
+          "source": "workshop/workshop - scrape2.wav",
+          "crop_s": [
+            0.058875,
+            1.8
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            7000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "grind",
+      "variant": 3,
+      "file": "grind-3.flac",
+      "sha256": "85553fb17d8c91e9ce240a664dd9ee6cd1155ec5f1af408b1b50285f8977abcd",
+      "wav_sha256": "467d01920ac02dc571795cddef42609f7f7198d71f80e6db2549b8ff246f0adb",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 86400,
+      "duration_s": 1.8,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "Recorded hand/tool scrape as a stylized wheel-contact phrase, not a historical wheel recording.",
+      "layers": [
+        {
+          "source": "workshop/workshop - scrape3.wav",
+          "crop_s": [
+            0.0,
+            1.8
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            7000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "crowd",
+      "variant": 1,
+      "file": "crowd.flac",
+      "sha256": "1095e57628cb47238690b09f70cac675886cd5b824abf1d2a96e2ff509fce956",
+      "wav_sha256": "9fd8d7c86edd4f0520723f096a4278fc852a52bbf165871d16320d27705139f2",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 57600,
+      "duration_s": 1.2,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "StarNinjas"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/crowd-shoutingspeaking-ambience"
+      ],
+      "method": "Distinct excerpts of performed crowd speaking/shouting; for visibly reacting crowds, not a claim about words/emotion.",
+      "layers": [
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            2.0,
+            3.2
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            5000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "crowd",
+      "variant": 2,
+      "file": "crowd-2.flac",
+      "sha256": "a79b25db392a0516db5d3b03154a9ae9c3c9ab4a70af3304b9fab78bcdf0de94",
+      "wav_sha256": "1495a7583d50494706e182a362b6ee5b49bc8b404e6ec346830253d31c0b31ca",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 57600,
+      "duration_s": 1.2,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "StarNinjas"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/crowd-shoutingspeaking-ambience"
+      ],
+      "method": "Distinct excerpts of performed crowd speaking/shouting; for visibly reacting crowds, not a claim about words/emotion.",
+      "layers": [
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            9.0,
+            10.2
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            5000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "crowd",
+      "variant": 3,
+      "file": "crowd-3.flac",
+      "sha256": "46e6ca09124dc4ab07c95c73fc7838ed6405cdb8b1d7518c164c105217ebde48",
+      "wav_sha256": "235a8a17ca8a476ecec67df6be625ba8dca08aeae7f2d07fefc56641db5d8ce5",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 57600,
+      "duration_s": 1.2,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "StarNinjas"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/crowd-shoutingspeaking-ambience"
+      ],
+      "method": "Distinct excerpts of performed crowd speaking/shouting; for visibly reacting crowds, not a claim about words/emotion.",
+      "layers": [
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            17.0,
+            18.2
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            5000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "cannon",
+      "variant": 1,
+      "file": "cannon.flac",
+      "sha256": "fc92d9fca9dd4f2c3f85508a58f6900273546c32625664f77c4593b1f77b9b49",
+      "wav_sha256": "82bf474b4cf70ccd98ff7276d94978f922cba209ae5ca56d6be7b0e759d7aaa0",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 74077,
+      "duration_s": 1.543271,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Thimras"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/cannon-fire"
+      ],
+      "method": "Cannon-fire-labelled source; second variant is a bandlimited 6% slower edit, not an independent recording.",
+      "layers": [
+        {
+          "source": "cannon/cannon.ogg",
+          "crop_s": [
+            0.0,
+            1.543271
+          ],
+          "speed": 1.0,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "cannon",
+      "variant": 2,
+      "file": "cannon-2.flac",
+      "sha256": "8c9c8eabbb379943faad26b80c82ae281620835a8cdd35993e2eceb85ecdfbff",
+      "wav_sha256": "582a94b04d1c13b50661e4e68a0da85c737abbb7edc763ab1a7f74fe2a22d83d",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 78806,
+      "duration_s": 1.641792,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Thimras"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/cannon-fire"
+      ],
+      "method": "Cannon-fire-labelled source; second variant is a bandlimited 6% slower edit, not an independent recording.",
+      "layers": [
+        {
+          "source": "cannon/cannon.ogg",
+          "crop_s": [
+            0.0,
+            1.543271
+          ],
+          "speed": 0.94,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "hooves",
+      "variant": 1,
+      "file": "hooves.flac",
+      "sha256": "2f065500bd907e9af1bf4723aeafac73c6d43fdefdf9c32bbbe88c721abb6f42",
+      "wav_sha256": "7fda5232228b000d871b57a0ad99681bf770f40032f72ef4ac266f96909773bf",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 67199,
+      "duration_s": 1.399979,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "EZduzziteh"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/horse-trotting"
+      ],
+      "method": "Different excerpts of prop-performed horse trot (jacket, bottle, hands per author), not an animal recording.",
+      "layers": [
+        {
+          "source": "hooves/hooves.ogg",
+          "crop_s": [
+            1.000021,
+            2.4
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "hooves",
+      "variant": 2,
+      "file": "hooves-2.flac",
+      "sha256": "bd8532db82b5e4b9c56edc539c5e9620ff288102d43bf4b86532f05f610d6eec",
+      "wav_sha256": "a7e7ccc05521a29c4177294551df2a82ea8147fe0eafa47ac15382adf838e3a8",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 67200,
+      "duration_s": 1.4,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "EZduzziteh"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/horse-trotting"
+      ],
+      "method": "Different excerpts of prop-performed horse trot (jacket, bottle, hands per author), not an animal recording.",
+      "layers": [
+        {
+          "source": "hooves/hooves.ogg",
+          "crop_s": [
+            4.0,
+            5.4
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    },
+    {
+      "name": "hooves",
+      "variant": 3,
+      "file": "hooves-3.flac",
+      "sha256": "6829d4978ded8624d92169b6ef7e6aa15da8ed83023fce6f99aca6e7920ddacd",
+      "wav_sha256": "1b813cb86609326411a9405707fd24d4da9eb99b7307465e0292ab3b25dca31f",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 67200,
+      "duration_s": 1.4,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "EZduzziteh"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/horse-trotting"
+      ],
+      "method": "Different excerpts of prop-performed horse trot (jacket, bottle, hands per author), not an animal recording.",
+      "layers": [
+        {
+          "source": "hooves/hooves.ogg",
+          "crop_s": [
+            7.0,
+            8.4
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ]
+    }
+  ],
+  "ambiences": [
+    {
+      "name": "sea",
+      "variant": 1,
+      "file": "sea.flac",
+      "sha256": "214449fcfc1b3c576f85db51e3bdb68c3b934817557741240e3c1d23dfbdc519",
+      "wav_sha256": "c2da7d7639bc7a2028a18fbbd1f7def9223e5bd79cf275dbcae513b946348e86",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 192000,
+      "duration_s": 4.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "jasinski; extracted/submitted by qubodup"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/beach-ocean-waves"
+      ],
+      "method": "Ocean-wave source, continuous four-second crop; runtime crossfades repeats.",
+      "layers": [
+        {
+          "source": "sea/sea.flac",
+          "crop_s": [
+            0,
+            4.0
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "desert",
+      "variant": 1,
+      "file": "desert.flac",
+      "sha256": "4fb71f05d3cd5d1e43f8e05716980643c0d88e316d5bdde817e8c2c80a4c3b04",
+      "wav_sha256": "f771d308c85f84bd93ce910b83c4a7242b3806ea36d74ae6b3f93e26e9743436",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 318494,
+      "duration_s": 6.635292,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "IgnasD"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/wind"
+      ],
+      "method": "Wind-pack texture; no claim it was recorded in a desert.",
+      "layers": [
+        {
+          "source": "desert/Wind.ogg",
+          "crop_s": [
+            0,
+            6.635292
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "fire",
+      "variant": 1,
+      "file": "fire.flac",
+      "sha256": "0d4177ed3b0513255668e618ac38ded485c1ca6d487edc431e935222d60bacb2",
+      "wav_sha256": "092fee18d5842832e9da0fc3a3a5769191808a084af71341ac55bac4ad30b8a3",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 384000,
+      "duration_s": 8.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "PagDev"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/fireplace-sound-loop"
+      ],
+      "method": "Continuous wood-burning fireplace recording crop.",
+      "layers": [
+        {
+          "source": "fire/fire.wav",
+          "crop_s": [
+            4,
+            12
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "rain",
+      "variant": 1,
+      "file": "rain.flac",
+      "sha256": "d6d82becf84072c8ecc8cb57443361eccedcea1d78fd38532dcb1961facd41ca",
+      "wav_sha256": "969219777f984720e4b9b8f6a65e4589bd2554004ca65060f6ba658ac1a968c6",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 384000,
+      "duration_s": 8.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Ove Melaa"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available"
+      ],
+      "method": "Continuous rain crop; source explicitly not loopable, so runtime overlap-add is required.",
+      "layers": [
+        {
+          "source": "rain/rain.ogg",
+          "crop_s": [
+            12,
+            20
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "workshop",
+      "variant": 1,
+      "file": "workshop.flac",
+      "sha256": "e7a1dc0ed564e877684490bf0cbe2030558a908475fbf398cfbb7291afe757c6",
+      "wav_sha256": "57a3bde5c84b90bc1bd59ba48a3854dd02366feb193e43d4b0de0b3d8f3199c4",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 384000,
+      "duration_s": 8.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "bart"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/68-workshop-sounds"
+      ],
+      "method": "Recorded hand-tool scrapes; active workshop/contact texture, not a modern electric drill.",
+      "layers": [
+        {
+          "source": "workshop/workshop - scrapes.wav",
+          "crop_s": [
+            1,
+            9
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            5500
+          ],
+          "relative_layer_gain": 1.0
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "hall",
+      "variant": 1,
+      "file": "hall.flac",
+      "sha256": "feb60794950098cd82d51e52217f9f24d9bccf3638458683a9dd027dee7924b6",
+      "wav_sha256": "56bfa9a743916248725ff669a491f0ddea3d246aa9125a4aaf6ab3b35bbb9ef0",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 384000,
+      "duration_s": 8.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "StarNinjas"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/crowd-shoutingspeaking-ambience"
+      ],
+      "method": "Designed interior crowd texture: three overlapping low-passed performed-voice excerpts. Not a literal hall recording; owner must audition recognizable words and suitability.",
+      "layers": [
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            1,
+            9
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            550
+          ],
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            10,
+            18
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            550
+          ],
+          "relative_layer_gain": 0.65,
+          "at_s": 0
+        },
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            18,
+            26
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            550
+          ],
+          "relative_layer_gain": 0.5,
+          "at_s": 0
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "market",
+      "variant": 1,
+      "file": "market.flac",
+      "sha256": "dba620af265cb6189a2b0f82b7f0c07588e13d2317dc861c70cfbe42e885347d",
+      "wav_sha256": "462cfbe84ed4d5554c0c630e6147c44cb6adaac22db01e23f612c4153f607f28",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 384000,
+      "duration_s": 8.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "StarNinjas",
+        "Kenney Vleugels (Kenney.nl)"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/crowd-shoutingspeaking-ambience",
+        "https://kenney.nl/assets/rpg-audio"
+      ],
+      "method": "Designed market crowd/cloth/footfall texture; not a real marketplace recording.",
+      "layers": [
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            4,
+            12
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            1800
+          ],
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "rpg/cloth2.ogg",
+          "crop_s": [
+            0.052187,
+            0.370688
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 0.1,
+          "at_s": 1.3
+        },
+        {
+          "source": "rpg/footstep04.ogg",
+          "crop_s": [
+            0.027708,
+            0.2845
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 0.15,
+          "at_s": 3.2
+        },
+        {
+          "source": "rpg/cloth3.ogg",
+          "crop_s": [
+            0.016479,
+            0.463625
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            14000
+          ],
+          "relative_layer_gain": 0.1,
+          "at_s": 5.1
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    },
+    {
+      "name": "battle",
+      "variant": 1,
+      "file": "battle.flac",
+      "sha256": "84ea1b430a24d30064af57ef9ab2e82c141458d0e56670c2b5104f1c16a91477",
+      "wav_sha256": "f50363f3cc19ec5d7019aa71a7e80555b2b7d2468d9c1c7db440ff7f4fc7d2b2",
+      "sample_rate": 48000,
+      "channels": 1,
+      "frames": 384000,
+      "duration_s": 8.0,
+      "peak_dbfs": -4.0001,
+      "author": [
+        "Thimras",
+        "StarNinjas"
+      ],
+      "license": "CC0-1.0 (source recordings); original toolkit terms (editing)",
+      "source_urls": [
+        "https://opengameart.org/content/cannon-fire",
+        "https://opengameart.org/content/crowd-shoutingspeaking-ambience"
+      ],
+      "method": "Designed distant battle: performed crowd and filtered cannon sources. Use only with battle shown/in the scene.",
+      "layers": [
+        {
+          "source": "crowd/crowd.ogg",
+          "crop_s": [
+            8,
+            16
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            1000
+          ],
+          "relative_layer_gain": 1.0,
+          "at_s": 0
+        },
+        {
+          "source": "cannon/cannon.ogg",
+          "crop_s": [
+            0.0,
+            1.543271
+          ],
+          "speed": 1,
+          "filter_hz": [
+            65,
+            1200
+          ],
+          "relative_layer_gain": 0.25,
+          "at_s": 0.8
+        },
+        {
+          "source": "cannon/cannon.ogg",
+          "crop_s": [
+            0.0,
+            1.543271
+          ],
+          "speed": 0.94,
+          "filter_hz": [
+            65,
+            1000
+          ],
+          "relative_layer_gain": 0.2,
+          "at_s": 4.3
+        }
+      ],
+      "kind": "ambience",
+      "loop_crossfade_s": 0.25
+    }
+  ],
+  "addition_contract": {
+    "sample_format": "48kHz mono FLAC PCM16; exported WAV PCM24",
+    "headroom_dbfs": -4,
+    "bed_joins": "runtime 250ms complementary overlap-add, <=source length/4",
+    "bed_range_fades": "default 250ms; adjacent ranges overlap by fade/2 either side",
+    "review": "Measured, not listened to. Descriptions indicate source labels/edit intent, never an audition result.",
+    "effect_entry": "Crop at -42 dB relative peak with <=0.25ms preroll; <=0.5ms entry and 20ms exit fades. Hammer takes crop around first forceful 5ms energy block, retaining up to 380ms.",
+    "bed_entry": "Continuous crops; file boundaries are not faded. Mixer applies loop overlap-add and range fades."
+  }
+}

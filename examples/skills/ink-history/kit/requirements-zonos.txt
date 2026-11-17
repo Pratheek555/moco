@@ -1,0 +1,9 @@
+-r requirements-expressive.txt
+inflect==7.5.0
+kanjize==1.6.0
+phonemizer==3.6.0
+espeakng-loader==0.2.4
+SudachiPy==0.6.10
+packaging==25.0
+setuptools==79.0.1
+wheel==0.45.1

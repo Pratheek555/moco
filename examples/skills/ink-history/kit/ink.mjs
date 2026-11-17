@@ -14,6 +14,7 @@ import { createCanvas, Path2D, GlobalFonts } from '@napi-rs/canvas';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { living, elementMotion, lifeEnabled, motionTime, reveal, atTime, declareEvent, span, easeOut, ease } from './motion.mjs';
 
 export { createCanvas, Path2D };
 export const W = 1920, H = 960;
@@ -75,6 +76,10 @@ export const S = {
   view: 1,                  // device px per scene unit under the current camera (set by the stage)
   dpx: 1,                   // device px per frame px (oversampling of the canvas)
   transient: false,         // true while something is popping in: its lettering is not measured yet
+  clock: null,             // stage clock; null means a deterministic, motion-free drawing tool
+  capture: null,           // stage's ordered set-layer recorder (never a time-based cache key)
+  rigid: false,            // lettering belongs to the enclosing card/group
+  held: false,             // prop belongs to a figure's hand; do not give it a separate arrival
   form: 0.5,                // how far round the forms the shadow reaches: 0.2 flat front light, 0.5 normal, 0.85 hard side light
   backlit: 0,               // 0 = lit from the front or side (shadow crescent on the far edge). 0.1-0.2 = lit from
                             // behind: every form sits in its shadow tone and only a crescent that wide (as a
@@ -264,10 +269,12 @@ export function paint(c, shape, color) { if (S.mode !== 'full') return; c.fillSt
 // Soft light or shadow painted over what is already there. mode: 'multiply' darkens, 'screen' lightens.
 export function wash(c, shape, color, mode = 'multiply') {
   if (S.mode !== 'full') return;
+  if (S.capture) return S.capture(c, cc => wash(cc, shape, color, mode), { cached: true, float: false, blend: mode });
   c.save(); c.globalCompositeOperation = mode; c.fillStyle = color; c.fill(P(shape)); c.restore();
 }
 export function glow(c, x, y, r, color = '#fff4c8', strength = 0.8) {
   if (S.mode !== 'full') return;
+  if (S.capture) return S.capture(c, cc => glow(cc, x, y, r, color, strength), { cached: true, float: false, blend: 'screen' });
   const g = c.createRadialGradient(x, y, 0, x, y, r); g.addColorStop(0, alpha(color, strength)); g.addColorStop(0.45, alpha(color, strength * 0.35)); g.addColorStop(1, alpha(color, 0));
   c.save(); c.globalCompositeOperation = 'screen'; c.fillStyle = g; c.fillRect(x - r, y - r, r * 2, r * 2); c.restore();
 }
@@ -311,6 +318,22 @@ export function initFont() {
 // offset shadow. Never use thin or small type; never run subtitles along the bottom.
 //   size (scene units), fill, stroke, sw (outline width), rotate (deg), skew, align, shadow [dx, dy, colour]
 export function label(c, str, x, y, o = {}) {
+  if (o.decor || (S.rigid&&o.at===undefined&&o.until===undefined) || !lifeEnabled(o)) return drawLabel(c, str, x, y, o);
+  // A heading is present for the whole explanation; adding an earlier conditional item must never
+  // hide it again or change its float phase. Small detail labels retain the default stagger.
+  const m = elementMotion('label', String(str), { ...o, id:o.id ?? `lettering:${String(str)}` });
+  return living(c, cc => {
+    const t=o.t??S.clock?.t??0,start=atTime(o.at,(o.size??72)>=56?0:Math.min(m.order,5)*.7),until=atTime(o.until,Infinity);
+    if(o.at!==undefined)declareEvent(`label ${String(str)}`,start);
+    const slide=o.enter==='slide', k=slide?1:reveal(t,(o.size??72)>=56?0:m.order,o);
+    if(k<=0||t<start||t>=until+.35)return;
+    if(slide)cc.translate(-120*(1-easeOut((t-start)/(o.duration??.65))),0);
+    if(t>=until)cc.translate(-160*ease(span(t,until,until+.35)),0);
+    cc.translate(x, y); cc.scale(k, k); cc.translate(-x, -y);
+    return withStyle({ transient: S.transient || Math.abs(k - 1) > 0.03 }, () => drawLabel(cc, str, x, y, o));
+  }, { ...o, seed: m.seed, kind: 'text', pivot: [x, y] });
+}
+function drawLabel(c, str, x, y, o = {}) {
   initFont();
   const size = o.size ?? 72, lines = String(str).split('\n'), lh = size * (o.leading ?? 1.02);
   c.save(); c.translate(x, y); if (o.rotate) c.rotate(rad(o.rotate)); if (o.skew) c.transform(1, 0, -o.skew, 1, 0, 0);

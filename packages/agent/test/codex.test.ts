@@ -27,10 +27,13 @@ describe("Codex app-server sessions", () => {
     expect(await provider.status()).toEqual({ ok: true, version: "codex-fixture/1.0" });
     for (const type of ["none", "apiKey"]) {
       vi.stubEnv("MOCO_TEST_CODEX_AUTH", type);
-      expect(await provider.status()).toMatchObject({ ok: false, reason: expect.stringContaining("codex login") });
+      expect(await provider.status()).toMatchObject({ ok: false, issue: "signed-out", reason: expect.stringContaining("codex login") });
       await expect(start()).rejects.toThrow("ChatGPT subscription");
     }
     expect((await messages()).some(message => message.method === "thread/start")).toBe(false);
+  });
+  it("reports a broken installation as unavailable", async () => {
+    expect(await codexProvider({ executable: path.join(temp, "missing-codex.exe") }).status()).toMatchObject({ ok: false, issue: "unavailable" });
   });
   it("initializes, invokes the pinned skill, streams multiple turns and resumes the saved thread", async () => {
     await start();

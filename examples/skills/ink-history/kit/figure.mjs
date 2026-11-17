@@ -18,6 +18,7 @@ import {
   shadeOf, lw, sc, localLight, withStyle, REG, toFrame, label, Path2D,
 } from './ink.mjs';
 import { PathOp } from '@napi-rs/canvas';
+import { living, elementMotion, lifeEnabled, motionTime, idleAt, eyeDart, blink, talk } from './motion.mjs';
 
 const MOUTH_DARK = '#5a2530', TONGUE = '#ee8f80', TEETH = '#ffffff';
 const union = (a, ...rest) => { let p = new Path2D(a); for (const q of rest) p = p.op(q, PathOp.Union); return p; };
@@ -155,6 +156,61 @@ const crossLine = (pts, i, hw) => { const a = pts[Math.max(0, i - 1)], q = pts[M
 // eyes / brows may be one spec for both eyes or {L:…, R:…}; a spec is a name or {shape, size, tilt, look, dx, dy, lashes}.
 // mouth is a name or {shape, w, open, dx, dy}; `talk` (0..1) opens the mouth with the voice.
 export function figure(c, design, pose = {}) {
+  if (S.clock?.probe) {
+    S.clock.candidates.push({ id: pose.id ?? design.name, R: pose.R ?? (pose.h ?? 600) / 6.55, extra: !!pose.extraFigure,
+      explicit: pose.talk !== undefined || pose.speaking !== undefined || design.speaking !== undefined });
+    return drawFigure(c, design, pose);
+  }
+  const o = { life: design.life, still: design.still, ...pose };
+  const m = elementMotion('figure', `${design.name ?? 'figure'}:${pose.id ?? S.clock?.counts.figure ?? 0}`, o);
+  const b = { ...BUILD, ...(design.build ?? {}) }, R = pose.R ?? (pose.h ?? 600) / (b.leg + b.torso + b.neck + 1);
+  const pivot = pose.pivot ?? [pose.x ?? 960, pose.anchor === 'head' ? (pose.y ?? 900) + R * 0.8 : pose.y ?? 900];
+  const enabled = lifeEnabled(o), screenSize = pose.anchor === 'head' ? R * 2 * sc(c) / S.dpx : (pose.h ?? 600) * sc(c) / S.dpx;
+  const footY=pose.anchor==='head'?(pose.y??900)+((b.neck+b.torso)*Math.cos(rad(pose.lean??0))+b.leg-(pose.head?.dy??0))*R:pose.y??900;
+  const before=c.getTransform(),foot=toFrame(c,pose.x??960,footY);
+  const shoeMargin=R*.45*sc(c)/S.dpx;
+  const grounded=pose.grounded??(foot[1]>=-shoeMargin&&foot[1]<=960+shoeMargin);
+  const posedArm=a=>a&&Object.keys(a).some(k=>!['life','still'].includes(k));
+  const contact=pose.attached||pose.seated||pose.leaning||['L','R'].some(k=>{const a=pose['arm'+k];return a?.at||a?.over||(a?.to&&a.to[1]<-1.2);});
+  const focus=!pose.extraFigure&&(S.clock?.focus===(pose.id??design.name)||(!S.clock?.focus&&!S.clock?.subject));
+  return living(c, cc => {
+    let p = pose;
+    if (enabled && !S.clock?.painting) {
+      const now = motionTime(o), idle = idleAt(now, m.seed), head = { ...pose.head }, amount = pose.idle === false ? 0 : 1;
+      const expression=typeof (pose.mouth??design.mouth)==='object'?(pose.mouth??design.mouth).shape:(pose.mouth??design.mouth);
+      const protectedPose=['flat','wavy','o','gasp','puff','pout','tongue','teeth','none'].includes(expression)||!!pose.extra;
+      const accent=focus&&!contact&&!protectedPose?1:0;
+      head.tilt = (head.tilt ?? 0) + (contact?0:idle.breath*.12+idle.accent*accent*(idle.variant===1?-1:1)*1.1) * amount;
+      head.dy = (head.dy ?? 0) + idle.breath * (contact?0:.003) * amount;
+      p = { ...pose, head, _authored: pose, _planted:grounded, _breath: idle.breath * (contact?.002:.009) * amount,
+        sway: (pose.sway ?? 0) + (contact?0:idle.shift*(focus?.075:.006)+idle.accent*(focus?.025:0)*(idle.side==='L'?-1:1)) * amount };
+      if(grounded&&!contact)p.lean=(pose.lean??0)+idle.shift*(focus?.45:.08)*amount;
+      // Explicit true always blinks. Explicit false from legacy blink(t, sameSeed) no longer suppresses
+      // the per-character schedule: use autoBlink:false (or life:false) for intentionally open eyes.
+      if (pose.autoBlink !== false) p.blink = blink(now, m.seed);
+      if (pose.eyeDarts !== false) { const look = pose.look ?? [0, 0]; p.look = [look[0] + eyeDart(now, m.seed), look[1]]; }
+      if (amount && accent && pose.gesture !== false) {
+        const key = 'arm' + idle.side, arm = pose[key] ?? {};
+        if (!posedArm(arm) && arm.hand !== 'none') p[key] = { ...arm,
+          to: [(arm.to?.[0] ?? (idle.side === 'L' ? -0.95 : 0.95)) + idle.accent * (idle.side === 'L' ? -0.08 : 0.08),
+            (arm.to?.[1] ?? 2.62) - idle.accent * 0.16], rot: (arm.rot ?? 0) + idle.accent * 3 };
+      }
+      const subject = !pose.extraFigure && !S.clock?.subject;
+      if (subject && S.clock) S.clock.subject = true;
+      const speaker = pose.speaking ?? design.speaking ?? (!pose.extraFigure && (S.clock?.speaker === 'subject' ? focus : S.clock?.speaker === (pose.id ?? design.name)));
+      if (pose.talk === undefined && speaker && (pose.mouth ?? design.mouth) !== 'none') p.talk = (S.clock?.s ? talk(S.clock.s, now) : talk({ voiceAt: t => Math.max(0, Math.sin(t * 18.5)) * 0.9 }, now)) * 0.7;
+      p.lifeSeed = m.seed;
+    }
+    const after = cc.getTransform(), result = drawFigure(cc, design, p), det = before.a * before.d - before.b * before.c;
+    // Return anchors in the caller's coordinates, including the automatic group transform.
+    if (det) for (const [key, pt] of Object.entries(result)) if (Array.isArray(pt)) {
+      const x = after.a * pt[0] + after.c * pt[1] + after.e - before.e, y = after.b * pt[0] + after.d * pt[1] + after.f - before.f;
+      result[key] = [(before.d * x - before.c * y) / det, (-before.b * x + before.a * y) / det];
+    }
+    return result;
+  }, { ...o, float:!grounded&&!contact&&focus, amount:pose.float===false?0:.75, seed: m.seed, kind:grounded?'planted':'figure', size: screenSize, pivot, cached: false });
+}
+function drawFigure(c, design, pose = {}) {
   const b = { ...BUILD, ...(design.build ?? {}) };
   const R = pose.R ?? (pose.h ?? 600) / (b.leg + b.torso + b.neck + 1);
   const frameR = R * sc(c) / S.dpx;                                                   // head radius as it lands on screen
@@ -167,13 +223,18 @@ export function figure(c, design, pose = {}) {
   if (pose.flip) { c.translate(ax, 0); c.scale(-1, 1); c.translate(-ax, 0); }
   // In a close-up the feet may be thousands of pixels off screen. Squashing around them throws the
   // face out of frame; keep a head-anchored pose's accent local to its collar instead.
-  if (pose.pop) { const pv = pose.pivot ?? [ax, pose.anchor === 'head' ? ay + R * 0.9 : ay]; c.translate(pv[0], pv[1]); c.scale(pose.pop[0], pose.pop[1]); c.translate(-pv[0], -pv[1]); }
+  if (pose.pop && !pose._planted) { const pv = pose.pivot ?? [ax, pose.anchor === 'head' ? ay + R * 0.9 : ay]; c.translate(pv[0], pv[1]); c.scale(pose.pop[0], pose.pop[1]); c.translate(-pv[0], -pv[1]); }
   withStyle({ line: W0 }, () => {
     // ---- skeleton: pelvis Pv, neck N, a curved spine between them, the head on top
     const th = rad(pose.lean ?? 0), up = [Math.sin(th), -Math.cos(th)], rt = [Math.cos(th), Math.sin(th)];
-    const torsoLen = b.torso * R, legLen = b.leg * R, limbW = b.limb * R;
-    let Pv, N;
-    if (pose.anchor === 'head') { N = [ax - up[0] * b.neck * R - hp.dx * R, ay - up[1] * b.neck * R - hp.dy * R]; Pv = [N[0] - up[0] * torsoLen, N[1] - up[1] * torsoLen]; }
+    const torsoLen = b.torso * R * (1 + (pose._breath ?? 0)) * (pose._planted?(pose.pop?.[1]??1):1), legLen = b.leg * R, limbW = b.limb * R;
+    let Pv,N,fixedFeet;
+    if(pose.anchor==='head'&&pose._planted) {
+      const raw=pose._authored??pose,a=rad(raw.lean??0),rawHead=raw.head??{};
+      fixedFeet=[ax-Math.sin(a)*(b.neck+b.torso)*R-(rawHead.dx??0)*R,ay+Math.cos(a)*(b.neck+b.torso)*R-(rawHead.dy??0)*R+legLen];
+      Pv=[fixedFeet[0]+(pose.sway??0)*R,fixedFeet[1]-legLen];N=[Pv[0]+up[0]*torsoLen,Pv[1]+up[1]*torsoLen];
+    }
+    else if (pose.anchor === 'head') { N = [ax - up[0] * b.neck * R - hp.dx * R, ay - up[1] * b.neck * R - hp.dy * R]; Pv = [N[0] - up[0] * torsoLen, N[1] - up[1] * torsoLen]; }
     else { Pv = [ax + (pose.sway ?? 0) * R, ay - legLen * (1 - (pose.crouch ?? 0))]; N = [Pv[0] + up[0] * torsoLen, Pv[1] + up[1] * torsoLen]; }
     const bend = pose.bend ?? 0, Mid = [(Pv[0] + N[0]) / 2 + rt[0] * bend * 0.3 * torsoLen, (Pv[1] + N[1]) / 2 + rt[1] * bend * 0.3 * torsoLen];
     const Cp = [2 * Mid[0] - (Pv[0] + N[0]) / 2, 2 * Mid[1] - (Pv[1] + N[1]) / 2];
@@ -183,7 +244,7 @@ export function figure(c, design, pose = {}) {
     // torso coordinates: u across (-1 left edge .. 1 right edge), v down (0 shoulders .. 1 crotch)
     const pt = (u, v) => { const vc = clamp(v, 0, 1), p = sp(vc), t = tan(vc), n = [-t[1], t[0]], ext = v < 0 ? -v : v > 1 ? 1 - v : 0; return [p[0] + n[0] * u * wAt(v) * R + t[0] * ext * torsoLen, p[1] + n[1] * u * wAt(v) * R + t[1] * ext * torsoLen]; };
     const tN = tan(0);
-    const Hc = pose.anchor === 'head' ? [ax, ay] : [N[0] + tN[0] * b.neck * R + hp.dx * R, N[1] + tN[1] * b.neck * R + hp.dy * R];
+    const Hc = pose.anchor === 'head'&&!pose._planted ? [ax, ay] : [N[0] + tN[0] * b.neck * R + hp.dx * R, N[1] + tN[1] * b.neck * R + hp.dy * R];
     const left = prof.map(([v]) => pt(-1, v)), right = prof.map(([v]) => pt(1, v)).reverse(), bottom = pt(0, 1.04), crownPt = pt(0, -0.07);
     const torso = blob([...left, bottom, ...right, crownPt]);
     const sL = pt(-0.72, 0.12), sR = pt(0.72, 0.12), hL = pt(-0.52, 0.9), hR = pt(0.52, 0.9);
@@ -211,7 +272,7 @@ export function figure(c, design, pose = {}) {
       }
       // an arm drawn in front of the body: hide its shoulder cap so sleeve and body read as one garment
       if (A.spec.front && S.mode === 'full' && (sleeve === 'long' || sleeve === 'short') && col) { c.save(); c.clip(torso); c.fillStyle = col; c.beginPath(); c.arc(A.s[0], A.s[1], limbW * 0.5, 0, TAU); c.fill(); c.restore(); }
-      if (A.spec.hold && S.mode !== 'shadow') { c.save(); c.translate(A.tip[0], A.tip[1]); A.spec.hold(c, { R, ang: A.ang, lw: W0, side: A.side }); c.restore(); }
+      if (A.spec.hold && S.mode !== 'shadow') { c.save(); c.translate(A.tip[0], A.tip[1]); withStyle({ held: true, rigid: true }, () => A.spec.hold(c, { R, ang: A.ang, lw: W0, side: A.side })); c.restore(); }
       if (A.spec.hand !== 'none') drawHand(c, A.tip, A.ang, A.spec.hand ?? 'mitt', (A.spec.thumb ?? 1) * A.side, R, design.glove ?? skin, W0 * 0.85);
     };
 
@@ -220,7 +281,7 @@ export function figure(c, design, pose = {}) {
     for (const key of ['L', 'R']) if (!arms[key].spec.front && !arms[key].spec.over) drawArm(arms[key]);
 
     // ---- legs: fused with the torso into one bean so the outline runs unbroken from hip to foot
-    const stance = pose.legs?.stance ?? 0.62, facing = hp.turn >= 0 ? 1 : -1, feetY = pose.anchor === 'head' ? Pv[1] + legLen : ay, baseX = pose.anchor === 'head' ? Pv[0] : ax;
+    const stance = pose.legs?.stance ?? 0.62, facing = hp.turn >= 0 ? 1 : -1, feetY = fixedFeet?.[1]??(pose.anchor === 'head' ? Pv[1] + legLen : ay), baseX = fixedFeet?.[0]??(pose.anchor === 'head' ? Pv[0] : ax);
     const feet = [];
     let body = torso;
     for (const [key, side, hip] of [['L', -1, hL], ['R', 1, hR]]) {
@@ -286,8 +347,14 @@ export function figure(c, design, pose = {}) {
       }
       let ms = pose.mouth ?? design.mouth ?? 'smile'; if (typeof ms === 'string') ms = { shape: ms };
       const mm = { ...m0, x: m0.x + (ms.dx ?? 0), y: m0.y + (ms.dy ?? 0), w: m0.w * (ms.w ?? 1), o: ms.open ?? 0 };
-      if (h.talk > 0.14 && !ms.mute) MOUTHS[design.mouthOpen ?? 'open'](c, { ...mm, o: h.talk });
-      else (MOUTHS[ms.shape] ?? MOUTHS.smile)(c, mm);
+      const shape=pose.talkShape??ms.shape??'smile', protectedMouth=['none','flat','wavy','o','gasp','puff','pout','tongue','teeth'].includes(shape);
+      const heldEye=e=>typeof e==='string'?['shiny','star','heart','squeeze'].includes(e):e&&typeof e==='object'?(e.L||e.R?heldEye(e.L)||heldEye(e.R):heldEye(e.shape)):false;
+      const protectedFace=pose.extra||heldEye(pose.eyes??design.eyes);
+      const speaking=h.talk>0.14&&!ms.mute&&((!protectedMouth&&!protectedFace)||pose.talkOverride||ms.speak||pose.talkShape);
+      if(speaking) {
+        c.save();c.translate(mm.x,mm.y);c.scale(1,.72+.4*clamp(h.talk));c.translate(-mm.x,-mm.y);
+        (MOUTHS[shape]??MOUTHS.smile)(c,{...mm,o:['open','laugh','shout'].includes(shape)?Math.max(mm.o,h.talk*.65):mm.o});c.restore();
+      } else (MOUTHS[ms.shape] ?? MOUTHS.smile)(c, mm);
       h.mouth = mm;
       design.face?.(c, h);
       pose.extra?.(c, h);
@@ -299,7 +366,7 @@ export function figure(c, design, pose = {}) {
     // a signature of the drawing (not of its position) so the gates can tell when a face is being reused
     const sigOf = v => JSON.stringify(v, (k, q) => typeof q === 'function' ? 'fn' : typeof q === 'number' ? Math.round(q * 10) / 10 : q) ?? '';
     REG.faces.push({ id: pose.id ?? design.name ?? 'figure', x: fc[0], y: fc[1], r: frameR, extra: !!pose.extraFigure,
-      sig: sigOf([pose.eyes, pose.brows, pose.mouth, hp.tilt, hp.turn, hp.nod, pose.lean, pose.armL?.to ?? pose.armL?.at, pose.armR?.to ?? pose.armR?.at, pose.armL?.hand, pose.armR?.hand, !!pose.extra]) });
+      sig: (() => { const p = pose._authored ?? pose; return sigOf([p.eyes, p.brows, p.mouth, p.head?.tilt ?? 0, p.head?.turn ?? 0.25, p.head?.nod ?? 0, p.lean, p.armL?.to ?? p.armL?.at, p.armR?.to ?? p.armR?.at, p.armL?.hand, p.armR?.hand, !!p.extra]); })() });
 
     // ---- arms in front of the body, then arms in front of the head
     for (const key of ['L', 'R']) if (arms[key].spec.front && !arms[key].spec.over) drawArm(arms[key]);

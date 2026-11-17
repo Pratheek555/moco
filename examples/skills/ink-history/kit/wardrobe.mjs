@@ -10,6 +10,7 @@
 //   h.turn (-1..1), h.lw (outline weight), h.eyeL / h.eyeR / h.mouth ({x, y}), h.skin
 import { S, rad, lerp, cel, stroke, solid, brush, paint, blob, curve, poly, circle, oval, tube, brushPath, shadeOf, lightOf, mix, lw, Path2D } from './ink.mjs';
 import { PathOp } from '@napi-rs/canvas';
+import { lifeEnabled, motionTime, unit, ease, span } from './motion.mjs';
 
 export const ring = (a0, a1, r, n, cx = 0, cy = 0) => Array.from({ length: n }, (_, i) => { const a = rad(lerp(a0, a1, i / (n - 1))); return [cx + Math.cos(a) * r, cy + Math.sin(a) * r]; });
 const shine = (c, h, pts, col, w = 2.2) => { if (S.mode === 'full') brush(c, pts, [0, h.lw * w, h.lw * w * 0.7, 0], col); };
@@ -171,8 +172,21 @@ export function monocle(c, h, o = {}) {
 }
 export function blush(c, h, o = {}) { if (S.mode !== 'full') return; for (const e of [h.eyeL, h.eyeR]) paint(c, oval(e.x + e.side * 0.06, e.y + 0.24, 0.13 * e.s, 0.075), o.color ?? '#f7a6a088'); }
 // Comic punctuation around a face: sweat, tears, anger marks, shock lines. Call from pose.extra.
-export function sweat(c, h, o = {}) { const x = o.x ?? 0.72, y = o.y ?? -0.55, s = o.size ?? 1; cel(c, blob([[x, y - 0.2 * s, 1], [x + 0.11 * s, y + 0.04 * s], [x, y + 0.13 * s], [x - 0.11 * s, y + 0.04 * s]]), { fill: '#9fd8ef', flat: true, line: h.lw * 0.55 }); }
-export function tears(c, h) { for (const e of [h.eyeL, h.eyeR]) cel(c, blob([[e.x - 0.07, e.y + 0.08, 1], [e.x + 0.07, e.y + 0.08, 1], [e.x + 0.1, e.y + 0.5], [e.x, e.y + 0.62], [e.x - 0.1, e.y + 0.5]]), { fill: '#9fd8ef', flat: true, line: h.lw * 0.5 }); }
+export function sweat(c, h, o = {}) {
+  const seed=o.seed??h.pose?.lifeSeed??h.design?.name??1,t=motionTime(o),period=2.1+unit(seed,44)*1.2;
+  const u=(t+unit(seed,45)*period)%period,drop=lifeEnabled(o)?ease(span(u,period-.8,period-.12))*.34:0;
+  const x=o.x??.72,y=(o.y??-.55)+drop,s=o.size??1;
+  c.save();if(drop>.3)c.globalAlpha*=1-span(drop,.3,.34);
+  cel(c,blob([[x,y-.2*s,1],[x+.11*s,y+.04*s],[x,y+.13*s],[x-.11*s,y+.04*s]]),{fill:'#9fd8ef',flat:true,line:h.lw*.55});c.restore();
+}
+export function tears(c,h,o={}) {
+  const t=motionTime(o),seed=o.seed??h.pose?.lifeSeed??h.design?.name??1;
+  for(const [i,e] of [h.eyeL,h.eyeR].entries()) {
+    // The stream stays attached to the authored crying eyes; only its lower end flows.
+    const flow=lifeEnabled(o)?Math.sin(t*7.5+unit(seed,48+i)*6.283)*.07:0;
+    cel(c,blob([[e.x-.07,e.y+.08,1],[e.x+.07,e.y+.08,1],[e.x+.1,e.y+.5+flow],[e.x,e.y+.62+flow],[e.x-.1,e.y+.5+flow]]),{fill:'#9fd8ef',flat:true,line:h.lw*.5});
+  }
+}
 export function vein(c, h, o = {}) { const x = o.x ?? 0.62, y = o.y ?? -0.62, d = 0.09; for (const [a, b] of [[[x - d, y - d * 0.3], [x - d * 0.3, y - d]], [[x + d, y - d * 0.3], [x + d * 0.3, y - d]], [[x - d, y + d * 0.3], [x - d * 0.3, y + d]], [[x + d, y + d * 0.3], [x + d * 0.3, y + d]]]) stroke(c, curve([a, [x + (a[0] - x) * 0.25, y + (a[1] - y) * 0.25], b]), h.lw * 0.6, '#d5303e'); }
 export function shockLines(c, h, o = {}) { for (const a of o.angles ?? [205, 230, 255, 285, 310, 335]) { const r0 = 1.22, r1 = 1.48, q = rad(a); brush(c, [[Math.cos(q) * r0, Math.sin(q) * r0], [Math.cos(q) * r1, Math.sin(q) * r1]], [h.lw * 0.9, h.lw * 0.2]); } }
 

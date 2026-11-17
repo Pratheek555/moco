@@ -1,0 +1,8 @@
+Pack: 100 CC0 SFX #2
+Author: rubberduck
+Primary source: https://opengameart.org/content/100-cc0-sfx-2
+Retrieved: 2026-11-14
+Original page SHA-256: 8caf9e1aba02bd4d3046f2d0caa9eb8a1504d36f675d16e80d70b47c735d13e8
+
+Exact primary-page license field excerpt (inert HTML):
+field-name-field-art-licenses field-type-taxonomy-term-reference field-label-above"><div class="field-label">License(s):&nbsp;</div><div class="field-items"><div class="field-item even"><div class='license-icon'><a href='http://creativecommons.org/publicdomain/zero/1.0/' target='_blank'><img src='https://opengameart.org/sites/default/files/license_images/cc0.png' alt='' title=''><div class='license-name'>CC0</div></a></div></div></div></div><div class="field 

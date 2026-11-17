@@ -1,0 +1,69 @@
+Living Enamel toolkit provenance
+
+The Python renderer, character geometry, set drawings, procedural score and DSP
+were created for the local Living Enamel pilot in November 2026, then adapted into
+this reusable skill. This notice records provenance; it does not assert third-party
+copyright ownership or grant a license over material whose ownership is unverified.
+The repository/project owner's existing terms apply to the original toolkit.
+
+Cinzel.ttf is distributed under the SIL Open Font License 1.1. Keep
+assets/fonts/OFL.txt with redistributed font files.
+
+Python dependencies retain their own package licenses. Kokoro weights are downloaded
+separately from the public kokoro-onnx release; they are not embedded in this skill.
+Consult their upstream license and notices before redistributing those weights.
+The model URLs and actual downloaded SHA-256 hashes are recorded by setup.
+
+Bundled sound effects (assets/sfx/)
+
+The library contains edited/layered CC0 1.0 Universal recordings from:
+- Kenney Vleugels (Kenney.nl): RPG Audio / 50 RPG sound effects
+  https://kenney.nl/assets/rpg-audio
+  https://opengameart.org/content/50-rpg-sound-effects
+- rubberduck: 100 CC0 SFX; 100 CC0 SFX #2;
+  75 CC0 breaking / falling / hit sfx; 40 CC0 water / splash / slime SFX
+  https://opengameart.org/content/100-cc0-sfx
+  https://opengameart.org/content/100-cc0-sfx-2
+  https://opengameart.org/content/75-cc0-breaking-falling-hit-sfx
+  https://opengameart.org/content/40-cc0-water-splash-slime-sfx
+- Luckius: Various Paper Sound Effects
+  https://opengameart.org/content/various-paper-sound-effects
+- NachtmahrTV: pencil_write; edited/packaged by AntumDeluge as Pencil Sounds
+  https://opengameart.org/content/pencil-sounds
+  Original recording: https://freesound.org/s/571800/
+  (Downloaded without an account from OpenGameArt, not Freesound.)
+- jasinski (extracted/submitted by qubodup): Beach Ocean Waves
+  https://opengameart.org/content/beach-ocean-waves
+- IgnasD: Wind
+  https://opengameart.org/content/wind
+- StarNinjas: Crowd Shouting/Speaking Ambience
+  https://opengameart.org/content/crowd-shoutingspeaking-ambience
+- Ove Melaa: Rain (Ambient, Not Loopable) 2 Versions Available
+  https://opengameart.org/content/rain-ambient-not-loopable-2-versions-available
+- PagDev: Fireplace Sound loop
+  https://opengameart.org/content/fireplace-sound-loop
+- bart: 68 Workshop Sounds (hand-tool recordings only)
+  https://opengameart.org/content/68-workshop-sounds
+- Thimras: Cannon fire
+  https://opengameart.org/content/cannon-fire
+- EZduzziteh: Horse Trotting (prop-performed foley: jacket, bottle, hands)
+  https://opengameart.org/content/horse-trotting
+
+CC0 1.0: https://creativecommons.org/publicdomain/zero/1.0/
+CC0 permits commercial use, modification and redistribution; attribution is
+not required. These credits are retained for provenance. Original toolkit terms
+continue to apply to original DSP/editing; they do not restrict the CC0 sources.
+
+assets/sfx/manifest.json maps EVERY bundled audio file to its source URL,
+author, license, source recording hash, processing/layers and bundled SHA-256.
+assets/sfx/licenses/ preserves the pack's original license/readme where present
+and exact primary source-page CC0 fields (inert text), URLs and page hashes,
+verified 2026-11-14. Keep these notices and the manifest with the library.
+The movement/places additions were verified 2026-11-15 against each primary
+OpenGameArt page's own CC0 licence field. Their evidence files preserve cleaned
+primary-page text, retrieval URLs and hashes; archive and individual source/bundle
+hashes are in the manifest. No account was used. Hall, market and battle are
+designed layers of those CC0 recordings, not literal location recordings.
+No CC-BY/CC-BY-SA recordings from the researched crowd packs are bundled.
+The effects were measured, not listened to; no subjective audio review is claimed.
+No third-party image/video assets are bundled.
