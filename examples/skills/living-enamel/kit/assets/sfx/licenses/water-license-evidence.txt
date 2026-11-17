@@ -1,0 +1,8 @@
+Pack: 40 CC0 water / splash / slime SFX
+Author: rubberduck
+Primary source: https://opengameart.org/content/40-cc0-water-splash-slime-sfx
+Retrieved: 2026-11-14
+Original page SHA-256: 323a40bf29abc93f0873416b3418067dd07359aa63d8e590291f7c25a8a6cd48
+
+Exact primary-page license field excerpt (inert HTML):
+field-name-field-art-licenses field-type-taxonomy-term-reference field-label-above"><div class="field-label">License(s):&nbsp;</div><div class="field-items"><div class="field-item even"><div class='license-icon'><a href='http://creativecommons.org/publicdomain/zero/1.0/' target='_blank'><img src='https://opengameart.org/sites/default/files/license_images/cc0.png' alt='' title=''><div class='license-name'>CC0</div></a></div></div></div></div><div class="field 

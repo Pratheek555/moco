@@ -3,25 +3,25 @@ productName: Moco
 directories:
   output: release
   buildResources: resources
+# The utility process runs TypeScript source outside node_modules (Node type stripping).
+asar: false
 files:
   - out/**
   - package.json
+  - from: src/main
+    to: runtime/apps/desktop/src/main
+    filter: [agent-host.ts, service.ts, narration.ts]
+  - from: ../../packages/agent/src
+    to: runtime/packages/agent/src
 extraResources:
-  # Small worker scripts only. Python, dependencies and model weights are opt-in downloads.
-  - from: ../../packages/audio/python
-    to: voice-worker
-    filter:
-      - "*.py"
-      - "!test_*.py"
   - from: resources/icon.png
     to: icon.png
-  - from: ../../packages/renderer/build
-    to: remotion-bundle
-  - from: ../../packages/renderer/node_modules/.remotion/chrome-headless-shell
-    to: render-browser
-asarUnpack:
-  - "**/node_modules/@remotion/compositor-*/**"
-  - "**/node_modules/@remotion/renderer/**"
+  - from: ../../examples/skills/ink-history
+    to: skills/ink-history
+    filter:
+      - "**/*"
+      - "!**/{__pycache__,node_modules,.venv,venv}{,/**}"
+      - "!**/*.pyc"
 win:
   target: nsis
   icon: resources/icon.ico

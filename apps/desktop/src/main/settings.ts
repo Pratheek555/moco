@@ -1,73 +1,38 @@
-import { app } from "electron";
-import { existsSync } from "node:fs";
-import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { randomUUID } from "node:crypto";
+import { mkdir, readFile, rename, writeFile } from "node:fs/promises";
 import path from "node:path";
-import type { DeepPartial, Settings } from "../shared/api.ts";
-
-export function defaultSettings(): Settings {
+export type Theme = "light" | "dark" | "system";
+export interface Settings { theme: Theme; notifications: boolean }
+const writes = new Map<string, Promise<void>>();
+const isTheme = (value: unknown): value is Theme => value === "light" || value === "dark" || value === "system";
+async function json(file: string): Promise<Record<string, unknown>> {
+  try {
+    const value: unknown = JSON.parse((await readFile(file, "utf8")).replace(/^\uFEFF/, ""));
+    return value && typeof value === "object" && !Array.isArray(value) ? value as Record<string, unknown> : {};
+  } catch { return {}; }
+}
+export async function loadSettings(dataDir: string): Promise<Settings> {
+  const appearance = await json(path.join(dataDir, "appearance.json"));
+  const previous = isTheme(appearance.theme) ? {} : await json(path.join(dataDir, "settings.json"));
   return {
-    aiProvider: "codex-cli",
-    onboarded: false,
-    theme: "dark",
-    projectsDir: path.join(app.getPath("documents"), "Moco"),
-    voice: { voice: "", rate: 1, backend: "system", device: "auto", reference: "", expressiveness: 0.65 },
-    defaults: { episodes: 1, language: "en" },
-    render: { concurrency: 0 },
+    theme: isTheme(appearance.theme) ? appearance.theme : isTheme(previous.theme) ? previous.theme : "system",
+    notifications: typeof appearance.notifications === "boolean" ? appearance.notifications : true,
   };
 }
-
-const file = () => path.join(app.getPath("userData"), "settings.json");
-
-function merge<T>(base: T, patch: DeepPartial<T> | undefined): T {
-  if (!patch) return base;
-  const out = { ...base } as Record<string, unknown>;
-  for (const [k, v] of Object.entries(patch as Record<string, unknown>)) {
-    if (v === undefined) continue;
-    const cur = out[k];
-    out[k] =
-      cur &&
-      typeof cur === "object" &&
-      !Array.isArray(cur) &&
-      v &&
-      typeof v === "object" &&
-      !Array.isArray(v)
-        ? merge(cur, v as DeepPartial<typeof cur>)
-        : v;
-  }
-  return out as T;
+export async function loadTheme(dataDir: string): Promise<Theme> { return (await loadSettings(dataDir)).theme; }
+function save(dataDir: string, change: Partial<Settings>): Promise<void> {
+  dataDir = path.resolve(dataDir);
+  const work = (writes.get(dataDir) ?? Promise.resolve()).catch(() => {}).then(async () => {
+    const file = path.join(dataDir, "appearance.json");
+    const settings = { ...await json(file), ...await loadSettings(dataDir), ...change };
+    await mkdir(dataDir, { recursive: true });
+    const temp = `${file}.${randomUUID()}.tmp`;
+    await writeFile(temp, JSON.stringify(settings), "utf8");
+    await rename(temp, file);
+  });
+  writes.set(dataDir, work);
+  void work.finally(() => { if (writes.get(dataDir) === work) writes.delete(dataDir); }).catch(() => {});
+  return work;
 }
-
-let cached: Settings | null = null;
-
-export async function loadSettings(): Promise<Settings> {
-  if (cached) return cached;
-  let stored: DeepPartial<Settings> = {};
-  if (existsSync(file())) {
-    try {
-      stored = JSON.parse((await readFile(file(), "utf8")).replace(/^\uFEFF/, ""));
-    } catch {
-      stored = {};
-    }
-  }
-  const s = merge(defaultSettings(), stored);
-  cached = s;
-  return s;
-}
-
-export async function saveSettings(
-  patch: DeepPartial<Settings>,
-): Promise<Settings> {
-  const next = merge(await loadSettings(), patch);
-  if (next.voice.device !== undefined && !["auto", "cpu", "gpu"].includes(next.voice.device)) {
-    throw new Error("Choose Automatic, CPU or GPU for narration processing.");
-  }
-  const voices = next.voice.characterVoices ?? [];
-  const ids = voices.map((voice) => voice.id);
-  if (voices.some(({ id, reference }) => !/^[a-z0-9][a-z0-9-]*$/.test(id) || id === "default" || !reference.trim()) || new Set(ids).size !== ids.length) {
-    throw new Error("Character voices need unique lowercase ids (other than default) and a recording path.");
-  }
-  await mkdir(path.dirname(file()), { recursive: true });
-  await writeFile(file(), JSON.stringify(next, null, 2));
-  cached = next;
-  return next;
-}
+export async function saveTheme(dataDir: string, theme: Theme): Promise<void> { await save(dataDir, { theme }); }
+export async function saveNotifications(dataDir: string, notifications: boolean): Promise<void> { await save(dataDir, { notifications }); }

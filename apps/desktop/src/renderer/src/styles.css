@@ -1,85 +1,94 @@
-@import "tailwindcss";
+﻿@import "tailwindcss";
 @import "tw-animate-css";
 @import "@fontsource-variable/inter";
-@import "./studio-development.css";
 
 @custom-variant dark (&:where(.dark, .dark *));
 
-/* shadcn/ui tokens on a zinc base with the Moco blue as primary. --sidebar is
-   also the window chrome colour: keep it equal to the titlebar overlay colour
-   set in src/main/index.ts (#f7f7f8 light, #0f0f11 dark). */
+/* Design tokens. See docs/design.md.
+   shadcn/ui tokens on a cool-neutral base with the Moco blue as the only accent.
+   --sidebar is also the window chrome colour: keep it equal to the window
+   background colour set in src/main/index.ts (#f7f7f8 light, #0f0f11 dark). */
 :root {
   --radius: 0.625rem;
   --background: oklch(1 0 0);
-  --foreground: oklch(0.141 0.005 285.823);
+  --foreground: oklch(0.21 0.006 285.9);
   --card: oklch(1 0 0);
-  --card-foreground: oklch(0.141 0.005 285.823);
+  --card-foreground: oklch(0.21 0.006 285.9);
   --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.141 0.005 285.823);
+  --popover-foreground: oklch(0.21 0.006 285.9);
   --primary: oklch(0.56 0.219 262.9);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.967 0.001 286.375);
-  --secondary-foreground: oklch(0.21 0.006 285.885);
-  --muted: oklch(0.967 0.001 286.375);
-  --muted-foreground: oklch(0.552 0.016 285.938);
-  --accent: oklch(0.967 0.001 286.375);
-  --accent-foreground: oklch(0.21 0.006 285.885);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.92 0.004 286.32);
-  --input: oklch(0.92 0.004 286.32);
+  --secondary: oklch(0.962 0.002 286.4);
+  --secondary-foreground: oklch(0.21 0.006 285.9);
+  --muted: oklch(0.967 0.001 286.4);
+  --muted-foreground: oklch(0.5 0.014 285.9);
+  --accent: oklch(0.955 0.003 286.4);
+  --accent-foreground: oklch(0.21 0.006 285.9);
+  --destructive: oklch(0.577 0.245 27.3);
+  --success: oklch(0.6 0.15 155);
+  --warning: oklch(0.7 0.16 70);
+  --border: oklch(0.92 0.004 286.3);
+  --input: oklch(0.9 0.004 286.3);
   --ring: oklch(0.597 0.217 262.3);
   --sidebar: oklch(0.976 0.001 286.4);
-  --sidebar-foreground: oklch(0.141 0.005 285.823);
+  --sidebar-foreground: oklch(0.21 0.006 285.9);
   --sidebar-primary: oklch(0.56 0.219 262.9);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.94 0.003 286);
-  --sidebar-accent-foreground: oklch(0.21 0.006 285.885);
-  --sidebar-border: oklch(0.92 0.004 286.32);
+  --sidebar-accent-foreground: oklch(0.21 0.006 285.9);
+  --sidebar-border: oklch(0.92 0.004 286.3);
   --sidebar-ring: oklch(0.597 0.217 262.3);
+  /* Media always sits on a dark stage, in both themes. */
+  --stage: oklch(0.16 0.004 286);
+  --stage-foreground: oklch(0.96 0 0);
 
-  /* Backdrops behind the kit's character art. */
-  --art-from: oklch(0.93 0.02 300);
-  --art-to: oklch(0.91 0.03 60);
-  --art-glow: oklch(0.92 0.045 65);
+  /* Window chrome. The top bar drags the window; the platform decides which corner the system buttons use. */
+  --window-controls-width: 0px;
+  --traffic-lights-width: 0px;
+
   color-scheme: light;
 }
 
 .dark {
   --background: oklch(0.201 0.004 286);
-  --foreground: oklch(0.985 0 0);
+  --foreground: oklch(0.96 0.002 286);
   --card: oklch(0.228 0.006 286);
-  --card-foreground: oklch(0.985 0 0);
+  --card-foreground: oklch(0.96 0.002 286);
   --popover: oklch(0.228 0.006 286);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.56 0.219 262.9);
+  --popover-foreground: oklch(0.96 0.002 286);
+  --primary: oklch(0.6 0.2 262.9);
   --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.274 0.006 286.033);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.274 0.006 286.033);
-  --muted-foreground: oklch(0.705 0.015 286.067);
-  --accent: oklch(0.274 0.006 286.033);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
+  --secondary: oklch(0.262 0.006 286);
+  --secondary-foreground: oklch(0.96 0.002 286);
+  --muted: oklch(0.262 0.006 286);
+  --muted-foreground: oklch(0.72 0.012 286);
+  --accent: oklch(0.274 0.006 286);
+  --accent-foreground: oklch(0.96 0.002 286);
+  --destructive: oklch(0.68 0.19 22.2);
+  --success: oklch(0.72 0.16 155);
+  --warning: oklch(0.8 0.15 75);
   --border: oklch(1 0 0 / 10%);
   --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.597 0.217 262.3);
+  --ring: oklch(0.62 0.2 262.3);
   --sidebar: oklch(0.169 0.004 286);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.56 0.219 262.9);
+  --sidebar-foreground: oklch(0.96 0.002 286);
+  --sidebar-primary: oklch(0.6 0.2 262.9);
   --sidebar-primary-foreground: oklch(0.985 0 0);
   --sidebar-accent: oklch(0.25 0.006 286);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
+  --sidebar-accent-foreground: oklch(0.96 0.002 286);
   --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.597 0.217 262.3);
+  --sidebar-ring: oklch(0.62 0.2 262.3);
+  --stage: oklch(0.13 0.004 286);
 
-  --art-from: oklch(0.3 0.03 300);
-  --art-to: oklch(0.32 0.035 55);
-  --art-glow: oklch(0.38 0.05 65);
   color-scheme: dark;
 }
 
+html[data-platform="win32"] { --window-controls-width: 140px; }
+html[data-platform="darwin"] { --traffic-lights-width: 76px; }
+
 @theme inline {
   --font-sans: "Inter Variable", ui-sans-serif, system-ui, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Code", "SF Mono", Menlo, Consolas, monospace;
   --color-background: var(--background);
   --color-foreground: var(--foreground);
   --color-card: var(--card);
@@ -95,6 +104,8 @@
   --color-accent: var(--accent);
   --color-accent-foreground: var(--accent-foreground);
   --color-destructive: var(--destructive);
+  --color-success: var(--success);
+  --color-warning: var(--warning);
   --color-border: var(--border);
   --color-input: var(--input);
   --color-ring: var(--ring);
@@ -106,10 +117,24 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
+  --color-stage: var(--stage);
+  --color-stage-foreground: var(--stage-foreground);
   --radius-sm: calc(var(--radius) - 4px);
   --radius-md: calc(var(--radius) - 2px);
   --radius-lg: var(--radius);
   --radius-xl: calc(var(--radius) + 4px);
+  --radius-2xl: calc(var(--radius) + 8px);
+  --animate-shimmer: shimmer 2.2s linear infinite;
+  --animate-pulse-soft: pulse-soft 1.6s ease-in-out infinite;
+}
+
+@keyframes shimmer {
+  from { background-position: 200% 0; }
+  to { background-position: -200% 0; }
+}
+@keyframes pulse-soft {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
 }
 
 @layer base {
@@ -117,7 +142,13 @@
     @apply border-border outline-ring/50;
     /* Slim scrollbars instead of the classic Windows ones with arrows. */
     scrollbar-width: thin;
-    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 40%, transparent) transparent;
+    scrollbar-color: color-mix(in oklab, var(--muted-foreground) 35%, transparent) transparent;
+  }
+  html,
+  body,
+  #root {
+    height: 100%;
+    margin: 0;
   }
   html {
     -webkit-font-smoothing: antialiased;
@@ -125,7 +156,9 @@
     overscroll-behavior: none;
   }
   body {
-    @apply bg-sidebar font-sans text-foreground;
+    @apply bg-sidebar font-sans text-sm text-foreground;
+    font-feature-settings: "cv11", "ss03";
+    overflow: hidden;
     /* A desktop app: UI text isn't selectable; content opts back in with select-text. */
     user-select: none;
   }
@@ -141,98 +174,41 @@
   [role="button"]:not(:disabled) {
     cursor: pointer;
   }
+  /* Keyboard focus is always visible, including on elements without a component style. */
+  :focus-visible {
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  img,
+  video {
+    -webkit-user-drag: none;
+  }
 }
 
-/* The hidden title bar: the strip above the sidebar and main panel drags the window. */
-.app-region-drag {
+/* The hidden title bar: the strip across the top of the window drags it.
+   Anything interactive inside a drag region needs app-region-no-drag. */
+@utility app-region-drag {
   -webkit-app-region: drag;
   app-region: drag;
 }
+@utility app-region-no-drag {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
+/* Controls inside a drag region stay clickable without each one opting out. */
+.app-region-drag :is(button, a, input, textarea, select, [role="button"], [role="tab"], [data-no-drag]) {
+  -webkit-app-region: no-drag;
+  app-region: no-drag;
+}
 
-/* Compact project-style links to saved studio conversations. */
-.recent-chats { padding-top: 1rem; }
-.recent-chat-row {
-  gap: 0.625rem;
-  color: color-mix(in oklab, var(--sidebar-foreground) 70%, transparent);
-  font-size: 0.8125rem;
-}
-.recent-chat-row > span:not(.recent-chat-dot):not(.sr-only) { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.recent-chat-dot {
-  width: 0.375rem;
-  height: 0.375rem;
-  flex: 0 0 auto;
-  margin-inline: 0.3125rem;
-  border-radius: 50%;
-  background: color-mix(in oklab, var(--sidebar-foreground) 35%, transparent);
-}
-.recent-chat-dot[data-running="true"] { background: #45bd8a; }
-.recent-chat-dot[data-active="true"] { background: #f16e50; }
-.recent-chats-all { color: var(--muted-foreground); font-size: 0.75rem; }
-.recent-chats-empty { padding: 0.375rem 0.5rem; color: var(--muted-foreground); font-size: 0.75rem; line-height: 1.6; }
-
-/* Text shimmer while the AI is working on something. */
-@keyframes text-shimmer {
-  from {
-    background-position: 100% 0;
-  }
-  to {
-    background-position: 0% 0;
-  }
-}
-.shimmer {
-  color: transparent;
-  background-image:
-    linear-gradient(
-      100deg,
-      transparent calc(50% - 2.5em),
-      var(--foreground),
-      transparent calc(50% + 2.5em)
-    ),
-    linear-gradient(var(--muted-foreground), var(--muted-foreground));
-  background-size:
-    250% 100%,
-    auto;
-  background-repeat: no-repeat;
+/* "Working…" text: a soft highlight travels across muted text. */
+@utility text-shimmer {
+  background: linear-gradient(90deg, var(--muted-foreground) 35%, var(--foreground) 50%, var(--muted-foreground) 65%);
+  background-size: 200% 100%;
   -webkit-background-clip: text;
   background-clip: text;
-  animation: text-shimmer 2s linear infinite;
-}
-
-/* Character art: a soft backdrop, the hero's orbits, and a face crop for avatars. */
-.cast-backdrop {
-  background:
-    radial-gradient(ellipse at 90% 0%, var(--art-glow), transparent 65%),
-    linear-gradient(120deg, var(--art-from), var(--art-to));
-}
-.hero-art {
-  position: relative;
-  isolation: isolate;
-}
-.hero-art::before {
-  content: "";
-  position: absolute;
-  z-index: -1;
-  inset: 8% 0 0;
-  border-radius: 50%;
-  background: radial-gradient(
-    ellipse,
-    color-mix(in oklab, var(--art-glow) 80%, transparent) 0%,
-    color-mix(in oklab, var(--art-from) 40%, transparent) 45%,
-    transparent 70%
-  );
-}
-.hero-orbit {
-  position: absolute;
-  z-index: -1;
-  border: 1px solid color-mix(in oklab, var(--muted-foreground) 25%, transparent);
-  border-radius: 50%;
-}
-/* Head and shoulders: the svg at 4× the avatar, centred on the character's face. */
-.cast-avatar svg {
-  width: 400%;
-  max-width: none;
-  height: auto;
-  margin: -2% 0 0 -150%;
+  color: transparent;
+  animation: var(--animate-shimmer);
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -242,10 +218,10 @@
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
   }
-  .shimmer {
-    animation: none;
-    color: var(--muted-foreground);
+  .text-shimmer {
     background: none;
+    color: var(--muted-foreground);
   }
 }

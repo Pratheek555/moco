@@ -7,15 +7,12 @@ import {
 } from "lucide-react"
 import { Toaster as Sonner, type ToasterProps } from "sonner"
 
-import { useApp } from "@/lib/store.ts"
 
 const Toaster = ({ ...props }: ToasterProps) => {
-  // The app tracks its own theme (Settings → appearance), so no next-themes.
-  const dark = useApp((s) => s.dark)
 
   return (
     <Sonner
-      theme={dark ? "dark" : "light"}
+      theme="system"
       className="toaster group"
       icons={{
         success: <CircleCheckIcon className="size-4" />,

@@ -1,0 +1,8 @@
+Pack: RPG Audio / 50 RPG sound effects
+Author: Kenney Vleugels (Kenney.nl)
+Primary source: https://opengameart.org/content/50-rpg-sound-effects
+Retrieved: 2026-11-14
+Original page SHA-256: 4d7580b0781a0daf7602731b4798112b375059e0cc1ea3829f68ce753ed90db4
+
+Exact primary-page license field excerpt (inert HTML):
+field-name-field-art-licenses field-type-taxonomy-term-reference field-label-above"><div class="field-label">License(s):&nbsp;</div><div class="field-items"><div class="field-item even"><div class='license-icon'><a href='http://creativecommons.org/publicdomain/zero/1.0/' target='_blank'><img src='https://opengameart.org/sites/default/files/license_images/cc0.png' alt='' title=''><div class='license-name'>CC0</div></a></div></div></div></div><div class="field 

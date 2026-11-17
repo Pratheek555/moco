@@ -1,198 +1,122 @@
-// The contract between the Electron main process and the UI.
-// The UI never talks to the engine directly: main forwards these calls to the engine host (main/engine-host.ts).
-import type { VoiceInfo } from "@moco/audio";
-import type { CodexAccountState } from "@moco/ai";
-export type { CodexAccountState } from "@moco/ai";
-import type { DailyUsage, EngineEvent, RepeatOffer, SeriesStatus, StyleSampleReview, LabelEditorState, LabelEditPreview } from "@moco/engine";
-import type { TemplateInfo } from "@moco/engine/templates";
-import type { Catalog } from "@moco/kit";
-import type { ArtistProduction, PublishDefaults, PublishKit, ThumbnailChoice } from "@moco/spec";
-import type { CharacterSummary } from "@moco/engine";
+import type { NarrationEngine, Project, ProjectEvent, ProjectView, ProviderId, ProviderStatus, RunState, Skill, Task, WorkspaceFile } from "@moco/agent/types";
+import type { GeminiNarration } from "@moco/agent/types";
+import type { GeminiVoice, KeyCheck, NarrationStatus } from "./gemini.ts";
+export type { NarrationEngine, Project, ProjectEvent, ProjectView, ProviderId, ProviderStatus, RunState, Skill, Task, WorkspaceFile };
+export const providerLabels: Record<ProviderId, string> = { codex: "Codex", "claude-code": "Claude Code" };
 
 export type Theme = "light" | "dark" | "system";
-export type VoiceModelId = "english" | "multilingual";
-export interface VoiceModelStatus {
-  id: VoiceModelId;
-  name: string;
-  size: string;
-  state: "not-installed" | "downloading" | "ready" | "error";
-  progress: number;
-  downloadedBytes?: number;
-  totalBytes?: number;
-  message?: string;
-}
-
-export interface Settings {
-  aiProvider: "claude-cli" | "codex-cli";
-  onboarded: boolean;
-  theme: Theme;
+export type Platform = "win32" | "darwin" | "linux";
+export interface AppInfo {
+  version: string;
   projectsDir: string;
-  voice: {
-    backend?: "chatterbox" | "system";
-    device?: "auto" | "cpu" | "gpu";
-    reference?: string; // local performance reference WAV
-    characterVoices?: { id: string; reference: string }[];
-    expressiveness?: number;
-    voice: string; // an installed OS voice; "" = the system default
-    rate: number; // 1 = normal speed
-  };
-  defaults: {
-    episodes: number;
-    language: string;
-  };
-  render: {
-    concurrency: number; // browser tabs per render; 0 = the renderer's default (2)
-  };
+  theme: Theme;
+  /** Desktop notifications when a project finishes or needs an answer while Moco is in the background. */
+  notifications: boolean;
+  platform: Platform;
 }
+/** A skill shipped with the app that the user can add to their library in one click. */
+export interface StarterSkill { name: string; description: string }
+/** Commands the main process sends to the renderer (application menu, notification clicks). */
+export type AppCommand = { type: "open-project"; projectId: string } | { type: "new-project" } | { type: "settings" };
+export interface TextPreview { text: string; truncated: boolean }
 
-// One card in the library: the series plus what the engine knows about it.
-export interface SeriesSummary {
-  id: string;
-  title: string; // from the approved plan; the idea until there is one
-  premise: string;
-  language: string;
-  episodes: number;
-  template?: string; // the template id the series was started from
-  createdAt: string;
-  cast: string[]; // kit character ids from the bible
-  finals: number; // episodes with a final render
-  next: SeriesStatus["next"];
-  running: boolean;
-  usage: SeriesStatus["usage"]; // AI calls, tokens and daily totals, for the usage page
+export interface ServiceMethods {
+  status: { args: [provider?: ProviderId]; result: ProviderStatus };
+  skills: { args: []; result: Skill[] };
+  importSkill: { args: [source: string]; result: Skill };
+  removeSkill: { args: [id: string]; result: void };
+  projects: { args: []; result: Project[] };
+  create: { args: [name: string, skillId: string, provider?: ProviderId, narrationEngine?: NarrationEngine]; result: Project };
+  setNarrationEngine: { args: [id: string, engine: NarrationEngine | null]; result: Project };
+  project: { args: [id: string]; result: ProjectView };
+  rename: { args: [id: string, name: string]; result: Project };
+  /** Stops the session and deletes the project's app-data record. Returns the deleted project; the workspace folder is untouched. */
+  remove: { args: [id: string]; result: Project };
+  /** Run state of every project that is not idle. */
+  states: { args: []; result: Record<string, RunState> };
+  send: { args: [id: string, text: string, files: string[]]; result: void };
+  answer: { args: [id: string, questionId: string, answers: Record<string, string>]; result: void };
+  stop: { args: [id: string]; result: void };
+  attach: { args: [id: string, sources: string[]]; result: string[] };
+  attachData: { args: [id: string, name: string, data: Uint8Array]; result: string[] };
+  files: { args: [id: string]; result: WorkspaceFile[] };
+  shutdown: { args: []; result: void };
 }
+export type Method = keyof ServiceMethods;
+export interface HostRequest { id: number; method: Method; args: unknown[] }
+/** Private main/host channel, never exposed by preload or recorded as service calls. */
+export interface HostNarrationUpdate { narration: GeminiNarration | undefined }
+export interface HostReply { id: number; result?: unknown; error?: string }
+export type Update = { projectId: string; record?: ProjectEvent; state?: RunState } | { error: string };
 
-// What the episode page shows: rendered videos and each shot's stills, as moco-asset:// URLs.
-export interface EpisodeMedia {
-  preview?: string;
-  final?: string;
-  finalPath?: string; // on disk, for "Show in folder"
-  thumbnail?: string;
-  thumbnailPath?: string; // on disk, for dragging into YouTube
-  stills: Record<string, string[]>; // shot id → still URLs
-  savedShots?: string[]; // persisted specs, including shots saved before this UI session
-  outdatedPreview?: boolean;
-  outdatedFinal?: boolean;
+export interface MocoAPI {
+  // App and preferences
+  info(): Promise<AppInfo>;
+  setTheme(theme: Theme): Promise<void>;
+  setNotifications(enabled: boolean): Promise<void>;
+  narrationStatus(): Promise<NarrationStatus>;
+  setGeminiKey(key: string): Promise<NarrationStatus>;
+  clearGeminiKey(): Promise<NarrationStatus>;
+  setGeminiVoice(voice: GeminiVoice): Promise<NarrationStatus>;
+  /** Checks the typed key when supplied; otherwise checks the saved key in main. */
+  checkGeminiKey(key?: string): Promise<KeyCheck>;
+  /** Opens an https:// link in the default browser. Anything else is rejected. */
+  openExternal(url: string): Promise<void>;
+  openProjectsFolder(): Promise<void>;
+  copyText(text: string): Promise<void>;
+  /** Menu accelerators and notification clicks. Returns an unsubscribe function. */
+  onCommand(listener: (command: AppCommand) => void): () => void;
+
+  // Providers
+  status(provider?: ProviderId): Promise<ProviderStatus>;
+
+  // Skill library
+  skills(): Promise<Skill[]>;
+  /** Native picker. Resolves null when the user cancels. */
+  importSkill(kind: "file" | "folder"): Promise<Skill | null>;
+  /** A SKILL.md file or skill folder dropped onto the window. */
+  importSkillDropped(file: File): Promise<Skill>;
+  /** Removes a skill from the library. Projects keep their own copy. */
+  deleteSkill(id: string): Promise<void>;
+  starterSkills(): Promise<StarterSkill[]>;
+  addStarterSkill(name: string): Promise<Skill>;
+
+  // Projects
+  projects(): Promise<Project[]>;
+  /** Run state of every project that is not idle (missing id = idle). */
+  projectStates(): Promise<Record<string, RunState>>;
+  create(name: string, skillId: string, provider?: ProviderId, narrationEngine?: NarrationEngine): Promise<Project>;
+  /** Applies to subsequent messages; null keeps the story's own voice settings. */
+  setNarrationEngine(id: string, engine: NarrationEngine | null): Promise<Project>;
+  project(id: string): Promise<ProjectView>;
+  renameProject(id: string, name: string): Promise<Project>;
+  /** Deletes the project and its conversation. With removeFiles the workspace folder moves to the Recycle Bin / Trash. */
+  deleteProject(id: string, removeFiles: boolean): Promise<void>;
+
+  // Conversation
+  send(id: string, text: string, files: string[]): Promise<void>;
+  answer(id: string, questionId: string, answers: Record<string, string>): Promise<void>;
+  stop(id: string): Promise<void>;
+  /** Native picker. Resolves workspace-relative paths under uploads/. */
+  attach(id: string): Promise<string[]>;
+  /** Files dropped onto the window or pasted from the file manager. */
+  attachDropped(id: string, files: File[]): Promise<string[]>;
+  /** Clipboard data without a file on disk, such as a pasted screenshot. */
+  attachPasted(id: string, name: string, data: Uint8Array): Promise<string[]>;
+
+  // Workspace files
+  files(id: string): Promise<WorkspaceFile[]>;
+  openFile(id: string, relative: string, reveal: boolean): Promise<void>;
+  openWorkspace(id: string): Promise<void>;
+  /** Native Save dialog; copies the file out of the workspace. Resolves false when cancelled. */
+  saveFileAs(id: string, relative: string): Promise<boolean>;
+  /** Text preview of a small text-like workspace file (scripts, subtitles, notes, JSON). */
+  readTextFile(id: string, relative: string): Promise<TextPreview>;
+  /** Call from a dragstart handler (after preventDefault) to drag the file out to another app. */
+  dragFile(id: string, relative: string): void;
+
+  onUpdate(listener: (update: Update) => void): () => void;
 }
-
-// Learning a template from reference videos (@moco/learn), run by main in a background process.
-export interface LearnJob {
-  id: string;
-  name: string;
-  sources: string[];
-  referenceImages?: string[];
-  state: "running" | "done" | "error" | "cancelled";
-  step: string; // fetch, measure, sheets, agents, merge, template, done
-  log: string[]; // recent progress lines, newest last
-  startedAt: string;
-  templateId?: string; // set when done
-  error?: string;
+export function mediaUrl(id: string, file: string, revision = ""): string {
+  return `moco-media://project/${encodeURIComponent(id)}/${file.split("/").map(encodeURIComponent).join("/")}?v=${encodeURIComponent(revision)}`;
 }
-
-export interface AiStatus {
-  ok: boolean;
-  reason?: string;
-  version?: string;
-  authMethod?: string;
-}
-
-export interface MocoApi {
-  platform: string;
-  app: {
-    info(): Promise<{ version: string; userData: string; projectsDir: string }>;
-    openPath(p: string): Promise<string>;
-    showItem(p: string): Promise<void>;
-    openExternal(url: string): Promise<void>;
-    chooseFolder(): Promise<string | null>;
-    copy(text: string): Promise<void>;
-    startDrag(file: string): void; // drag a rendered video out of the app, e.g. into YouTube's upload box
-  };
-  settings: {
-    get(): Promise<Settings>;
-    set(patch: DeepPartial<Settings>): Promise<Settings>;
-  };
-  ai: {
-    status(): Promise<AiStatus>;
-    accountStatus(): Promise<CodexAccountState>;
-    switchAccount(): Promise<CodexAccountState>;
-    cancelSignIn(): Promise<CodexAccountState>;
-  };
-  voice: {
-    list(): Promise<VoiceInfo[]>;
-    models(): Promise<VoiceModelStatus[]>;
-    download(model: VoiceModelId): Promise<void>;
-    cancelDownload(): Promise<void>;
-    preview(text: string): Promise<{ url?: string; error?: string }>;
-  };
-  templates: {
-    importPrompt(input: { name: string; prompt: string; production: ArtistProduction; referenceImages?: string[] }): Promise<TemplateInfo>;
-    list(): Promise<TemplateInfo[]>; // built-in plus learned
-    learn(input: { name: string; sources: string[]; referenceImages?: string[] }): Promise<string>; // job id; progress arrives on "learn"
-    chooseVideos(): Promise<string[]>;
-    createSample(input: {
-      templateId: string; topic: string; language: string; seconds: number;
-      format: { width: number; height: number; fps: number };
-      choices: { palette: string[]; detail: "simple" | "balanced" | "rich"; acting: "restrained" | "expressive"; pacing: "calm" | "balanced" | "brisk"; feedback: string };
-    }): Promise<string>;
-    samples(templateId: string): Promise<SeriesStatus[]>;
-    sampleReview(seriesId: string): Promise<StyleSampleReview>;
-    approveSample(seriesId: string, contentHash: string): Promise<void>;
-    jobs(): Promise<LearnJob[]>;
-    cancelLearn(jobId: string): Promise<void>;
-    openFolder(id: string): Promise<void>; // a learned template's folder (skill, measurements, sheets)
-    remove(id: string): Promise<void>; // learned templates only
-  };
-  kit: {
-    catalog(): Promise<Catalog>;
-  };
-  series: {
-    list(): Promise<SeriesSummary[]>;
-    create(input: { idea: string; language: string; episodes: number; template?: string; production?: ArtistProduction }): Promise<string>; // creates and starts planning
-    extend(id: string, input: { episodes: number; note?: string }): Promise<string>; // job id; plans more episodes
-    repeat(id: string, input: { topic?: string }): Promise<string>;
-    repeatOffer(id: string): Promise<RepeatOffer>;
-    status(id: string): Promise<SeriesStatus>;
-    artifact(seriesId: string, file: string): Promise<{ meta: { revision: number; contentHash: string }; data: unknown } | null>;
-    remove(id: string): Promise<void>;
-  };
-  stages: {
-    run(seriesId: string, key?: string): Promise<string>; // job id; runs until the next approval gate
-    approve(seriesId: string, key: string, contentHash: string): Promise<void>;
-    reject(seriesId: string, key: string, feedback: string): Promise<void>;
-    cancel(jobId: string): Promise<void>;
-  };
-  episode: {
-    media(seriesId: string, episodeId: string): Promise<EpisodeMedia>;
-    regenerateShot(seriesId: string, episodeId: string, shotId: string, feedback?: string): Promise<string>;
-    labelEditor(seriesId: string, episodeId: string, shotId: string): Promise<LabelEditorState>;
-    previewLabelEdit(seriesId: string, episodeId: string, shotId: string, input: { sceneHash: string; labelId: string; text: string }): Promise<LabelEditPreview>;
-    applyLabelEdit(seriesId: string, episodeId: string, shotId: string, id: string): Promise<void>;
-    undoLabelEdit(seriesId: string, episodeId: string, shotId: string, id: string): Promise<void>;
-    renderPreview(seriesId: string, episodeId: string): Promise<string>;
-    review(seriesId: string, episodeId: string): Promise<string>;
-    inspect(seriesId: string, episodeId: string): Promise<string>;
-  };
-  characters: {
-    list(seriesId: string): Promise<CharacterSummary[]>;
-    save(seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }): Promise<{ castId: string; version: string }>;
-    apply(seriesId: string, episodeId: string, shotId: string, choice: { castId: string; version: string; sceneHash: string }): Promise<string>;
-  };
-  // The YouTube details for an episode, pasted into Studio by the user (no YouTube API yet).
-  publish: {
-    save(seriesId: string, episodeId: string, kit: PublishKit): Promise<void>;
-    rewrite(seriesId: string, episodeId: string, note?: string): Promise<string>; // job id
-    setThumbnail(seriesId: string, episodeId: string, choice: ThumbnailChoice): Promise<void>;
-    setDefaults(seriesId: string, defaults: Partial<PublishDefaults>): Promise<void>;
-    openStudio(): Promise<void>;
-  };
-  on(channel: "engine" | "library" | "settings" | "learn", cb: (payload: unknown) => void): () => void;
-}
-
-export type DeepPartial<T> = {
-  [K in keyof T]?: T[K] extends object ? DeepPartial<T[K]> : T[K];
-};
-
-export type { Catalog, DailyUsage, EngineEvent, PublishDefaults, PublishKit, SeriesStatus, TemplateInfo, VoiceInfo };
-
-/** moco-asset:// URL for a file under the projects folder. */
-export const assetUrl = (relativeToProjects: string) =>
-  `moco-asset://projects/${relativeToProjects.split(/[\\/]/).map(encodeURIComponent).join("/")}`;

@@ -1,0 +1,9 @@
+{
+ "voice":"bm_george", "speed":1.0, "lead":0.05, "end_hold":1.5,
+ "scenes":[
+ {"id":"king","clauses":[{"spoken":"A king risked his fortune to buy tomorrow."},{"spoken":"He wanted the future all to himself."}]},
+ {"id":"offer","clauses":[{"spoken":"Time considered the offer. The king added another coin."},{"spoken":"Then another. Then the entire royal treasury."}]},
+ {"id":"deal","clauses":[{"spoken":"At last, Time nodded, took the gold, and handed the king tomorrow."},{"spoken":"The king could hardly wait."}]},
+ {"id":"payoff","clauses":[{"spoken":"The next morning, he woke to discover it was today."},{"spoken":"He demanded his money back. Time said, I'm afraid your refund is due tomorrow."}]}
+ ]
+}

@@ -1,0 +1,14 @@
+{
+  "voice": "bm_george",
+  "speed": 1.05,
+  "lead": 0.05,
+  "scenes": [
+    {
+      "id": "material",
+      "clauses": [
+        {"spoken": "The king was cracking under his own crown.", "text": "The king was cracking under his own crown."},
+        {"spoken": "All that gold could not hold him together.", "text": "All that gold could not hold him together."}
+      ]
+    }
+  ]
+}

@@ -1,618 +1,230 @@
-import { aiBackend, createCodexAccountManager } from "@moco/ai";
-import { systemVoices } from "@moco/audio";
-import { narrationAudio } from "./narration.ts";
-import { createVoiceModelManager, voiceRuntimePaths } from "./voice-models.ts";
-import type { Engine, EngineEvent, SeriesStatus } from "@moco/engine";
-import { createEngineClient, EngineClientError } from "@moco/engine/client";
-import { TEMPLATES } from "@moco/engine/templates";
-import { learnedTemplates } from "@moco/engine/templates/registry";
-import { catalog } from "@moco/kit";
-import type { PublishDefaults, PublishKit, SeriesBible, SeriesPlan, ThumbnailChoice } from "@moco/spec";
-import {
-  BrowserWindow,
-  MessageChannelMain,
-  app,
-  clipboard,
-  dialog,
-  ipcMain,
-  nativeImage,
-  nativeTheme,
-  shell,
-  utilityProcess,
-  type UtilityProcess,
-} from "electron";
-import { existsSync } from "node:fs";
-import { mkdir, readdir, rm, stat } from "node:fs/promises";
+import { BrowserWindow, MessageChannelMain, app, dialog, nativeTheme, net, protocol, safeStorage, screen, utilityProcess } from "electron";
+import type { BrowserWindowConstructorOptions, MessagePortMain, MessageBoxOptions, UtilityProcess } from "electron";
+import { WorkspaceStore, confinedFile, mediaType } from "@moco/agent/storage";
+import { pathToFileURL, fileURLToPath } from "node:url";
 import path from "node:path";
-import { fileURLToPath } from "node:url";
-import type {
-  DeepPartial,
-  EpisodeMedia,
-  LearnJob,
-  Settings,
-  SeriesSummary,
-} from "../shared/api.ts";
-import { assetUrl } from "../shared/api.ts";
-import { handleAssetProtocol, registerAssetScheme } from "./assets.ts";
-import type { EngineHostConfig } from "./engine-host.ts";
-import type { LearnHostInput, LearnHostMessage } from "./learn-host.ts";
-import { loadSettings, saveSettings } from "./settings.ts";
+import type { AppCommand, HostReply, Method, ServiceMethods, Update } from "../shared/api.ts";
+import { loadSettings, saveNotifications, saveTheme, type Settings } from "./settings.ts";
+import { registerBridge } from "./bridge.ts";
+import { installContextMenu, installMenu } from "./menus.ts";
+import { RunNotifications } from "./run-notifications.ts";
+import { loadWindowState, saveWindowState } from "./window-state.ts";
+import { GeminiSettings } from "./gemini-settings.ts";
 
+if (process.env.MOCO_USER_DATA) app.setPath("userData", path.resolve(process.env.MOCO_USER_DATA));
+protocol.registerSchemesAsPrivileged([{ scheme: "moco-media", privileges: { standard: true, secure: true, supportFetchAPI: true, corsEnabled: true, stream: true } }]);
 const here = path.dirname(fileURLToPath(import.meta.url));
-// Isolated workspaces for desktop integration tests and portable launches.
-if (process.env.MOCO_USER_DATA)
-  app.setPath("userData", path.resolve(process.env.MOCO_USER_DATA));
-registerAssetScheme();
-const voiceRuntime = voiceRuntimePaths(app.getPath("userData"), app.isPackaged
-  ? path.join(process.resourcesPath, "voice-worker")
-  : path.resolve(app.getAppPath(), "../../packages/audio/python"));
-const voiceModels = createVoiceModelManager(voiceRuntime);
+const appId = "app.moco.desktop";
+let win: BrowserWindow | null = null;
+let creatingWindow: Promise<void> | undefined;
+let child: UtilityProcess | undefined;
+let port: MessagePortMain | undefined;
+let sequence = 0;
+let quitting = false;
+let quitRequest: Promise<void> | undefined;
+let settings: Settings = { theme: "system", notifications: true };
+let narration: GeminiSettings;
+let saveBoundsTimer: ReturnType<typeof setTimeout> | undefined;
+let windowWrites = Promise.resolve();
+let windowMaximized = false;
+const pending = new Map<number, { resolve(value: unknown): void; reject(error: Error): void }>();
+const projectsDir = () => process.env.MOCO_PROJECTS_DIR ? path.resolve(process.env.MOCO_PROJECTS_DIR) : path.join(app.getPath("documents"), "moco");
+const store = () => new WorkspaceStore(app.getPath("userData"), projectsDir());
+const iconPath = () => app.isPackaged ? path.join(process.resourcesPath, "icon.png") : path.join(app.getAppPath(), "resources/icon.png");
+const runs = new RunNotifications({ window: () => win, enabled: () => settings.notifications && !quitting,
+  projectName: async id => (await store().project(id)).name, command: sendCommand,
+});
+function host() {
+  if (child) return;
+  const sourceRoot = app.isPackaged ? "runtime/apps/desktop" : ".";
+  const processChild = utilityProcess.fork(path.join(app.getAppPath(), sourceRoot, "src/main/agent-host.ts"), [], { serviceName: "moco-agent", stdio: "pipe" });
+  child = processChild;
+  child.stdout?.on("data", chunk => process.stdout.write(chunk));
+  child.stderr?.on("data", chunk => process.stderr.write(chunk));
+  const channel = new MessageChannelMain();
+  port = channel.port1;
+  port.on("message", ({ data }: { data: HostReply | { update: Update } }) => {
+    if (child !== processChild) return;
+    if ("update" in data) {
+      runs.update(data.update);
+      win?.webContents.send("moco:update", data.update);
+      return;
+    }
+    const request = pending.get(data.id);
+    pending.delete(data.id);
+    if (data.error) request?.reject(new Error(data.error)); else request?.resolve(data.result);
+  });
+  port.start();
+  child.postMessage({ dataDir: app.getPath("userData"), projectsDir: projectsDir() }, [channel.port2]);
+  narrationChanged();
+  processChild.on("exit", code => {
+    if (child !== processChild) return;
+    child = undefined; port?.close(); port = undefined;
+    runs.clear();
+    for (const request of pending.values()) request.reject(new Error(`Agent process exited (${code}). Reopen the project to resume.`));
+    pending.clear();
+    if (!quitting) win?.webContents.send("moco:update", { error: "The agent process stopped. Reopen the project and send a message to resume." } satisfies Update);
+  });
+}
+function narrationChanged(): void {
+  // Dedicated ephemeral channel: no service dispatch, transcript record, or renderer event.
+  port?.postMessage({ narration: narration.credentials() });
+}
+function call<M extends Method>(method: M, ...args: ServiceMethods[M]["args"]): Promise<ServiceMethods[M]["result"]> {
+  if (quitting && method !== "shutdown") return Promise.reject(new Error("Moco is closing."));
+  host();
+  return new Promise((resolve, reject) => {
+    const id = ++sequence;
+    pending.set(id, { resolve: value => resolve(value as ServiceMethods[M]["result"]), reject });
+    try { port!.postMessage({ id, method, args }); }
+    catch (error) { pending.delete(id); reject(error); }
+  });
+}
+function sendCommand(command: AppCommand): void {
+  void (async () => {
+    if (!win) await createWindow();
+    if (!win) return;
+    const target = win;
+    if (target.isMinimized()) target.restore();
+    target.show(); target.focus();
+    if (target.webContents.isLoadingMainFrame()) target.webContents.once("did-finish-load", () => {
+      if (!target.isDestroyed()) target.webContents.send("moco:command", command);
+    });
+    else target.webContents.send("moco:command", command);
+  })().catch(error => console.error("Could not open Moco:", error));
+}
+function updateWindowTheme(): void {
+  if (!win) return;
+  const dark = nativeTheme.shouldUseDarkColors;
+  win.setBackgroundColor(dark ? "#0f0f11" : "#f7f7f8");
+  if (process.platform === "win32") win.setTitleBarOverlay({ color: dark ? "#18181b" : "#ffffff", symbolColor: dark ? "#fafafa" : "#18181b", height: 48 });
+}
+function persistWindow(): void {
+  if (!win || win.isDestroyed()) return;
+  const state = { bounds: win.getNormalBounds(), maximized: windowMaximized };
+  windowWrites = windowWrites.catch(() => {}).then(() => saveWindowState(app.getPath("userData"), state));
+  void windowWrites.catch(error => console.error("Could not save window position:", error));
+}
+async function createWindow(): Promise<void> {
+  if (win) return;
+  if (creatingWindow) return creatingWindow;
+  creatingWindow = (async () => {
+    const state = await loadWindowState(app.getPath("userData"), screen.getAllDisplays().map(display => display.bounds));
+    const dark = nativeTheme.shouldUseDarkColors;
+    const chrome: BrowserWindowConstructorOptions = process.platform === "win32"
+      ? { titleBarStyle: "hidden", titleBarOverlay: { color: dark ? "#18181b" : "#ffffff", symbolColor: dark ? "#fafafa" : "#18181b", height: 48 } }
+      : process.platform === "darwin" ? { titleBarStyle: "hiddenInset", trafficLightPosition: { x: 14, y: 18 } } : {};
+    const window = new BrowserWindow({ width: 1380, height: 900, ...state?.bounds, minWidth: 960, minHeight: 640, show: false,
+      title: "Moco", backgroundColor: dark ? "#0f0f11" : "#f7f7f8", icon: iconPath(), autoHideMenuBar: true, ...chrome,
+      webPreferences: { preload: path.join(here, "../preload/index.cjs"), sandbox: true, contextIsolation: true, nodeIntegration: false },
+    });
+    win = window;
+    windowMaximized = state?.maximized ?? false;
+    if (process.platform !== "darwin") window.setMenuBarVisibility(false);
+    if (state?.maximized) window.maximize();
+    window.once("ready-to-show", () => window.show());
+    window.on("focus", () => { if (process.platform === "win32") window.flashFrame(false); });
+    window.webContents.setWindowOpenHandler(() => ({ action: "deny" }));
+    window.webContents.on("will-navigate", event => event.preventDefault());
+    window.webContents.on("will-redirect", event => event.preventDefault());
+    window.webContents.session.setPermissionRequestHandler((_contents, _permission, callback) => callback(false));
+    window.webContents.session.setPermissionCheckHandler(() => false);
+    installContextMenu(window);
+    const scheduleSave = () => {
+      clearTimeout(saveBoundsTimer);
+      saveBoundsTimer = setTimeout(persistWindow, 250);
+    };
+    window.on("resize", scheduleSave); window.on("move", scheduleSave);
+    window.on("maximize", () => { windowMaximized = true; scheduleSave(); });
+    window.on("unmaximize", () => { windowMaximized = false; scheduleSave(); });
+    window.on("close", event => {
+      persistWindow();
+      if (!quitting && runs.activeCount) { event.preventDefault(); void requestQuit(); }
+    });
+    window.on("closed", () => { clearTimeout(saveBoundsTimer); if (win === window) win = null; });
+    if (process.env.ELECTRON_RENDERER_URL) await window.loadURL(process.env.ELECTRON_RENDERER_URL);
+    else await window.loadFile(path.join(here, "../renderer/index.html"));
+  })();
+  try { await creatingWindow; } finally { creatingWindow = undefined; }
+}
+async function requestQuit(): Promise<void> {
+  if (quitting || quitRequest) return quitRequest;
+  quitRequest = (async () => {
+    const count = runs.activeCount;
+    if (count) {
+      const options: MessageBoxOptions = { type: "question", title: "Quit Moco?", message: `Moco is still working on ${count} project${count === 1 ? "" : "s"}. Quit anyway?`, buttons: ["Keep working", "Quit anyway"], defaultId: 0, cancelId: 0, noLink: true };
+      const result = win ? await dialog.showMessageBox(win, options) : await dialog.showMessageBox(options);
+      if (result.response !== 1) return;
+    }
+    quitting = true;
+    clearTimeout(saveBoundsTimer); persistWindow();
+    // Bound both persistence and session shutdown; a stuck AI must not prevent quitting.
+    let finished = false;
+    const finish = () => { if (!finished) { finished = true; child?.kill(); app.quit(); } };
+    const timeout = setTimeout(finish, 5000);
+    try {
+      await Promise.allSettled([windowWrites, ...(child ? [call("shutdown")] : [])]);
+    } finally { clearTimeout(timeout); finish(); }
+  })();
+  try { await quitRequest; } catch (error) { console.error("Could not close Moco:", error); }
+  finally { quitRequest = undefined; }
+}
 
 if (!app.requestSingleInstanceLock()) app.quit();
-
-let win: BrowserWindow | null = null;
-let settings: Settings;
-
-const send = (channel: string, payload: unknown) =>
-  win?.webContents.send(`moco:${channel}`, payload);
-const previewsDir = () => path.join(app.getPath("userData"), "previews");
-// Styles learned from reference videos; each folder is also a template (see @moco/engine/templates/registry).
-const stylesDir = () => path.join(app.getPath("userData"), "styles");
-
-function isDark() {
-  return (
-    settings.theme === "dark" ||
-    (settings.theme === "system" && nativeTheme.shouldUseDarkColors)
-  );
-}
-
-function applyChrome() {
-  nativeTheme.themeSource = settings.theme;
-  if (!win) return;
-  const dark = isDark();
-  win.setBackgroundColor(dark ? "#0f0f11" : "#f7f7f8");
-  if (process.platform !== "darwin")
-    win.setTitleBarOverlay?.({
-      color: dark ? "#0f0f11" : "#f7f7f8",
-      symbolColor: dark ? "#d4d4d8" : "#3f3f46",
-      height: 44,
-    });
-}
-
-const iconPath = () =>
-  app.isPackaged
-    ? path.join(process.resourcesPath, "icon.png")
-    : path.join(app.getAppPath(), "resources", "icon.png");
-
-// YouTube's upload page; it opens the Studio upload dialog for whichever account is signed in.
-const YOUTUBE_UPLOAD_URL = "https://www.youtube.com/upload";
-
-function createWindow() {
-  const dark = isDark();
-  win = new BrowserWindow({
-    width: 1480,
-    height: 940,
-    minWidth: 1120,
-    minHeight: 720,
-    show: false,
-    title: "Moco",
-    icon: iconPath(),
-    backgroundColor: dark ? "#0f0f11" : "#f7f7f8",
-    titleBarStyle: "hidden",
-    ...(process.platform === "darwin"
-      ? { trafficLightPosition: { x: 16, y: 15 } }
-      : {
-          titleBarOverlay: {
-            color: dark ? "#0f0f11" : "#f7f7f8",
-            symbolColor: dark ? "#d4d4d8" : "#3f3f46",
-            height: 44,
-          },
-        }),
-    webPreferences: {
-      preload: path.join(here, "../preload/index.cjs"),
-      sandbox: true,
-      contextIsolation: true,
-      nodeIntegration: false,
-    },
-  });
-  win.once("ready-to-show", () => win?.show());
-  win.webContents.setWindowOpenHandler(({ url }) => {
-    if (/^https?:/.test(url)) void shell.openExternal(url);
-    return { action: "deny" };
-  });
-  win.webContents.on("will-navigate", (e, url) => {
-    if (!url.startsWith(process.env.ELECTRON_RENDERER_URL ?? "file:"))
-      e.preventDefault();
-  });
-  if (process.env.ELECTRON_RENDERER_URL)
-    void win.loadURL(process.env.ELECTRON_RENDERER_URL);
-  else void win.loadFile(path.join(here, "../renderer/index.html"));
-  win.on("closed", () => (win = null));
-}
-
-// ---------- the engine host ----------
-
-// The engine runs in its own utility process (main/engine-host.ts) and is reached over a MessagePort.
-// It is started again when settings it was built with change (projects folder, voice, render tabs).
-let host: { process: UtilityProcess; engine: Engine } | null = null;
-// Series with a job running, from the engine's job events; editing settings or deleting waits for these.
-const running = new Set<string>();
-const codexAccount = createCodexAccountManager();
-let pendingJobStarts = 0;
-const jobStarts = new Set(["series.create", "series.extend", "stages.run", "episode.regenerateShot", "characters.apply", "publish.rewrite", "publish.setThumbnail", "templates.learn", "templates.createSample"]);
-
-function startEngineHost(): Engine {
-  const entry = path.join(app.getAppPath(), "src", "main", "engine-host.ts");
-  const child = utilityProcess.fork(entry, [], {
-    serviceName: "moco-engine",
-    stdio: "pipe",
-  });
-  child.stdout?.on("data", (chunk) => process.stdout.write(`[engine] ${chunk}`));
-  child.stderr?.on("data", (chunk) => process.stderr.write(`[engine] ${chunk}`));
-
-  const { port1, port2 } = new MessageChannelMain();
-  const config: EngineHostConfig = {
-    aiProvider: settings.aiProvider,
-    projectsDir: settings.projectsDir,
-    stylesDir: stylesDir(),
-    voice: { ...settings.voice },
-    voiceRuntime,
-    concurrency: settings.render.concurrency || null,
-  };
-  child.postMessage(config, [port1]);
-  port2.start();
-
-  const engine = createEngineClient(port2);
-  engine.on("*", (event) => onEngineEvent(event));
-  // shortcut: calls in flight when the host dies never settle; add a reject-all to the client if crashes show up.
-  child.on("exit", (code) => {
-    if (host?.process !== child) return; // stopped on purpose
-    host = null;
-    running.clear();
-    send("engine", {
-      type: "host.exited",
-      seriesId: "",
-      at: new Date().toISOString(),
-      data: { code },
-    });
-  });
-  host = { process: child, engine };
-  return engine;
-}
-
-const engine = () => host?.engine ?? startEngineHost();
-
-function stopEngineHost() {
-  const old = host;
-  host = null;
-  old?.process.kill();
-}
-
-function onEngineEvent(event: EngineEvent) {
-  if (event.type === "job.started") running.add(event.seriesId);
-  if (event.type === "job.finished") running.delete(event.seriesId);
-  send("engine", event);
-  if (event.type.startsWith("stage.") || event.type.startsWith("job."))
-    send("library", { seriesId: event.seriesId });
-}
-
-// ---------- learning templates from reference videos ----------
-
-// Each run is its own utility process (main/learn-host.ts); jobs are kept for this session so the page can show them.
-const learnJobs = new Map<string, { view: LearnJob; process: UtilityProcess }>();
-
-function startLearning(input: { name: string; sources: string[]; referenceImages?: string[] }): string {
-  const name = input.name.trim();
-  const sources = input.sources.map((source) => source.trim()).filter(Boolean);
-  if (!name) throw new Error("Give the template a name");
-  if (sources.length === 0 || sources.length > 10) throw new Error("Add 1–10 video links");
-  for (const source of sources) if (!/^https?:\/\//i.test(source) && !existsSync(source)) throw new Error(`Not a link or a file: ${source}`);
-  if ([...learnJobs.values()].some((job) => job.view.state === "running")) throw new Error("A template is already being learned; wait for it to finish");
-
-  const id = `learn-${Date.now().toString(36)}`;
-  const child = utilityProcess.fork(path.join(app.getAppPath(), "src", "main", "learn-host.ts"), [], { serviceName: "moco-learn", stdio: "pipe" });
-  const view: LearnJob = { id, name, sources, referenceImages: input.referenceImages, state: "running", step: "fetch", log: [], startedAt: new Date().toISOString() };
-  learnJobs.set(id, { view, process: child });
-  const note = (line: string) => {
-    view.log = [...view.log, line].slice(-200);
-    send("learn", view);
-  };
-  child.stdout?.on("data", (chunk) => process.stdout.write(`[learn] ${chunk}`));
-  child.stderr?.on("data", (chunk) => process.stderr.write(`[learn] ${chunk}`));
-  child.on("message", (message: LearnHostMessage) => {
-    if (message.type === "event") {
-      view.step = message.step;
-      note(message.message);
-    } else if (message.type === "done") {
-      Object.assign(view, { state: "done", step: "done", templateId: message.templateId });
-      note(`Done: ${message.calls} agent calls, about $${message.costUsd.toFixed(2)} of plan usage${message.leaks ? `; ${message.leaks} phrase(s) may still echo the videos` : ""}`);
-    } else {
-      Object.assign(view, { state: "error", error: message.message });
-      send("learn", view);
-    }
-  });
-  child.on("exit", (code) => {
-    if (view.state !== "running") return;
-    Object.assign(view, { state: "error", error: `The learning process stopped (code ${code})` });
-    send("learn", view);
-  });
-  const config: LearnHostInput = { name, sources, referenceImages: input.referenceImages, stylesDir: stylesDir(), aiProvider: settings.aiProvider };
-  child.postMessage(config);
-  send("learn", view);
-  return id;
-}
-
-// An artifact's { meta, data }, or null when the stage that makes it hasn't run yet.
-async function artifact<T>(
-  seriesId: string,
-  file: string,
-): Promise<{ meta: { revision: number; contentHash: string }; data: T } | null> {
-  try {
-    return (await engine().readArtifact({ seriesId, file })) as {
-      meta: { revision: number; contentHash: string };
-      data: T;
-    };
-  } catch (err) {
-    if (err instanceof EngineClientError && err.code === "not_found") return null;
-    throw err;
-  }
-}
-
-async function summarize(id: string): Promise<SeriesSummary> {
-  const status: SeriesStatus = await engine().status(id);
-  const plan = await artifact<SeriesPlan>(id, "artifacts/series_plan.json");
-  const bible = await artifact<SeriesBible>(id, "artifacts/bible.json");
-  const finals = status.stages.filter(
-    (stage) => stage.key.endsWith("/final") && stage.status === "done",
-  ).length;
-  return {
-    id,
-    title: plan?.data.title ?? status.series.idea,
-    premise: plan?.data.premise ?? "",
-    language: status.series.language,
-    episodes: status.series.episodes,
-    template: status.series.template,
-    createdAt: status.series.createdAt,
-    cast: (bible?.data.cast ?? []).map((member) => member.kitCharacterId),
-    finals,
-    next: status.next,
-    running: status.activeJob !== undefined,
-    usage: status.usage,
-  };
-}
-
-// Series and episode ids come from the UI: only plain slugs, so a path can never leave the projects folder.
-function safeId(id: string, what: string): string {
-  if (!/^[a-z0-9][a-z0-9-]{0,80}$/.test(id)) throw new Error(`invalid ${what}`);
-  return id;
-}
-
-// A file's moco-asset:// URL with its change time, so a re-render isn't served from cache.
-async function versionedUrl(absolute: string): Promise<string> {
-  const info = await stat(absolute);
-  const relative = path.relative(settings.projectsDir, absolute);
-  return `${assetUrl(relative)}?v=${Math.round(info.mtimeMs)}`;
-}
-
-async function episodeMedia(
-  seriesId: string,
-  episodeId: string,
-): Promise<EpisodeMedia> {
-  const dir = path.join(
-    settings.projectsDir,
-    safeId(seriesId, "series id"),
-    "episodes",
-    safeId(episodeId, "episode id"),
-  );
-  const preview = path.join(dir, "renders", "preview.mp4");
-  const final = path.join(dir, "renders", "final.mp4");
-  const thumbnail = path.join(dir, "renders", "thumbnail.jpg");
-  const shotsDir = path.join(dir, "shots");
-  const shotIds = existsSync(shotsDir) ? await readdir(shotsDir) : [];
-
-  const stills: Record<string, string[]> = {};
-  for (const shotId of shotIds) {
-    stills[shotId] = await stillUrls(path.join(shotsDir, shotId, "stills"));
-    if (existsSync(path.join(dir, "edits", `${shotId}-stills.json`))) {
-      const edited = await engine().labelEditor({ seriesId, episodeId, shotId });
-      if (edited.stills) stills[shotId] = await Promise.all(edited.stills.map(file => versionedUrl(path.join(settings.projectsDir, seriesId, file))));
-    }
-  }
-  const fresh = await engine().renderFreshness({ seriesId, episodeId });
-  return {
-    preview: fresh.preview && existsSync(preview) ? await versionedUrl(preview) : undefined,
-    final: fresh.final && existsSync(final) ? await versionedUrl(final) : undefined,
-    finalPath: fresh.final && existsSync(final) ? final : undefined,
-    outdatedPreview: existsSync(preview) && !fresh.preview,
-    outdatedFinal: existsSync(final) && !fresh.final,
-    thumbnail: existsSync(thumbnail) ? await versionedUrl(thumbnail) : undefined,
-    thumbnailPath: existsSync(thumbnail) ? thumbnail : undefined,
-    stills,
-    savedShots: shotIds.filter(shotId => existsSync(path.join(shotsDir, shotId, "spec.json"))),
-  };
-}
-
-async function stillUrls(stillsDir: string): Promise<string[]> {
-  if (!existsSync(stillsDir)) return [];
-  const names = (await readdir(stillsDir)).filter((name) => name.endsWith(".png")).sort((a,b)=>a.localeCompare(b,undefined,{numeric:true}));
-  return Promise.all(names.map((name) => versionedUrl(path.join(stillsDir, name))));
-}
-
-// ---------- app ----------
-
-app.on("second-instance", () => {
-  if (win) {
-    if (win.isMinimized()) win.restore();
-    win.focus();
-  }
-});
-
-app
-  .whenReady()
-  .then(async () => {
-    settings = await loadSettings();
-    await mkdir(settings.projectsDir, { recursive: true });
-    await mkdir(previewsDir(), { recursive: true });
-
-    handleAssetProtocol(() => ({
-      projects: settings.projectsDir,
-      previews: previewsDir(),
-    }));
-
-    const handle = <A extends unknown[], R>(
-      name: string,
-      fn: (...args: A) => Promise<R> | R,
-    ) => ipcMain.handle(`moco:${name}`, async (_e, ...args) => {
-      if (!jobStarts.has(name)) return fn(...(args as A));
-      if (codexAccount.busy) throw new Error("Finish or cancel Codex sign-in before starting a job");
-      pendingJobStarts++;
-      try { return await fn(...(args as A)); }
-      finally { pendingJobStarts--; }
-    });
-
-    handle("app.info", () => ({
-      version: app.getVersion(),
-      userData: app.getPath("userData"),
-      projectsDir: settings.projectsDir,
-    }));
-    handle("app.openPath", async (p: string) => {
-      const error = await shell.openPath(p);
-      if (error) throw new Error(error);
-      return "";
-    });
-    handle("app.showItem", (p: string) => shell.showItemInFolder(p));
-    handle("app.openExternal", (url: string) =>
-      /^https?:/.test(url) ? shell.openExternal(url) : undefined,
-    );
-    handle("app.chooseFolder", async () => {
-      const r = await dialog.showOpenDialog(win!, {
-        properties: ["openDirectory", "createDirectory"],
-      });
-      return r.canceled ? null : (r.filePaths[0] ?? null);
-    });
-
-    handle("app.copy", (text: string) => clipboard.writeText(String(text)));
-    // Only rendered videos inside the projects folder can be dragged out.
-    ipcMain.on("moco:app.startDrag", (e, file: unknown) => {
-      if (typeof file !== "string" || !/\.(mp4|jpg)$/.test(file)) return;
-      const relative = path.relative(settings.projectsDir, path.resolve(file));
-      if (relative.startsWith("..") || path.isAbsolute(relative) || !existsSync(file)) return;
-      // An image drags as a small copy of itself; a video as the app icon.
-      const icon = nativeImage.createFromPath(file.endsWith(".jpg") ? file : iconPath()).resize({ width: 48 });
-      e.sender.startDrag({ file, icon });
-    });
-
-    handle("settings.get", () => settings);
-    handle("settings.set", async (patch: DeepPartial<Settings>) => {
-      // The engine is built with these, so changing them restarts it, which would cut a running job short.
-      const engineInputs = (s: Settings) => JSON.stringify([s.projectsDir, s.voice, s.render, s.aiProvider]);
-      if (patch.aiProvider !== undefined && !["claude-cli", "codex-cli"].includes(patch.aiProvider)) throw new Error("Unknown AI provider");
-      const touchesEngine = patch.aiProvider !== undefined || patch.projectsDir !== undefined || patch.voice !== undefined || patch.render !== undefined;
-      if (touchesEngine && (running.size > 0 || pendingJobStarts > 0 || codexAccount.busy))
-        throw new Error("Wait for the running jobs to finish before changing these settings");
-      const before = engineInputs(settings);
-      settings = await saveSettings(patch);
-      if (engineInputs(settings) !== before) {
-        await mkdir(settings.projectsDir, { recursive: true });
-        stopEngineHost(); // the next call starts a fresh one
-        send("library", {});
-      }
-      applyChrome();
-      send("settings", settings);
-      return settings;
-    });
-
-    handle("ai.status", () => codexAccount.busy
-      ? { ok: false, reason: "Codex account sign-in is in progress. Finish or cancel sign-in before generating." }
-      : aiBackend(settings.aiProvider).available());
-    handle("ai.accountStatus", () => codexAccount.status());
-    handle("ai.switchAccount", () => {
-      if (settings.aiProvider !== "codex-cli") throw new Error("Select and save Codex before switching its account");
-      if (running.size || pendingJobStarts || [...learnJobs.values()].some(job => job.view.state === "running"))
-        throw new Error("Wait for generation and template learning to finish before switching accounts");
-      const status = codexAccount.start();
-      stopEngineHost();
-      return status;
-    });
-    handle("ai.cancelSignIn", () => codexAccount.cancel());
-
-    handle("voice.list", () => systemVoices().catch(() => []));
-    handle("voice.models", () => voiceModels.list());
-    handle("voice.download", (model) => {
-      if (model !== "english" && model !== "multilingual") throw new Error("Unknown voice model");
-      voiceModels.download(model);
-    });
-    handle("voice.cancelDownload", () => voiceModels.cancel());
-    handle("voice.preview", async (text: string) => {
+else {
+  app.whenReady().then(async () => {
+    if (process.platform === "win32") app.setAppUserModelId(appId);
+    settings = await loadSettings(app.getPath("userData")); nativeTheme.themeSource = settings.theme;
+    narration = new GeminiSettings(app.getPath("userData"), safeStorage);
+    await narration.load();
+    nativeTheme.on("updated", updateWindowTheme);
+    protocol.handle("moco-media", async request => {
+      const origin = request.headers.get("origin");
+      const allowedOrigin = process.env.ELECTRON_RENDERER_URL ? new URL(process.env.ELECTRON_RENDERER_URL).origin : "null";
+      const cors = new Headers();
+      if (origin === allowedOrigin) cors.set("Access-Control-Allow-Origin", allowedOrigin);
+      const failure = (status: number) => new Response(null, { status, headers: cors });
       try {
-        const dir = path.join(previewsDir(), String(Date.now()));
-        const spoken = await narrationAudio(settings.voice, voiceRuntime).tts(
-          [{ id: "preview", text: text.slice(0, 400), delivery: { emotion: "resolute", intensity: 0.6, pauseAfterMs: 300 } }],
-          { voiceId: settings.voice.voice, backend: settings.voice.backend ?? "system" },
-          settings.defaults.language,
-          dir,
-        );
-        return { url: `moco-asset://previews/${path.basename(dir)}/${path.basename(spoken.file)}` };
-      } catch (err) {
-        return { error: err instanceof Error ? err.message : String(err) };
-      }
+        const url = new URL(request.url);
+        if (url.hostname !== "project" || request.method !== "GET" || (origin && origin !== allowedOrigin)) return failure(403);
+        const segments = url.pathname.slice(1).split("/").map(decodeURIComponent);
+        const project = await store().project(segments.shift() ?? "");
+        const relative = segments.join("/");
+        const mime = mediaType(relative);
+        if (!mime) return failure(415);
+        const file = await confinedFile(project.workspace, relative);
+        const headers = new Headers();
+        const range = request.headers.get("range");
+        if (range) headers.set("range", range);
+        const response = await net.fetch(pathToFileURL(file).href, { headers });
+        const safeHeaders = new Headers(response.headers);
+        cors.forEach((value, name) => safeHeaders.set(name, value));
+        safeHeaders.set("Content-Type", mime); safeHeaders.set("X-Content-Type-Options", "nosniff");
+        safeHeaders.set("Cache-Control", "no-store");
+        return new Response(response.body, { status: response.status, headers: safeHeaders });
+      } catch { return failure(404); }
     });
-
-    handle("kit.catalog", () => catalog);
-    handle("templates.list", () => [...TEMPLATES, ...learnedTemplates(stylesDir())]);
-    handle("templates.chooseVideos", async () => {
-      const result = await dialog.showOpenDialog({ properties: ["openFile", "multiSelections"], filters: [{ name: "Reference videos", extensions: ["mp4", "mov", "mkv", "webm", "avi", "m4v"] }] });
-      return result.canceled ? [] : result.filePaths;
-    });
-    handle("templates.createSample", async (input: import("@moco/engine").StyleSampleInput) => {
-      const id = await engine().createStyleSample(input);
-      await engine().runStage({ seriesId: id });
-      send("library", { seriesId: id });
-      return id;
-    });
-    handle("templates.samples", (templateId: string) => engine().styleSamples(templateId));
-    handle("templates.sampleReview", (seriesId: string) => engine().styleSampleReview(seriesId));
-    handle("templates.approveSample", (seriesId: string, hash: string) => engine().approveStyleSample(seriesId, hash));
-    handle("templates.importPrompt", async (input: import("@moco/engine/templates/import").PromptTemplateInput) => {
-      const { importPromptTemplate } = await import("@moco/engine/templates/import");
-      return importPromptTemplate(stylesDir(), input);
-    });
-    handle("templates.learn", (input: { name: string; sources: string[]; referenceImages?: string[] }) => startLearning(input));
-    handle("templates.jobs", () => [...learnJobs.values()].map((job) => job.view));
-    handle("templates.cancelLearn", (jobId: string) => {
-      const job = learnJobs.get(jobId);
-      if (!job || job.view.state !== "running") return;
-      job.view.state = "cancelled";
-      job.process.kill();
-      send("learn", job.view);
-    });
-    handle("templates.openFolder", async (id: string) => {
-      const template = learnedTemplates(stylesDir()).find((candidate) => candidate.id === id);
-      if (template?.learned) await shell.openPath(template.learned.dir);
-    });
-    handle("templates.remove", async (id: string) => {
-      if ((await engine().listSeries()).some(series => series.template === id || series.styleSample?.templateId === id)) throw new Error("This template is used by an existing series or sample. Keep it so its saved work remains accessible.");
-      const template = learnedTemplates(stylesDir()).find((candidate) => candidate.id === id);
-      if (!template?.learned) throw new Error("Only learned templates can be removed");
-      if (path.dirname(template.learned.dir) !== stylesDir()) throw new Error("That template is outside the styles folder");
-      await rm(template.learned.dir, { recursive: true, force: true });
-    });
-
-    handle("series.list", async () => {
-      const infos = await engine().listSeries();
-      // One unreadable project must not hide the rest of the workspace.
-      const results = await Promise.allSettled(infos.map((info) => summarize(info.id)));
-      const summaries = results.flatMap((result, i) => {
-        if (result.status === "fulfilled") return [result.value];
-        console.warn(`[moco] skipping series ${infos[i]!.id}:`, result.reason);
-        return [];
-      });
-      return summaries.sort((a, b) => b.createdAt.localeCompare(a.createdAt));
-    });
-    handle(
-      "series.create",
-      async (input: Parameters<ReturnType<typeof engine>["createSeries"]>[0]) => {
-        const id = await engine().createSeries(input);
-        await engine().runStage({ seriesId: id });
-        send("library", { seriesId: id });
-        return id;
+    registerBridge({ window: () => win, call, store, projectsDir, settings: () => settings, narration, narrationChanged, iconPath: iconPath(), removed: id => runs.forget(id),
+      async setTheme(theme) {
+        await saveTheme(app.getPath("userData"), theme);
+        settings.theme = theme; nativeTheme.themeSource = theme; updateWindowTheme();
       },
-    );
-    handle("series.extend", (id: string, input: { episodes: number; note?: string }) =>
-      engine().extendSeries(id, input),
-    );
-    handle("series.repeat", (id: string, input: { topic?: string }) => engine().nextEpisode(id, input));
-    handle("series.repeatOffer", (id: string) => engine().repeatOffer(id));
-    handle("series.status", (id: string) => engine().status(id));
-    handle("series.artifact", (seriesId: string, file: string) =>
-      artifact(seriesId, file),
-    );
-    handle("series.remove", async (id: string) => {
-      if (running.has(id)) throw new Error("Wait for this series’ job to finish");
-      await rm(path.join(settings.projectsDir, safeId(id, "series id")), {
-        recursive: true,
-        force: true,
-      });
-      stopEngineHost(); // the engine keeps open series in memory; the next call starts a fresh one
-      send("library", {});
+      async setNotifications(enabled) {
+        await saveNotifications(app.getPath("userData"), enabled);
+        settings.notifications = enabled;
+      },
     });
-
-    handle("stages.run", (seriesId: string, key?: string) =>
-      engine().runStage({ seriesId, key }),
-    );
-    handle("stages.approve", (seriesId: string, key: string, hash: string) =>
-      engine().approve({ seriesId, key }, hash),
-    );
-    handle("stages.reject", (seriesId: string, key: string, feedback: string) =>
-      engine().reject({ seriesId, key }, feedback),
-    );
-    handle("stages.cancel", (jobId: string) => engine().cancel(jobId));
-
-    handle("episode.media", (seriesId: string, episodeId: string) =>
-      episodeMedia(seriesId, episodeId),
-    );
-    handle("episode.inspect", (seriesId: string, episodeId: string) => engine().inspectPreview({ seriesId, episodeId }));
-    handle("characters.list", (seriesId: string) => engine().listCharacters(seriesId));
-    handle("characters.save", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; sceneHash: string }) =>
-      engine().saveCharacter({ seriesId, episodeId, shotId }, choice));
-    handle("characters.apply", (seriesId: string, episodeId: string, shotId: string, choice: { castId: string; version: string; sceneHash: string }) =>
-      engine().applyCharacter({ seriesId, episodeId, shotId }, choice));
-    handle("episode.labelEditor", (seriesId: string, episodeId: string, shotId: string) => engine().labelEditor({ seriesId, episodeId, shotId }));
-    handle("episode.previewLabelEdit", async (seriesId: string, episodeId: string, shotId: string, input: { sceneHash: string; labelId: string; text: string }) => {
-      const result = await engine().previewLabelEdit({ seriesId, episodeId, shotId }, input);
-      const url = (file: string) => versionedUrl(path.join(settings.projectsDir, safeId(seriesId, "series id"), file));
-      return { ...result, before: await Promise.all(result.before.map(url)), after: await Promise.all(result.after.map(url)) };
-    });
-    const edit = async (method: "applyLabelEdit" | "undoLabelEdit", seriesId: string, episodeId: string, shotId: string, id: string) => {
-      await engine()[method]({ seriesId, episodeId, shotId }, id);
-      send("library", { seriesId });
-    };
-    handle("episode.applyLabelEdit", (seriesId: string, episodeId: string, shotId: string, id: string) => edit("applyLabelEdit", seriesId, episodeId, shotId, id));
-    handle("episode.undoLabelEdit", (seriesId: string, episodeId: string, shotId: string, id: string) => edit("undoLabelEdit", seriesId, episodeId, shotId, id));
-    handle("episode.renderPreview", (seriesId: string, episodeId: string) => engine().renderPreview({ seriesId, episodeId }));
-    handle("episode.review", (seriesId: string, episodeId: string) => engine().reviewEpisode({ seriesId, episodeId }, { repair: false }));
-    handle(
-      "episode.regenerateShot",
-      (seriesId: string, episodeId: string, shotId: string, feedback?: string) =>
-        engine().regenerateShot({ seriesId, episodeId, shotId }, feedback),
-    );
-
-    handle("publish.save", (seriesId: string, episodeId: string, kit: PublishKit) =>
-      engine().savePublish({ seriesId, episodeId }, kit),
-    );
-    handle("publish.rewrite", (seriesId: string, episodeId: string, note?: string) =>
-      engine().rewritePublish({ seriesId, episodeId }, note),
-    );
-    handle(
-      "publish.setThumbnail",
-      (seriesId: string, episodeId: string, choice: ThumbnailChoice) =>
-        engine().setThumbnail({ seriesId, episodeId }, choice),
-    );
-    handle("publish.setDefaults", (seriesId: string, defaults: Partial<PublishDefaults>) =>
-      engine().setPublishDefaults(seriesId, defaults),
-    );
-    handle("publish.openStudio", () => shell.openExternal(YOUTUBE_UPLOAD_URL));
-
-    nativeTheme.on("updated", () => {
-      applyChrome();
-      send("settings", settings);
-    });
-    applyChrome();
-    createWindow();
-
-    app.on("activate", () => {
-      if (BrowserWindow.getAllWindows().length === 0) createWindow();
-    });
-    app.on("before-quit", () => { void codexAccount.cancel(); voiceModels.cancel(); stopEngineHost(); });
-  })
-  .catch((err) => {
-    dialog.showErrorBox(
-      "Moco could not start",
-      err instanceof Error ? err.message : String(err),
-    );
-    app.quit();
+    installMenu(sendCommand, projectsDir);
+    await createWindow();
+    app.on("activate", () => { if (!win) void createWindow().catch(console.error); });
+  }).catch(error => { console.error(error); app.quit(); });
+  app.on("second-instance", () => {
+    if (!win) void createWindow().catch(console.error);
+    else { if (win.isMinimized()) win.restore(); win.show(); win.focus(); }
   });
-
-app.on("window-all-closed", () => {
-  if (process.platform !== "darwin") app.quit();
-});
+  app.on("window-all-closed", () => { if (process.platform !== "darwin") app.quit(); });
+  app.on("before-quit", event => {
+    if (quitting) return;
+    event.preventDefault(); void requestQuit();
+  });
+}

@@ -1,0 +1,115 @@
+{
+  "zonos": {
+    "repo": "Zyphra/Zonos-v0.1-transformer",
+    "revision": "9d8331fc49cb5ba8aad2bb56cafd809c66598f4e",
+    "license": "Apache-2.0",
+    "files": {
+      "README.md": {
+        "sha256": "e78a5b532c24b4b044d290877b9be9361cca4aa945eedced00e53add83624a67",
+        "size": 5511
+      },
+      "config.json": {
+        "sha256": "cd4b7a17bd62a04d19b7a8c92e554f24980fc74b5fb7f51f467f212614d986e9",
+        "size": 2520
+      },
+      "model.safetensors": {
+        "sha256": "4ac68319d6b8c1b29b94b8801ca41a93a5fc458f4b1d4bbbe5045b2ee77efcf0",
+        "size": 3248848864
+      }
+    },
+    "code": {
+      "revision": "bc40d98e1e1ab54fc65c483be127a90e3c7c0645",
+      "url": "https://codeload.github.com/Zyphra/Zonos/zip/bc40d98e1e1ab54fc65c483be127a90e3c7c0645",
+      "sha256": "71101d219acf32279c4c010125fb083e67fc00d6208f735063405b2589ae82e8"
+    }
+  },
+  "speaker": {
+    "repo": "Zyphra/Zonos-v0.1-speaker-embedding",
+    "revision": "9fe3dbdc3c703a8cf7141b2d0f550f6d55f67260",
+    "license": "Apache-2.0",
+    "files": {
+      "README.md": {
+        "sha256": "bcf1e92ae951e6b6dce62fcc2b6a48fc708698e0b16a184b8e13dbe87e7c9341",
+        "size": 697
+      },
+      "ResNet293_SimAM_ASP_base.pt": {
+        "sha256": "9f02677cd204f91e228f9ec344b7262749a9ab80b9848a7e0452e198d629a65d",
+        "size": 396513742
+      },
+      "ResNet293_SimAM_ASP_base_LDA-128.pt": {
+        "sha256": "383d4289dacaeac44386716ef15f7a1de6ff069d2a07ec1e933526eef5bd0084",
+        "size": 264512
+      }
+    }
+  },
+  "dac": {
+    "repo": "descript/dac_44khz",
+    "revision": "c1bc521685adf9cfe247bc39a5ca58917eda1ac4",
+    "license": "MIT",
+    "files": {
+      "README.md": {
+        "sha256": "6b1db50f4974b1544fb795491b6fd57a20320ff17686565c50a08407f06075b1",
+        "size": 5198
+      },
+      "config.json": {
+        "sha256": "4eb55fb9af1990b8d608184ad29b70e358589719af7ea8d3c06998f7c2264a64",
+        "size": 541
+      },
+      "preprocessor_config.json": {
+        "sha256": "c7d295758ce5777d6d88fef1996e94adc8ef3e2237ddfc5ecc24d1407aaddd7d",
+        "size": 206
+      },
+      "model.safetensors": {
+        "sha256": "6128ebff483a41422b0164d079a3773b0d8d82e64c4293d775994cbf8baf913a",
+        "size": 306507276
+      }
+    }
+  },
+  "dia": {
+    "repo": "nari-labs/Dia-1.6B-0626",
+    "revision": "ef2795fcc29c5abe6ffc91fd33808588b49bbc66",
+    "license": "Apache-2.0",
+    "files": {
+      "README.md": {
+        "sha256": "f32e9386e5896961ac54bb7358d41737c13f0bc7025ab084a64923a1620e7707",
+        "size": 8545
+      },
+      "config.json": {
+        "sha256": "4f4e9c50e6898fa79d6fe16e9991bebef07a4d3dd6926eee5eb7f7e39c88e04f",
+        "size": 1396
+      },
+      "generation_config.json": {
+        "sha256": "df7c1f7e4dc1c3e35811b7b2e49abd89d8a8b9599ec732eb6b0d17d678548ac4",
+        "size": 238
+      },
+      "model.safetensors.index.json": {
+        "sha256": "89664ffd667582a41e71c9aa1a4ba9de8187ec9dcd1e7711d97ec57d6e32dec5",
+        "size": 30833
+      },
+      "model-00001-of-00002.safetensors": {
+        "sha256": "9cf8f82d9f87d408f5da9cc0d73a3e9c4d9ca3633a4df3be4d283277b7ff1b1a",
+        "size": 4993046400
+      },
+      "model-00002-of-00002.safetensors": {
+        "sha256": "54bf3a47ac13e28ba6193659d57bc63a46875685b211b071f782c32efc834343",
+        "size": 1451637544
+      },
+      "preprocessor_config.json": {
+        "sha256": "7dfa85b765a7c5b3fb3907abf43ece88cd9edcbf39402e3e32e056b3275e5433",
+        "size": 243
+      },
+      "special_tokens_map.json": {
+        "sha256": "4373f3b7455d5a34196fca520de10a0af2af9d7cc05f6177b4be73a8bcfb3f74",
+        "size": 277
+      },
+      "tokenizer_config.json": {
+        "sha256": "6c84315ff3c5214a5846bc3c08cb23fe01146906e4abf395519316732d602e64",
+        "size": 803
+      },
+      "audio_tokenizer_config.json": {
+        "sha256": "1552f8bdccdfe0a98a8e93f9eb369de315e66a07b1530eba0be41513e2ee8f5e",
+        "size": 98
+      }
+    }
+  }
+}

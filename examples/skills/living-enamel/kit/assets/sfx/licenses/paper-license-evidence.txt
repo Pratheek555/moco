@@ -1,0 +1,8 @@
+Pack: Various Paper Sound Effects
+Author: Luckius
+Primary source: https://opengameart.org/content/various-paper-sound-effects
+Retrieved: 2026-11-14
+Original page SHA-256: 589abf3cd34a6ef293916e9b0002f3e6695193f446348f78b73ae699333166eb
+
+Exact primary-page license field excerpt (inert HTML):
+field-name-field-art-licenses field-type-taxonomy-term-reference field-label-above"><div class="field-label">License(s):&nbsp;</div><div class="field-items"><div class="field-item even"><div class='license-icon'><a href='http://creativecommons.org/publicdomain/zero/1.0/' target='_blank'><img src='https://opengameart.org/sites/default/files/license_images/cc0.png' alt='' title=''><div class='license-name'>CC0</div></a></div></div></div></div><div class="field 

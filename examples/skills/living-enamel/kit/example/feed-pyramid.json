@@ -1,0 +1,20 @@
+{
+  "feed_short": true,
+  "voice": "bm_george",
+  "speed": 1.05,
+  "lead": 0.04,
+  "end_hold": 0.08,
+  "scene_gap": 0.12,
+  "sources": [
+    "https://www.nms.ac.uk/discover-catalogue/casing-stone-from-the-great-pyramid-of-giza",
+    "https://smarthistory.org/pyramid-of-khufu/"
+  ],
+  "note": "Layout study; source claims from the supplied pyramid research. Movement is illustrative. Generate and measure the real voice; 18s estimates in the drawing are not measured speech. Loop: Picture that ancient skyline, and remember: The Great Pyramid was once white.",
+  "scenes": [
+    {"id": "hook", "clauses": [{"spoken": "The Great Pyramid was once white."}]},
+    {"id": "casing", "clauses": [{"spoken": "Smooth limestone covered its rough stone core."}]},
+    {"id": "lost", "clauses": [{"spoken": "This outer layer disappeared over many years."}]},
+    {"id": "base", "clauses": [{"spoken": "Some original casing still survives at the base."}]},
+    {"id": "replay", "clauses": [{"spoken": "Picture that ancient skyline, and remember:"}]}
+  ]
+}

@@ -6,9 +6,19 @@ packages:
 allowBuilds:
   esbuild: true
   electron: true
-  onnxruntime-node: false # its script only fetches Linux GPU libraries
   electron-winstaller: false # Windows installer helper; not needed to run or build on macOS
 
 minimumReleaseAgeExclude:
   - lucide-react@1.64.0
-  - asciify-engine@4.32.9
+  - '@anthropic-ai/claude-agent-sdk@0.3.322'
+
+# Moco deliberately uses the user's installed Claude Code and existing login.
+ignoredOptionalDependencies:
+  - '@anthropic-ai/claude-agent-sdk-win32-x64'
+  - '@anthropic-ai/claude-agent-sdk-win32-arm64'
+  - '@anthropic-ai/claude-agent-sdk-darwin-x64'
+  - '@anthropic-ai/claude-agent-sdk-darwin-arm64'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64'
+  - '@anthropic-ai/claude-agent-sdk-linux-x64-musl'
+  - '@anthropic-ai/claude-agent-sdk-linux-arm64-musl'

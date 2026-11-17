@@ -3,15 +3,18 @@ import tailwindcss from '@tailwindcss/vite';
 import react from '@vitejs/plugin-react';
 import { defineConfig } from 'electron-vite';
 
+// Coding tools sometimes inherit Electron's Node-only mode. Dev must start the desktop runtime.
+delete process.env.ELECTRON_RUN_AS_NODE;
+
 // Workspace packages are TypeScript source, so they're bundled rather than
 // treated as external node_modules.
-const workspace = ['@moco/ai', '@moco/audio', '@moco/engine', '@moco/kit', '@moco/learn', '@moco/spec', '@moco/renderer'];
+const workspace = ['@moco/agent'];
 
 export default defineConfig({
   main: {
     build: {
       externalizeDeps: { exclude: workspace },
-      // engine-host.ts is not bundled: Electron runs it from source (see the note at its top).
+      // agent-host.ts runs from source in a utility process.
       rolldownOptions: { input: { index: 'src/main/index.ts' } },
     },
   },
